@@ -1,0 +1,13 @@
+git+https://github.com/deepghs/waifuc.git@main
+git+https://github.com/narugo1992/HCP-Diffusion.git@main
+dghs-imgutils>=0.2.1
+gchar>=0.1.1
+pillow
+numpy
+scipy
+scikit-learn
+huggingface_hub>=0.14.0
+requests
+click>=7.0.0
+hbutils>=0.9.1
+di-toolkit
