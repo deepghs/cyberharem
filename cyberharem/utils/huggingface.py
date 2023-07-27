@@ -1,5 +1,8 @@
 import math
 
+from gchar.utils import get_requests_session
+from huggingface_hub import configure_http_backend
+
 _NUM_TAGS = [
     ('n<1K', 0, 1_000),
     ('1K<n<10K', 1_000, 10_000),
@@ -21,3 +24,6 @@ def number_to_tag(v):
             return tag
 
     raise ValueError(f'No tags found for {v!r}')
+
+
+configure_http_backend(get_requests_session)
