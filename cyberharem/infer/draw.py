@@ -61,9 +61,6 @@ def draw_images(
 
             'merge': {
                 'alpha': lora_alpha,
-                'group1': {
-
-                },
             },
         })
         logging.info(f'Infer based on {cfg_file!r}, with {cli_args!r}')

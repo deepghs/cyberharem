@@ -25,7 +25,7 @@ Safe For Word: {"yes" if draw.sfw else "no"}
     """).lstrip()
 
 
-def export_workdir(workdir: str, export_dir: str):
+def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2):
     name, steps = find_steps_in_workdir(workdir)
     logging.info(f'Starting export trained artifacts of {name!r}, with steps: {steps!r}')
 
@@ -39,7 +39,7 @@ def export_workdir(workdir: str, export_dir: str):
         preview_dir = os.path.join(step_dir, 'previews')
         os.makedirs(preview_dir, exist_ok=True)
 
-        drawings = draw_with_workdir(workdir, model_steps=step)
+        drawings = draw_with_workdir(workdir, model_steps=step, n_repeats=n_repeats)
         for draw in drawings:
             draw.image.save(os.path.join(preview_dir, f'{draw.name}.png'))
             with open(os.path.join(preview_dir, f'{draw.name}_info.txt'), 'w', encoding='utf-8') as f:

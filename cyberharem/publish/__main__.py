@@ -31,7 +31,9 @@ def cli():
               help='Repository to publish to.', show_default=True)
 @click.option('--revision', '-R', 'revision', type=str, default='main',
               help='Revision for pushing the model.', show_default=True)
-def huggingface(workdir: str, repository, revision):
+@click.option('-n', '--n_repeats', 'n_repeats', type=int, default=2,
+              help='N Repeats for text encoder', show_default=True)
+def huggingface(workdir: str, repository, revision, n_repeats):
     logging.try_init_root(logging.INFO)
     name, _ = find_steps_in_workdir(workdir)
     repository = repository or f'CyberHarem/{name}'
@@ -41,7 +43,7 @@ def huggingface(workdir: str, repository, revision):
     hf_client.create_repo(repo_id=repository, repo_type='model', exist_ok=True)
 
     with TemporaryDirectory() as td:
-        export_workdir(workdir, td)
+        export_workdir(workdir, td, n_repeats)
 
         try:
             hf_client.repo_info(repo_id=repository, repo_type='dataset')
