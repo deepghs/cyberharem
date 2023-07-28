@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import List, Union
 
 import yaml
+from imgutils.detect import detect_censors
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -16,7 +17,6 @@ from PIL import Image
 from hbutils.system import TemporaryDirectory
 from hcpdiff import Visualizer
 from hcpdiff.utils import load_config_with_cli
-from imgutils.validate import anime_rating
 
 from ..utils import data_to_cli_args
 
@@ -143,7 +143,7 @@ def draw_with_workdir(
 
             retval.append(Drawing(
                 pname, prompt, neg_prompt, seed,
-                sfw=sfw and anime_rating(img)[0] != 'r18',
+                sfw=sfw and (len(detect_censors(img)) == 0),
                 width=width, height=height, gscale=gscale, steps=infer_steps,
                 image=img
             ))
