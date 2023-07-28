@@ -20,6 +20,7 @@ _BLACKLISTED_WORDS = [
     'penis', 'pussy', 'vagina', 'clitoris', 'nipple', 'nipples',
     'looking', 'jacket', 'sleeves', 'clothes', 'shirt',
     'glove', 'gloves', 'mask', 'masks', 'coat', 'coats', 'frill', 'frills',
+    'costume', 'costumes', 'pant', 'pants',
 ]
 
 
