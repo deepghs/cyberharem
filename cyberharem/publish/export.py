@@ -12,7 +12,7 @@ from ..dataset.tags import sort_draw_names
 from ..infer.draw import draw_with_workdir, Drawing
 
 
-def _make_preview_info(draw: Drawing):
+def _make_preview_info(draw: Drawing, n_repeats: int = 2):
     return dedent(f"""
 Prompt: {draw.prompt}
 Neg Prompt: {draw.neg_prompt}
@@ -20,6 +20,7 @@ Width: {draw.width}
 Height: {draw.height}
 Guidance Scale: {draw.gscale}
 Infer Steps: {draw.steps}
+N Repeats: {n_repeats}
 Seed: {draw.seed}
 Safe For Word: {"yes" if draw.sfw else "no"}
     """).lstrip()
@@ -43,7 +44,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2):
         for draw in drawings:
             draw.image.save(os.path.join(preview_dir, f'{draw.name}.png'))
             with open(os.path.join(preview_dir, f'{draw.name}_info.txt'), 'w', encoding='utf-8') as f:
-                print(_make_preview_info(draw), file=f)
+                print(_make_preview_info(draw, n_repeats), file=f)
             d_names.add(draw.name)
             all_drawings[(draw.name, step)] = draw
 
@@ -66,6 +67,11 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2):
         }, f, ensure_ascii=False, indent=4)
     with open(os.path.join(export_dir, 'README.md'), 'w', encoding='utf-8') as f:
         print(f'# Lora of {name}', file=f)
+        print('', file=f)
+
+        print('This model is trained with [HCP-Diffusion](https://github.com/7eu7d7/HCP-Diffusion). '
+              'And the auto-training framework is maintained by '
+              '[DeepGHS Team](https://huggingface.co/deepghs).', file=f)
         print('', file=f)
 
         print(f'After downloading the pt and safetensors files for the specified step, '
