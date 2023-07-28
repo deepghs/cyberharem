@@ -1223,3 +1223,4 @@ fabric.properties
 /YOLOv8
 /cfgs
 /prompt_tuning_template
+/output
