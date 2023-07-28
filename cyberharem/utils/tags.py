@@ -18,7 +18,8 @@ _BLACKLISTED_WORDS = [
     'thighhighs', 'pantyhose', 'legwear', 'trousers', 'shorts',
     'bra', 'pantsu', 'panty', 'panties', 'weapon', 'weapons', 'armor',
     'penis', 'pussy', 'vagina', 'clitoris', 'nipple', 'nipples',
-    'looking', 'jacket', 'sleeves', 'clothes', 'shirt', 'glove', 'gloves', 'mask', 'masks', 'coat', 'coats',
+    'looking', 'jacket', 'sleeves', 'clothes', 'shirt',
+    'glove', 'gloves', 'mask', 'masks', 'coat', 'coats', 'frill', 'frills',
 ]
 
 
