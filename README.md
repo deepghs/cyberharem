@@ -2,4 +2,29 @@
 
 Cyber Harem of All the Waifus in Games, Mua~
 
+## Train A PLora
+
+```python
+from ditk import logging
+
+from cyberharem.train import train_plora
+
+if __name__ == '__main__':
+    logging.try_init_root(logging.INFO)
+    train_plora(
+        'amiya',
+    )
+
+```
+
+The experiment directory will be at `runs/amiya_arknights`
+
+## Publish the Trained Model
+
+```shell
+python -m cyberharem.publish huggingface -w runs/amiya_arknights
+```
+
+The model and preview images will be deployed to huggingface repo `CyberHarem/amiya_arknights`.
+
 
