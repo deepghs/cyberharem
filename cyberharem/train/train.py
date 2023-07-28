@@ -1,6 +1,6 @@
 import logging
 import os.path
-from typing import Optional
+from typing import Optional, Tuple
 
 from hbutils.system import TemporaryDirectory
 from hcpdiff.train_ac import Trainer
@@ -18,9 +18,9 @@ def train_plora(
         source: str, name: Optional[str] = None, steps: int = 1000, save_per_steps: int = 100,
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
-        cfg_file: str = _DEFAULT_TRAIN_CFG, single_card: bool = True
+        cfg_file: str = _DEFAULT_TRAIN_CFG, single_card: bool = True, dataset_size: Tuple[int, int] = (512, 704),
 ):
-    with load_dataset_for_character(source) as (ch, ds_dir):
+    with load_dataset_for_character(source, dataset_size) as (ch, ds_dir):
         if ch is None:
             if name is None:
                 raise ValueError(f'Name should be specified when using custom source - {source!r}.')

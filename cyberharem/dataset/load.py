@@ -14,7 +14,8 @@ from ..utils import get_hf_fs, get_ch_name
 
 
 @contextmanager
-def load_dataset_for_character(source) -> ContextManager[Tuple[Optional[Character], str]]:
+def load_dataset_for_character(source, size: Tuple[int, int] = (512, 704)) \
+        -> ContextManager[Tuple[Optional[Character], str]]:
     if os.path.exists(source):
         if os.path.isdir(source):
             logging.info(f'Dataset directory {source!r} loaded.')
@@ -39,9 +40,10 @@ def load_dataset_for_character(source) -> ContextManager[Tuple[Optional[Characte
                 repo = f'CyberHarem/{get_ch_name(source)}'
 
         hf_fs = get_hf_fs()
-        if hf_fs.exists(f'datasets/{repo}/dataset-512x704.zip'):
+        width, height = size
+        if hf_fs.exists(f'datasets/{repo}/dataset-{width}x{height}.zip'):
             logging.info(f'Online dataset {repo!r} founded.')
-            zip_url = hf_hub_url(repo_id=repo, repo_type='dataset', filename='dataset-512x704.zip')
+            zip_url = hf_hub_url(repo_id=repo, repo_type='dataset', filename=f'dataset-{width}x{height}.zip')
             with TemporaryDirectory() as dltmp:
                 zip_file = os.path.join(dltmp, 'dataset.zip')
                 download_file(zip_url, zip_file, desc=f'{repo}/{urlsplit(zip_url).filename}')
