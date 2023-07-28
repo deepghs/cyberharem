@@ -1,7 +1,8 @@
 import logging
 import os.path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
+from gchar.games.base import Character
 from hbutils.system import TemporaryDirectory
 from hcpdiff.train_ac import Trainer
 from hcpdiff.train_ac_single import TrainerSingleCard
@@ -15,7 +16,7 @@ _DEFAULT_TRAIN_CFG = 'cfgs/train/examples/lora_anime_character.yaml'
 
 
 def train_plora(
-        source: str, name: Optional[str] = None, steps: int = 1000, save_per_steps: int = 100,
+        source: Union[str, Character], name: Optional[str] = None, steps: int = 1000, save_per_steps: int = 100,
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
         cfg_file: str = _DEFAULT_TRAIN_CFG, single_card: bool = True, dataset_size: Tuple[int, int] = (512, 704),

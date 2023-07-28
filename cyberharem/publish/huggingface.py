@@ -12,7 +12,7 @@ from .steps import find_steps_in_workdir
 from ..utils import get_hf_client
 
 
-def deploy_to_huggingface(workdir: str, repository, revision, n_repeats):
+def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main', n_repeats: int = 2):
     name, _ = find_steps_in_workdir(workdir)
     repository = repository or f'CyberHarem/{name}'
 

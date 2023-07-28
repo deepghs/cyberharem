@@ -16,7 +16,7 @@ from ..utils import get_hf_fs, get_ch_name
 @contextmanager
 def load_dataset_for_character(source, size: Tuple[int, int] = (512, 704)) \
         -> ContextManager[Tuple[Optional[Character], str]]:
-    if os.path.exists(source):
+    if isinstance(source, str) and os.path.exists(source):
         if os.path.isdir(source):
             logging.info(f'Dataset directory {source!r} loaded.')
             yield None, source
