@@ -1,5 +1,7 @@
 import json
 import os.path
+import random
+from typing import List
 
 from .load import load_dataset_for_character
 from ..utils import load_tags_from_directory, get_ch_name, repr_tags
@@ -96,7 +98,7 @@ def save_recommended_tags(source, name: str = None, workdir: str = None):
                     'name': tags_name,
                     'prompt': pos_prompt,
                     'neg_prompt': neg_prompt,
-                    'seed': None,
+                    'seed': random.randint(0, 1 << 31),
                     'sfw': True,
                 }, f, indent=4, ensure_ascii=False)
 
@@ -113,3 +115,14 @@ def save_recommended_tags(source, name: str = None, workdir: str = None):
                     'seed': seed,
                     'sfw': is_sfw,
                 }, f, indent=4, ensure_ascii=False)
+
+
+def sort_draw_names(names: List[str]) -> List[str]:
+    vs = []
+    for name in names:
+        if name.startswith('pattern_'):
+            vs.append((0, int(name.split('_')[1]), name))
+        else:
+            vs.append((1, name, name))
+
+    return [item[2] for item in sorted(vs)]

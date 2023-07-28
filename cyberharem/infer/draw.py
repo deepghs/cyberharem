@@ -96,7 +96,7 @@ def draw_images(
 
 
 @dataclass
-class DrawnImages:
+class Drawing:
     name: str
     prompt: str
     neg_prompt: str
@@ -144,7 +144,7 @@ def draw_with_workdir(
             img = Image.open(img_file)
             img.load()
 
-            retval.append(DrawnImages(
+            retval.append(Drawing(
                 pname, prompt, neg_prompt, seed,
                 sfw=sfw and anime_rating(img)[0] != 'r18',
                 width=width, height=height, gscale=gscale, steps=infer_steps,

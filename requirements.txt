@@ -12,3 +12,4 @@ click>=7.0.0
 hbutils>=0.9.1
 di-toolkit
 tensorboard
+tabulate

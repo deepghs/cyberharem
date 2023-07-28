@@ -1,0 +1,108 @@
+import json
+import logging
+import os.path
+import shutil
+from textwrap import dedent
+
+import pandas as pd
+
+from .convert import convert_to_webui_lora
+from .steps import find_steps_in_workdir
+from ..dataset.tags import sort_draw_names
+from ..infer.draw import draw_with_workdir, Drawing
+
+
+def _make_preview_info(draw: Drawing):
+    return dedent(f"""
+Prompt: {draw.prompt}
+Neg Prompt: {draw.neg_prompt}
+Width: {draw.width}
+Height: {draw.height}
+Guidance Scale: {draw.gscale}
+Infer Steps: {draw.steps}
+Seed: {draw.seed}
+Safe For Word: {"yes" if draw.sfw else "no"}
+    """).lstrip()
+
+
+def export_workdir(workdir: str, export_dir: str):
+    name, steps = find_steps_in_workdir(workdir)
+    logging.info(f'Starting export trained artifacts of {name!r}, with steps: {steps!r}')
+
+    d_names = set()
+    all_drawings = {}
+    for step in steps:
+        logging.info(f'Exporting for {name}-{step} ...')
+        step_dir = os.path.join(export_dir, f'{step}')
+        os.makedirs(step_dir, exist_ok=True)
+
+        preview_dir = os.path.join(step_dir, 'previews')
+        os.makedirs(preview_dir, exist_ok=True)
+
+        drawings = draw_with_workdir(workdir, model_steps=step)
+        for draw in drawings:
+            draw.image.save(os.path.join(preview_dir, f'{draw.name}.png'))
+            with open(os.path.join(preview_dir, f'{draw.name}_info.txt'), 'w', encoding='utf-8') as f:
+                print(_make_preview_info(draw), file=f)
+            d_names.add(draw.name)
+            all_drawings[(draw.name, step)] = draw
+
+        pt_file = os.path.join(workdir, 'ckpts', f'{name}-{step}.pt')
+        unet_file = os.path.join(workdir, 'ckpts', f'unet-{step}.safetensors')
+        text_encoder_file = os.path.join(workdir, 'ckpts', f'text_encoder-{step}.safetensors')
+        raw_dir = os.path.join(step_dir, 'raw')
+        os.makedirs(raw_dir, exist_ok=True)
+        shutil.copyfile(pt_file, os.path.join(raw_dir, os.path.basename(pt_file)))
+        shutil.copyfile(unet_file, os.path.join(raw_dir, os.path.basename(unet_file)))
+        shutil.copyfile(text_encoder_file, os.path.join(raw_dir, os.path.basename(text_encoder_file)))
+
+        shutil.copyfile(pt_file, os.path.join(step_dir, f'{name}.pt'))
+        convert_to_webui_lora(unet_file, text_encoder_file, os.path.join(step_dir, f'{name}.safetensors'))
+
+    with open(os.path.join(export_dir, 'meta.json'), 'w', encoding='utf-8') as f:
+        json.dump({
+            'name': name,
+            'steps': steps,
+        }, f, ensure_ascii=False, indent=4)
+    with open(os.path.join(export_dir, 'README.md'), 'w', encoding='utf-8') as f:
+        print(f'# Lora of {name}', file=f)
+        print('', file=f)
+
+        print(f'After downloading the pt and safetensors files for the specified step, '
+              f'you need to use them simultaneously. The pt file will be used as an embedding, '
+              f'while the safetensors file will be loaded for Lora.', file=f)
+        print('', file=f)
+        print(f'For example, if you want to use the model from step {steps[-1]}, '
+              f'you need to download `{steps[-1]}/{name}.pt` as the embedding and '
+              f'`{steps[-1]}/{name}.safetensors` for loading Lora. '
+              f'By using both files together, you can generate images for the desired characters.', file=f)
+        print('', file=f)
+
+        print(f'**The trigger word is `{name}`.**', file=f)
+        print('', file=f)
+
+        print(f'These are available steps:', file=f)
+        print('', file=f)
+
+        d_names = sort_draw_names(list(d_names))
+        columns = ['steps', *d_names]
+        t_data = []
+
+        for step in steps[::-1]:
+            d_mds = []
+            for dname in d_names:
+                file = os.path.join(str(step), 'previews', f'{dname}.png')
+                if (dname, step) in all_drawings:
+                    draw = all_drawings[(dname, step)]
+                    if draw.sfw:
+                        d_mds.append(f'![{dname}-{step}]({file})')
+                    else:
+                        d_mds.append(f'[<NSFW, click to see>]({file})')
+                else:
+                    d_mds.append('')
+
+            t_data.append((f'[{step}]({step})', *d_mds))
+
+        df = pd.DataFrame(columns=columns, data=t_data)
+        print(df.to_markdown(index=False), file=f)
+        print('', file=f)
