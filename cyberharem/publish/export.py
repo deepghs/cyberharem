@@ -2,6 +2,7 @@ import json
 import logging
 import os.path
 import shutil
+import zipfile
 from textwrap import dedent
 
 import pandas as pd
@@ -59,6 +60,9 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2):
 
         shutil.copyfile(pt_file, os.path.join(step_dir, f'{name}.pt'))
         convert_to_webui_lora(unet_file, text_encoder_file, os.path.join(step_dir, f'{name}.safetensors'))
+        with zipfile.ZipFile(os.path.join(step_dir, f'{name}.zip'), 'w') as zf:
+            zf.write(os.path.join(step_dir, f'{name}.pt'), f'{name}.pt')
+            zf.write(os.path.join(step_dir, f'{name}.safetensors'), f'{name}.safetensors')
 
     with open(os.path.join(export_dir, 'meta.json'), 'w', encoding='utf-8') as f:
         json.dump({
@@ -91,7 +95,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2):
         print('', file=f)
 
         d_names = sort_draw_names(list(d_names))
-        columns = ['steps', *d_names]
+        columns = ['Steps', *d_names, 'Download']
         t_data = []
 
         for step in steps[::-1]:
@@ -107,7 +111,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2):
                 else:
                     d_mds.append('')
 
-            t_data.append((f'[{step}]({step})', *d_mds))
+            t_data.append((str(step), *d_mds, f'[Download]({step}/{name}.zip)'))
 
         df = pd.DataFrame(columns=columns, data=t_data)
         print(df.to_markdown(index=False), file=f)
