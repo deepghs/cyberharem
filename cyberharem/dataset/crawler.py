@@ -9,14 +9,14 @@ from gchar.games import get_character
 from gchar.games.base import Character
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
-from huggingface_hub import CommitOperationAdd, HfApi
+from huggingface_hub import CommitOperationAdd
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
 
-from ..utils import number_to_tag
+from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client
 
 
 def get_source(source) -> BaseDataSource:
@@ -80,8 +80,8 @@ _DEFAULT_RESOLUTIONS = {
 
 
 def crawl_dataset_to_huggingface(
-        source: Union[str, Character, BaseDataSource], repository: str, name: Optional[str] = None,
-        limit: Optional[int] = 200, min_images: int = 10,
+        source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
+        name: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
         resolutions: Mapping[str, Union[Tuple[int, int], List[BaseAction]]] = None,
         no_r18: bool = False, bg_color: str = 'white', no_character_tags: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
@@ -90,8 +90,16 @@ def crawl_dataset_to_huggingface(
         if isinstance(source, str):
             source = get_character(source)
         name = f'{source.enname} ({source.__official_name__})'
-    elif name is None:
-        raise ValueError('Name must be specified when source is not str or character.')
+
+        if not repository:
+            repository = f'CyberHarem/{get_ch_name(source)}'
+
+    else:
+        if name is None:
+            raise ValueError('Name must be specified when source is not str or character.')
+
+        if not repository:
+            repository = f'CyberHarem/{get_alphabet_name(name)}'
 
     origin_source = get_main_source(source, no_r18, bg_color, no_character_tags)
     with TemporaryDirectory() as td:
@@ -166,7 +174,7 @@ def crawl_dataset_to_huggingface(
 
         files_to_upload.append((readme_file, 'README.md'))
 
-        hf_client = HfApi(token=os.environ['HF_TOKEN'])
+        hf_client = get_hf_client()
         logging.info(f'Initialize repository {repository!r}')
         hf_client.create_repo(repo_id=repository, repo_type=repo_type, exist_ok=True)
 

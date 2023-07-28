@@ -1,0 +1,115 @@
+import json
+import os.path
+
+from .load import load_dataset_for_character
+from ..utils import load_tags_from_directory, get_ch_name, repr_tags
+
+basic_words = [
+    'masterpiece', 'best quality', 'highres',
+]
+
+neg_words = [
+    'lowres', 'bad anatomy', 'bad hands', 'text', 'error', 'missing fingers', 'extra digit', 'fewer digits',
+    'cropped', 'worst quality', 'low quality', 'normal quality', 'jpeg artifacts', 'signature', 'watermark',
+    'username', 'blurry', 'white border',
+]
+
+
+def _bikini_pos_words(generic_words, name, core_tags):
+    return [
+        *generic_words,
+        ('night', 1.1),
+        ('starry sky', 1.1),
+        'beach',
+        'beautiful detailed sky',
+        ('extremely detailed background', 1.2),
+        'mature',
+        (name, 1.1),
+        *core_tags.keys(),
+        ('standing', 1.1),
+        'looking at viewer',
+        ('bikini', 1.3),
+        'light smile',
+    ], 758691538, True
+
+
+def _nude_pos_words(generic_words, name, core_tags):
+    return [
+        *generic_words,
+        ('lyging on bed', 1.1),
+        ('extremely detailed background', 1.2),
+        ('nude', 1.4),
+        ('spread legs', 1.1),
+        ('arms up', 1.1),
+        'mature',
+        (name, 1.1),
+        *core_tags.keys(),
+        'nipples',
+        ('pussy', 1.15),
+        ('pussy juice', 1.3),
+        'looking at viewer',
+        ('embarrassed', 1.1),
+        'endured face',
+        'feet out of frame',
+    ], 465191133, False
+
+
+EXTRAS = [
+    ('bikini', _bikini_pos_words),
+    ('nude', _nude_pos_words),
+]
+
+
+def save_recommended_tags(source, name: str = None, workdir: str = None):
+    with load_dataset_for_character(source) as (ch, ds_dir):
+        if ch is None:
+            if name is None:
+                raise ValueError(f'Name should be specified when using custom source - {source!r}.')
+        else:
+            name = name or get_ch_name(ch)
+
+        workdir = workdir or os.path.join('runs', name)
+        tags_dir = os.path.join(workdir, 'rtags')
+        os.makedirs(tags_dir, exist_ok=True)
+
+        generic_words = []
+        generic_words.extend(basic_words)
+        if ch is not None:
+            if ch.gender == 'male':
+                generic_words.extend(['1boy', 'solo'])
+            elif ch.gender == 'female':
+                generic_words.extend(['1girl', 'solo'])
+            else:
+                generic_words.append('solo')
+        else:
+            generic_words.append('solo')
+
+        core_tags, feats = load_tags_from_directory(ds_dir)
+        for i, f in enumerate(feats, start=1):
+            pos_words = [*generic_words, (name, 1.1), *f.keys()]
+            pos_prompt = repr_tags(pos_words)
+            neg_prompt = repr_tags(neg_words)
+
+            tags_name = f'pattern_{i}'
+            with open(os.path.join(tags_dir, f'{tags_name}.json'), 'w', encoding='utf-8') as f:
+                json.dump({
+                    'name': tags_name,
+                    'prompt': pos_prompt,
+                    'neg_prompt': neg_prompt,
+                    'seed': None,
+                    'sfw': True,
+                }, f, indent=4, ensure_ascii=False)
+
+        for tags_name, _func in EXTRAS:
+            pos_words, seed, is_sfw = _func(generic_words, name, core_tags)
+            pos_prompt = repr_tags(pos_words)
+            neg_prompt = repr_tags(neg_words)
+
+            with open(os.path.join(tags_dir, f'{tags_name}.json'), 'w', encoding='utf-8') as f:
+                json.dump({
+                    'name': tags_name,
+                    'prompt': pos_prompt,
+                    'neg_prompt': neg_prompt,
+                    'seed': seed,
+                    'sfw': is_sfw,
+                }, f, indent=4, ensure_ascii=False)

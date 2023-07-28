@@ -2,7 +2,7 @@ import glob
 import os
 import pathlib
 import re
-from typing import Mapping, List, Tuple
+from typing import Mapping, List, Tuple, Union
 
 import numpy as np
 from sklearn.cluster import OPTICS
@@ -92,3 +92,23 @@ def load_tags_from_directory(directory: str, core_threshold: float = 0.25, thres
         feats.append({**{key: 1.0 for key in core_tags.keys()}, **wds})
 
     return core_tags, feats
+
+
+def repr_tags(tags: List[Union[str, Tuple[str, float]]]) -> str:
+    _exists = set()
+    _str_items = []
+    for item in tags:
+        if isinstance(item, tuple):
+            tag, weight = item
+        else:
+            tag, weight = item, None
+        if tag in _exists:
+            continue
+
+        if weight is not None:
+            _str_items.append(f'{{{tag}:{weight:.2f}}}')
+        else:
+            _str_items.append(tag)
+        _exists.add(tag)
+
+    return ', '.join(_str_items)

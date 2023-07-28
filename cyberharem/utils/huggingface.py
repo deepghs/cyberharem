@@ -1,7 +1,9 @@
 import math
+import os
+from functools import lru_cache
 
 from gchar.utils import get_requests_session
-from huggingface_hub import configure_http_backend
+from huggingface_hub import configure_http_backend, HfApi, HfFileSystem
 
 _NUM_TAGS = [
     ('n<1K', 0, 1_000),
@@ -27,3 +29,13 @@ def number_to_tag(v):
 
 
 configure_http_backend(get_requests_session)
+
+
+@lru_cache()
+def get_hf_client() -> HfApi:
+    return HfApi(token=os.environ.get('HF_TOKEN'))
+
+
+@lru_cache()
+def get_hf_fs() -> HfFileSystem:
+    return HfFileSystem(token=os.environ.get('HF_TOKEN'))
