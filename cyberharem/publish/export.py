@@ -35,6 +35,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
 
     d_names = set()
     all_drawings = {}
+    nsfw_count = {}
     for step in steps:
         logging.info(f'Exporting for {name}-{step} ...')
         step_dir = os.path.join(export_dir, f'{step}')
@@ -53,6 +54,8 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                 print(_make_preview_info(draw, n_repeats), file=f)
             d_names.add(draw.name)
             all_drawings[(draw.name, step)] = draw
+            if not draw.sfw:
+                nsfw_count[draw.name] = nsfw_count.get(draw.name, 0) + 1
 
         pt_file = os.path.join(workdir, 'ckpts', f'{name}-{step}.pt')
         unet_file = os.path.join(workdir, 'ckpts', f'unet-{step}.safetensors')
@@ -69,6 +72,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
             zf.write(os.path.join(step_dir, f'{name}.pt'), f'{name}.pt')
             zf.write(os.path.join(step_dir, f'{name}.safetensors'), f'{name}.safetensors')
 
+    nsfw_ratio = {name: count * 1.0 / len(steps) for name, count in nsfw_count.items()}
     with open(os.path.join(export_dir, 'meta.json'), 'w', encoding='utf-8') as f:
         json.dump({
             'name': name,
@@ -108,8 +112,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
             for dname in d_names:
                 file = os.path.join(str(step), 'previews', f'{dname}.png')
                 if (dname, step) in all_drawings:
-                    draw = all_drawings[(dname, step)]
-                    if draw.sfw:
+                    if nsfw_ratio[dname] < 0.35:
                         d_mds.append(f'![{dname}-{step}]({file})')
                     else:
                         d_mds.append(f'[<NSFW, click to see>]({file})')

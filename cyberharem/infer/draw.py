@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import List, Union
 
 import yaml
+from imgutils.detect import detect_censors
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -142,7 +143,7 @@ def draw_with_workdir(
 
             retval.append(Drawing(
                 pname, prompt, neg_prompt, seed,
-                sfw=sfw,
+                sfw=sfw and len(detect_censors(img, conf_threshold=0.45)) == 0,
                 width=width, height=height, gscale=gscale, steps=infer_steps,
                 image=img
             ))

@@ -192,4 +192,5 @@ def crawl_dataset_to_huggingface(
             commit_message=commit_message,
             repo_type=repo_type,
             revision=revision,
+            run_as_future=False,
         )
