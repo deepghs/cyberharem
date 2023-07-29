@@ -22,6 +22,7 @@ _BLACKLISTED_WORDS = [
     'glove', 'gloves', 'mask', 'masks', 'coat', 'coats', 'frill', 'frills',
     'costume', 'costumes', 'pant', 'pants', 'clothing', 'clothes', 'cutout',
     'collar', 'collars', 'uniform', 'uniforms', 'trim', 'trims', 'neckerchief', 'choker',
+    'kimono', 'holding',
 ]
 
 
