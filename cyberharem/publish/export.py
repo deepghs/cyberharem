@@ -10,6 +10,7 @@ import pandas as pd
 from .convert import convert_to_webui_lora
 from .steps import find_steps_in_workdir
 from ..dataset.tags import sort_draw_names
+from ..infer.draw import _DEFAULT_INFER_MODEL
 from ..infer.draw import draw_with_workdir, Drawing
 
 
@@ -27,7 +28,8 @@ Safe For Word: {"yes" if draw.sfw else "no"}
     """).lstrip()
 
 
-def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2):
+def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
+                   pretrained_model: str = _DEFAULT_INFER_MODEL):
     name, steps = find_steps_in_workdir(workdir)
     logging.info(f'Starting export trained artifacts of {name!r}, with steps: {steps!r}')
 
@@ -41,7 +43,10 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2):
         preview_dir = os.path.join(step_dir, 'previews')
         os.makedirs(preview_dir, exist_ok=True)
 
-        drawings = draw_with_workdir(workdir, model_steps=step, n_repeats=n_repeats)
+        drawings = draw_with_workdir(
+            workdir, model_steps=step, n_repeats=n_repeats,
+            pretrained_model=pretrained_model,
+        )
         for draw in drawings:
             draw.image.save(os.path.join(preview_dir, f'{draw.name}.png'))
             with open(os.path.join(preview_dir, f'{draw.name}_info.txt'), 'w', encoding='utf-8') as f:

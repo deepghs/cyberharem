@@ -20,13 +20,13 @@ from hcpdiff.utils import load_config_with_cli
 from ..utils import data_to_cli_args
 
 _DEFAULT_INFER_CFG_FILE = 'cfgs/infer/text2img_anime_lora.yaml'
-_DEFAULT_INFER_MODEl = 'stablediffusionapi/anything-v5'
+_DEFAULT_INFER_MODEL = 'stablediffusionapi/anything-v5'
 
 
 def draw_images(
         workdir: str, prompts: Union[str, List[str]], neg_prompts: Union[str, List[str]] = None,
         seeds: Union[int, List[str]] = None, emb_name: str = None, save_cfg: bool = True,
-        model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEl,
+        model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = 'output', cfg_file: str = _DEFAULT_INFER_CFG_FILE,
 ):
@@ -107,7 +107,7 @@ class Drawing:
 
 def draw_with_workdir(
         workdir: str, emb_name: str = None, save_cfg: bool = True,
-        model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEl,
+        model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
 ):
