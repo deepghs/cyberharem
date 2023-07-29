@@ -112,7 +112,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
             for dname in d_names:
                 file = os.path.join(str(step), 'previews', f'{dname}.png')
                 if (dname, step) in all_drawings:
-                    if nsfw_ratio[dname] < 0.35:
+                    if nsfw_ratio.get(dname, 0.0) < 0.35:
                         d_mds.append(f'![{dname}-{step}]({file})')
                     else:
                         d_mds.append(f'[<NSFW, click to see>]({file})')
