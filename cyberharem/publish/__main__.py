@@ -30,7 +30,7 @@ def cli():
               help='Pretrained model for preview drawing.', show_default=True)
 def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model):
     logging.try_init_root(logging.INFO)
-    deploy_to_huggingface(workdir, repository, revision, n_repeats)
+    deploy_to_huggingface(workdir, repository, revision, n_repeats, pretrained_model)
 
 
 if __name__ == '__main__':

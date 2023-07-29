@@ -9,10 +9,12 @@ from huggingface_hub.utils import RepositoryNotFoundError
 
 from .export import export_workdir
 from .steps import find_steps_in_workdir
+from ..infer.draw import _DEFAULT_INFER_MODEL
 from ..utils import get_hf_client
 
 
-def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main', n_repeats: int = 3):
+def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main', n_repeats: int = 3,
+                          pretrained_model: str = _DEFAULT_INFER_MODEL):
     name, _ = find_steps_in_workdir(workdir)
     repository = repository or f'CyberHarem/{name}'
 
@@ -21,7 +23,7 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
     hf_client.create_repo(repo_id=repository, repo_type='model', exist_ok=True)
 
     with TemporaryDirectory() as td:
-        export_workdir(workdir, td, n_repeats)
+        export_workdir(workdir, td, n_repeats, pretrained_model)
 
         try:
             hf_client.repo_info(repo_id=repository, repo_type='dataset')
