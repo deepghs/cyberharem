@@ -32,7 +32,7 @@ if __name__ == '__main__':
     logging.try_init_root(logging.INFO)
     train_plora(
         source='/path/to/dataset',
-        name='/trigger/word',
+        name='trigger_word',
         steps=1000,
         workdir='runs/trigger_word',
     )
