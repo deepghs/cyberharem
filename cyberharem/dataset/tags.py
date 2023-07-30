@@ -17,6 +17,14 @@ neg_words = [
 ]
 
 
+def _free_pos_words(generic_words, name, core_tags):
+    return [
+        *generic_words,
+        (name, 1.1),
+        *core_tags.keys(),
+    ], None, True
+
+
 def _bikini_pos_words(generic_words, name, core_tags):
     return [
         *generic_words,
@@ -57,6 +65,7 @@ def _nude_pos_words(generic_words, name, core_tags):
 
 
 EXTRAS = [
+    ('free', _free_pos_words),
     ('bikini', _bikini_pos_words),
     ('nude', _nude_pos_words),
 ]
