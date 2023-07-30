@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Optional
 
 import click
 from ditk import logging
@@ -19,11 +20,14 @@ def cli():
 @cli.command('retag', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Regenerate tags for given work directory.')
 @click.option('-w', '--workdir', 'workdir', type=click.Path(file_okay=False, exists=True), required=True,
               help='Work directory for experiment.', show_default=True)
-def retag(workdir):
+@click.option('-n', '--name', 'name', type=str, default=None,
+              help='Name of the character.', show_default=True)
+def retag(workdir, name: Optional[str] = None):
     logging.try_init_root(logging.INFO)
 
     from ..publish.steps import find_steps_in_workdir
-    name, _ = find_steps_in_workdir(workdir)
+    pt_name, _ = find_steps_in_workdir(workdir)
+    name = name or '_'.join(pt_name.split('_')[:-1])
 
     logging.info(f'Regenerate tags for {name!r}, on {workdir!r}.')
     save_recommended_tags(name, workdir=workdir)
