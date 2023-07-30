@@ -44,10 +44,16 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
         preview_dir = os.path.join(step_dir, 'previews')
         os.makedirs(preview_dir, exist_ok=True)
 
-        drawings = draw_with_workdir(
-            workdir, model_steps=step, n_repeats=n_repeats,
-            pretrained_model=pretrained_model,
-        )
+        while True:
+            try:
+                drawings = draw_with_workdir(
+                    workdir, model_steps=step, n_repeats=n_repeats,
+                    pretrained_model=pretrained_model,
+                )
+            except RuntimeError:
+                n_repeats += 1
+            else:
+                break
         for draw in drawings:
             draw.image.save(os.path.join(preview_dir, f'{draw.name}.png'))
             with open(os.path.join(preview_dir, f'{draw.name}_info.txt'), 'w', encoding='utf-8') as f:
