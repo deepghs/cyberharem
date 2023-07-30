@@ -25,7 +25,9 @@ def retag(workdir):
     from ..publish.steps import find_steps_in_workdir
     name, _ = find_steps_in_workdir(workdir)
 
+    logging.info(f'Regenerate tags for {name!r}, on {workdir!r}.')
     save_recommended_tags(name, workdir=workdir)
+    logging.info('Success!')
 
 
 if __name__ == '__main__':
