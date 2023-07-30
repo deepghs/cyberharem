@@ -121,7 +121,7 @@ def save_recommended_tags(source, name: str = None, workdir: str = None):
                     'name': tags_name,
                     'prompt': pos_prompt,
                     'neg_prompt': neg_prompt,
-                    'seed': seed,
+                    'seed': seed if seed is not None else random.randint(0, 1 << 31),
                     'sfw': is_sfw,
                 }, f, indent=4, ensure_ascii=False)
 
