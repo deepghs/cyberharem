@@ -26,3 +26,7 @@ def retag(workdir):
     name, _ = find_steps_in_workdir(workdir)
 
     save_recommended_tags(name, workdir=workdir)
+
+
+if __name__ == '__main__':
+    cli()
