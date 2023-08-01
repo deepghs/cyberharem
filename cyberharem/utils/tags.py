@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import pathlib
 import re
@@ -80,6 +81,7 @@ def load_tags_from_directory(directory: str, core_threshold: float = 0.25, thres
         sorted(zip(all_words, mf.tolist()), key=lambda x: (-x[1], x[0]))
     }
     core_tags = find_core_tags(all_wds, core_threshold, threshold)
+    logging.info(f'Core tags found: {core_tags!r}.')
 
     cluster = OPTICS(metric='cosine', min_samples=5, xi=0.01)
     cluster.fit(features)
@@ -93,10 +95,12 @@ def load_tags_from_directory(directory: str, core_threshold: float = 0.25, thres
             sorted(zip(all_words, mean_feat.tolist()), key=lambda x: (-x[1], x[0]))
             if value >= threshold
         }
-        feats.append({
+        pattern_tags = {
             **{key: 1.0 + value for key, value in sorted(core_tags.items(), key=lambda x: -x[1])},
             **{key: value for key, value in wds.items() if key not in core_tags}
-        })
+        }
+        feats.append(pattern_tags)
+        logging.info(f'Pattern {i} found: {pattern_tags!r}.')
 
     return core_tags, feats
 
