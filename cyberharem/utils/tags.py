@@ -93,7 +93,10 @@ def load_tags_from_directory(directory: str, core_threshold: float = 0.25, thres
             sorted(zip(all_words, mean_feat.tolist()), key=lambda x: (-x[1], x[0]))
             if value >= threshold
         }
-        feats.append({**{key: 1.0 for key in core_tags.keys()}, **wds})
+        feats.append({
+            **{key: 1.0 for key in core_tags.keys()},
+            **{key: value for key, value in wds.keys() if key not in core_tags}
+        })
 
     return core_tags, feats
 

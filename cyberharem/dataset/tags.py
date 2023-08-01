@@ -21,7 +21,7 @@ def _free_pos_words(generic_words, name, core_tags):
     return [
         *generic_words,
         (name, 1.1),
-        *core_tags.keys(),
+        *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], None, True
 
 
@@ -33,12 +33,11 @@ def _bikini_pos_words(generic_words, name, core_tags):
         'beach',
         'beautiful detailed sky',
         ('extremely detailed background', 1.2),
-        'mature',
         (name, 1.1),
-        *core_tags.keys(),
         ('standing', 1.1),
         'looking at viewer',
         ('bikini', 1.3),
+        *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
         'light smile',
     ], 758691538, True
 
@@ -53,7 +52,7 @@ def _nude_pos_words(generic_words, name, core_tags):
         ('arms up', 1.1),
         'mature',
         (name, 1.1),
-        *core_tags.keys(),
+        *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
         'nipples',
         ('pussy', 1.15),
         ('pussy juice', 1.3),
