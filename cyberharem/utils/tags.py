@@ -37,7 +37,7 @@ def _contains_blacklisted_word(tag: str):
     return any(word in _BLACKLISTED_WORDS for word in words)
 
 
-def find_core_tags(tags: Mapping[str, float], core_threshold: float = 0.25, threshold: float = 0.45) \
+def find_core_tags(tags: Mapping[str, float], core_threshold: float = 0.35, threshold: float = 0.45) \
         -> Mapping[str, float]:
     retval = {}
     for tag, score in sorted(tags.items(), key=lambda x: (-x[1], x[0])):
@@ -50,7 +50,7 @@ def find_core_tags(tags: Mapping[str, float], core_threshold: float = 0.25, thre
     return retval
 
 
-def load_tags_from_directory(directory: str, core_threshold: float = 0.55, threshold: float = 0.45) \
+def load_tags_from_directory(directory: str, core_threshold: float = 0.35, threshold: float = 0.45) \
         -> Tuple[Mapping[str, float], List[Mapping[str, float]]]:
     all_words = set()
     ids_, word_lists = [], []
