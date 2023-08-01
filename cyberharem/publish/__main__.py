@@ -18,8 +18,8 @@ def cli():
 
 
 @cli.command('huggingface', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish to huggingface')
-@click.option('-w', '--workdir', 'workdir', type=str, required=True,
-              help='Work directory of trained models.')
+@click.option('-w', '--workdir', 'workdir', type=click.Path(file_okay=False, exists=True), required=True,
+              help='Work directory for experiment.', show_default=True)
 @click.option('--repository', '-r', 'repository', type=str, default=None,
               help='Repository to publish to.', show_default=True)
 @click.option('--revision', '-R', 'revision', type=str, default='main',
