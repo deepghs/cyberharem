@@ -19,6 +19,7 @@ def train_plora(
         source: Union[str, Character], name: Optional[str] = None, steps: int = 1000, save_per_steps: int = 100,
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
+        unet_rank: float = 8, text_encoder_rank: float = 4,
         cfg_file: str = _DEFAULT_TRAIN_CFG, single_card: bool = True, dataset_size: Tuple[int, int] = (512, 704),
 ):
     with load_dataset_for_character(source, dataset_size) as (ch, ds_dir):
@@ -57,6 +58,8 @@ def train_plora(
                 'character_name': name,
                 'dataset_dir': ds_dir,
                 'exp_dir': workdir,
+                'unet_rank': unet_rank,
+                'text_encoder_rank': text_encoder_rank,
                 'tokenizer_pt': {
                     'emb_dir': embs_dir,
                 },
