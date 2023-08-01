@@ -50,7 +50,7 @@ def find_core_tags(tags: Mapping[str, float], core_threshold: float = 0.25, thre
     return retval
 
 
-def load_tags_from_directory(directory: str, core_threshold: float = 0.25, threshold: float = 0.45) \
+def load_tags_from_directory(directory: str, core_threshold: float = 0.55, threshold: float = 0.45) \
         -> Tuple[Mapping[str, float], List[Mapping[str, float]]]:
     all_words = set()
     ids_, word_lists = [], []
