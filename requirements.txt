@@ -13,3 +13,6 @@ hbutils>=0.9.1
 di-toolkit
 tensorboard
 tabulate
+markdown
+urlobject
+blurhash

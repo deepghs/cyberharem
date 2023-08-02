@@ -5,6 +5,7 @@ from ditk import logging
 from gchar.utils import GLOBAL_CONTEXT_SETTINGS
 from gchar.utils import print_version as _origin_print_version
 
+from .civitai import civitai_publish_from_hf
 from .huggingface import deploy_to_huggingface
 from ..infer.draw import _DEFAULT_INFER_MODEL
 
@@ -31,6 +32,20 @@ def cli():
 def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model):
     logging.try_init_root(logging.INFO)
     deploy_to_huggingface(workdir, repository, revision, n_repeats, pretrained_model)
+
+
+@cli.command('civitai', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish to huggingface')
+@click.option('--repository', '-r', 'repository', type=str, required=True,
+              help='Repository to publish from.', show_default=True)
+@click.option('--title', '-t', 'title', type=str, default=None,
+              help='Title of the civitai model.', show_default=True)
+@click.option('--steps', '-s', 'steps', type=int, default=1500,
+              help='Steps to deploy.', show_default=True)
+def civitai(repository, title, steps):
+    logging.try_init_root(logging.INFO)
+    model_id = civitai_publish_from_hf(repository, title)
+    url = f'https://civitai.com/models/{model_id}'
+    logging.info(f'Deploy success, model now can be seen at {url} .')
 
 
 if __name__ == '__main__':
