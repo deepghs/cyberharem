@@ -63,7 +63,7 @@ CommercialUseTyping = Literal['none', 'image', 'rent', 'sell']
 
 def civitai_create_model(
         name, description_md: str, tags: List[str],
-        commercial_use: CommercialUseTyping = 'image',
+        commercial_use: CommercialUseTyping = 'sell',
         allow_no_credit: bool = True, allow_derivatives: bool = True, allow_different_licence: bool = True,
         nsfw: bool = False, poi: bool = False,
         session=None
@@ -514,9 +514,17 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         model_desc_default = f"""
         ## How to Use This Model
         
-        Use them simultaneously. In this case, you need to download both `{pt_file}` and 
+        **USE THEM SIMULTANEOUSLY**. In this case, you need to download both `{pt_file}` and 
         `{lora_file}`, then **use `{pt_file}` as texture inversion embedding, and use
         `{lora_file}` as LoRA at the same time**.
+
+        **それらを同時に使用してください**。この場合、`{pt_file}`と`{lora_file}`の両方をダウンロード
+        する必要があります。`{pt_file}`をテクスチャ反転埋め込みとして使用し、同時に`{lora_file}`をLoRAとして使用してください。
+
+        **同时使用它们**。在这种情况下，您需要下载`{pt_file}`和`{lora_file}`这两个文件，然后将`{pt_file}`用作纹理反转嵌入，
+        同时使用`{lora_file}`作为LoRA。
+
+        (Translated with ChatGPT)
         
         The trigger word is `{trigger_word}`, and the recommended tags are `{', '.join(recommended_tags)}`.
         

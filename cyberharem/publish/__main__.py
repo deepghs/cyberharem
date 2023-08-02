@@ -43,7 +43,7 @@ def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model)
               help='Steps to deploy.', show_default=True)
 def civitai(repository, title, steps):
     logging.try_init_root(logging.INFO)
-    model_id = civitai_publish_from_hf(repository, title)
+    model_id = civitai_publish_from_hf(repository, title, step=steps)
     url = f'https://civitai.com/models/{model_id}'
     logging.info(f'Deploy success, model now can be seen at {url} .')
 
