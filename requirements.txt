@@ -18,3 +18,4 @@ urlobject
 blurhash
 dateparser
 backports.zoneinfo; python_version < '3.9'
+pycivitai

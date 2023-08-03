@@ -550,6 +550,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         session = session or get_civitai_session()
 
         model_desc_default = f"""
+        **NOTE: ALL CHARACTERS IN THE IMAGES ARE ADULTS.**
+
         ## How to Use This Model
 
         **USE THEM SIMULTANEOUSLY**. In this case, you need to download both `{pt_file}` and 
