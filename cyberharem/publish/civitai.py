@@ -591,7 +591,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
 
         Our model has been published on [huggingface repository - {repo}](https://huggingface.co/{repo}), where
         models of all the steps are saved. Also, we published the training dataset on 
-        [huggingface dataset - {repo}](https://huggingface.co/datasets/{repo}), which may be help to you.
+        [huggingface dataset - {repo}](https://huggingface.co/datasets/{repo}), which may be helpful to you.
 
         ## Why Not Just Using The Better-Selected Images
 
