@@ -468,7 +468,8 @@ def try_find_title(char_name, game_name):
 
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
                             version_name: str = 'v1.0', version_desc_md: str = None,
-                            step: int = 1500, draft: bool = False, publish_at=None, session=None):
+                            step: int = 1500, draft: bool = False, publish_at=None, safe_only: bool = False,
+                            session=None):
     if isinstance(source, Character):
         repo = f'CyberHarem/{get_ch_name(source)}'
     elif isinstance(source, str):
@@ -528,18 +529,19 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 'steps': int(info.get('Infer Steps')),
             }
             nsfw = (info.get('Safe For Word', info.get('Safe For Work')) or '').lower() != 'yes'
-            images.append((
-                1 if nsfw else 0,
-                0 if img_name.startswith('pattern_') else 1,
-                img_name,
-                (local_img_file, img_filename, meta)
-            ))
+            if not nsfw or not safe_only:
+                images.append((
+                    1 if nsfw else 0,
+                    0 if img_name.startswith('pattern_') else 1,
+                    img_name,
+                    (local_img_file, img_filename, meta)
+                ))
 
-            for ptag in info.get('Prompt').split(','):
-                ptag = ptag.strip()
-                tags_count[ptag] = tags_count.get(ptag, 0) + 1
-                if ptag not in tags_idx:
-                    tags_idx[ptag] = len(tags_idx)
+                for ptag in info.get('Prompt').split(','):
+                    ptag = ptag.strip()
+                    tags_count[ptag] = tags_count.get(ptag, 0) + 1
+                    if ptag not in tags_idx:
+                        tags_idx[ptag] = len(tags_idx)
 
         images = [item[-1] for item in sorted(images)]
         max_tag_cnt = max(tags_count.values())
