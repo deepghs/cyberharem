@@ -9,6 +9,7 @@ from typing import Optional, Tuple, List, Union
 import blurhash
 import numpy as np
 from gchar.games.base import Character
+from gchar.games.dispatch.access import GAME_CHARS
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
@@ -338,7 +339,7 @@ def civitai_upload_images(
             session, 'POST', 'https://civitai.com/api/trpc/post.addImage',
             json={
                 "json": {
-                    "type": "upload",
+                    "type": "image",
                     "index": index,
                     "uuid": str(uuid.uuid4()),
                     "name": filename,
@@ -428,6 +429,30 @@ def civiti_publish(model_id: int, model_version_id: int, session=None):
     resp.raise_for_status()
 
 
+def try_find_title(char_name, game_name):
+    try:
+        game_cls = GAME_CHARS[game_name.lower()]
+        ch = game_cls.get(char_name)
+        if ch:
+            names = []
+            if ch.enname:
+                names.append(str(ch.enname))
+            if ch.jpname:
+                names.append(str(ch.jpname))
+            if ch.cnname:
+                names.append(str(ch.cnname))
+            if hasattr(ch, 'krname') and ch.krname:
+                names.append(str(ch.krname))
+
+            return f"{'/'.join(names)} ({game_cls.__official_name__})"
+
+        else:
+            return None
+
+    except KeyError:
+        return None
+
+
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
                             version_name: str = 'v1.0', version_desc_md: str = None,
                             step: int = 1500, session=None):
@@ -494,7 +519,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 1 if nsfw else 0,
                 0 if img_name.startswith('pattern_') else 1,
                 img_name,
-                (local_img_file, img_file, meta)
+                (local_img_file, img_filename, meta)
             ))
 
             for ptag in info.get('Prompt').split(','):
@@ -560,7 +585,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         suggestions as they are highly valuable to us.
         """
         model_id, nsfw = civitai_create_model(
-            name=model_name or trigger_word.replace('_', ' '),
+            name=model_name or try_find_title(char_name, game_name) or trigger_word.replace('_', ' '),
             description_md=model_desc_md or model_desc_default,
             tags=[
                 game_name, f"{game_name} {char_name}",
