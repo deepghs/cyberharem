@@ -23,7 +23,7 @@ except (ModuleNotFoundError, ImportError):
 
 import markdown
 
-from ..utils import get_civitai_session, srequest, get_ch_name, get_hf_fs, download_file
+from ..utils import get_civitai_session, srequest, get_ch_name, get_hf_fs, download_file, parse_time
 
 
 def _norm(x, keep_space: bool = True):
@@ -402,9 +402,18 @@ def civitai_upload_images(
     resp.raise_for_status()
 
 
-def civiti_publish(model_id: int, model_version_id: int, session=None):
+def civiti_publish(model_id: int, model_version_id: int, publish_at=None, session=None):
+    try:
+        from zoneinfo import ZoneInfo
+    except (ImportError, ModuleNotFoundError):
+        from backports.zoneinfo import ZoneInfo
+
     session = session or get_civitai_session()
+    if publish_at is not None:
+        publish_at = parse_time(publish_at).astimezone(ZoneInfo('UTC')).isoformat()
+
     logging.info(f'Publishing model {model_id!r}\'s version {model_version_id!r} ...')
+
     resp = srequest(
         session, 'POST', 'https://civitai.com/api/trpc/model.publish',
         json={
@@ -413,13 +422,13 @@ def civiti_publish(model_id: int, model_version_id: int, session=None):
                 "versionIds": [
                     model_version_id
                 ],
-                "publishedAt": None,
+                "publishedAt": publish_at,
                 "authed": True
             },
             "meta": {
                 "values": {
                     "publishedAt": [
-                        "undefined"
+                        "undefined" if publish_at is None else "Date",
                     ]
                 }
             }
@@ -456,7 +465,7 @@ def try_find_title(char_name, game_name):
 
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
                             version_name: str = 'v1.0', version_desc_md: str = None,
-                            step: int = 1500, draft: bool = False, session=None):
+                            step: int = 1500, draft: bool = False, publish_at=None, session=None):
     if isinstance(source, Character):
         repo = f'CyberHarem/{get_ch_name(source)}'
     elif isinstance(source, str):
@@ -624,5 +633,5 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         if draft:
             logging.info(f'Draft of model {model_id!r} created.')
         else:
-            civiti_publish(model_id, version_id, session)
+            civiti_publish(model_id, version_id, publish_at, session)
         return civitai_get_model_info(model_id, session)['id']

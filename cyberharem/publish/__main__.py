@@ -43,9 +43,11 @@ def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model)
               help='Steps to deploy.', show_default=True)
 @click.option('--draft', '-d', 'draft', is_flag=True, type=bool, default=False,
               help='Only create draft without publishing.', show_default=True)
-def civitai(repository, title, steps, draft):
+@click.option('--time', '-T', 'publish_time', type=str, default=None,
+              help='Publish time, publish immediately when not given.', show_default=True)
+def civitai(repository, title, steps, draft, publish_time):
     logging.try_init_root(logging.INFO)
-    model_id = civitai_publish_from_hf(repository, title, step=steps, draft=draft)
+    model_id = civitai_publish_from_hf(repository, title, step=steps, draft=draft, publish_at=publish_time)
     url = f'https://civitai.com/models/{model_id}'
     if not draft:
         logging.info(f'Deploy success, model now can be seen at {url} .')
