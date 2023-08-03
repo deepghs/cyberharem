@@ -1,5 +1,6 @@
 import math
 import os
+from functools import partial
 
 from gchar.utils import get_requests_session
 from huggingface_hub import configure_http_backend, HfApi, HfFileSystem
@@ -27,7 +28,7 @@ def number_to_tag(v):
     raise ValueError(f'No tags found for {v!r}')
 
 
-configure_http_backend(get_requests_session)
+configure_http_backend(partial(get_requests_session, timeout=30))
 
 
 def get_hf_client() -> HfApi:
