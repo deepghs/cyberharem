@@ -456,7 +456,7 @@ def try_find_title(char_name, game_name):
 
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
                             version_name: str = 'v1.0', version_desc_md: str = None,
-                            step: int = 1500, session=None):
+                            step: int = 1500, draft: bool = False, session=None):
     if isinstance(source, Character):
         repo = f'CyberHarem/{get_ch_name(source)}'
     elif isinstance(source, str):
@@ -539,7 +539,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
 
         model_desc_default = f"""
         ## How to Use This Model
-        
+
         **USE THEM SIMULTANEOUSLY**. In this case, you need to download both `{pt_file}` and 
         `{lora_file}`, then **use `{pt_file}` as texture inversion embedding, and use
         `{lora_file}` as LoRA at the same time**.
@@ -551,16 +551,16 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         同时使用`{lora_file}`作为LoRA。
 
         (Translated with ChatGPT)
-        
+
         The trigger word is `{trigger_word}`, and the recommended tags are `{', '.join(recommended_tags)}`.
-        
+
         ## How This Model Is Trained
-        
+
         This model is trained with [HCP-Diffusion](https://github.com/7eu7d7/HCP-Diffusion). 
         And the auto-training framework is maintained by [DeepGHS Team](https://huggingface.co/deepghs).
-        
+
         ## Why Some Preview Images Not Look Like {" ".join(map(str.capitalize, trigger_word.split("_")))}
-        
+
         **All the prompt texts** used on the preview images (which can be viewed by clicking on the images) 
         **are automatically generated using clustering algorithms** based on feature information extracted from the 
         training dataset. The seed used during image generation is also randomly generated, and the images have 
@@ -570,15 +570,15 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         In practice, based on our internal testing, most models that experience such issues perform better in 
         actual usage than what is seen in the preview images. **The only thing you may need to do is fine-tune 
         the tags you use**.
-        
+
         ## I Felt This Model May Be Overfitting or Underfitting, What Shall I Do
-        
+
         Our model has been published on [huggingface repository - {repo}](https://huggingface.co/{repo}), where
         models of all the steps are saved. Also, we published the training dataset on 
         [huggingface dataset - {repo}](https://huggingface.co/datasets/{repo}), which may be help to you.
-        
+
         ## Why Not Just Using The Better-Selected Images
-        
+
         Our model's entire process, from data crawling, training, to generating preview images and publishing, 
         is **100% automated without any human intervention**. It's an interesting experiment conducted by our team, 
         and for this purpose, we have developed a complete set of software infrastructure, including data filtering, 
@@ -621,5 +621,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             session=session,
         )
 
-        civiti_publish(model_id, version_id, session)
+        if draft:
+            logging.info(f'Draft of model {model_id!r} created.')
+        else:
+            civiti_publish(model_id, version_id, session)
         return civitai_get_model_info(model_id, session)['id']
