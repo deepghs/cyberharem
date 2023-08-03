@@ -447,7 +447,8 @@ def try_find_title(char_name, game_name):
             return f"{'/'.join(names)} ({game_cls.__official_name__})"
 
         else:
-            return None
+            cname = ' '.join(list(map(str.capitalize, char_name.split(' '))))
+            return f'{cname} ({game_cls.__official_name__})'
 
     except KeyError:
         return None
