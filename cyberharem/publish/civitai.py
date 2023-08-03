@@ -410,10 +410,13 @@ def civiti_publish(model_id: int, model_version_id: int, publish_at=None, sessio
 
     session = session or get_civitai_session()
     if publish_at is not None:
-        publish_at = parse_time(publish_at).astimezone(ZoneInfo('UTC')).isoformat()
+        local_time = parse_time(publish_at)
+        publish_at = local_time.astimezone(ZoneInfo('UTC')).isoformat()
 
-    logging.info(f'Publishing model {model_id!r}\'s version {model_version_id!r} ...')
-
+    if publish_at:
+        logging.info(f'Publishing model {model_id!r}\'s version {model_version_id!r}, at {publish_at!r} ...')
+    else:
+        logging.info(f'Publishing model {model_id!r}\'s version {model_version_id!r} ...')
     resp = srequest(
         session, 'POST', 'https://civitai.com/api/trpc/model.publish',
         json={
