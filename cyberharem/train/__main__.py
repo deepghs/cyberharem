@@ -28,9 +28,9 @@ def download(repository, workdir):
     logging.try_init_root(logging.INFO)
 
     hf_fs = get_hf_fs()
-    for f in tqdm(hf_fs.glob(f'{repository}/*/previews/*')):
+    for f in tqdm(hf_fs.glob(f'{repository}/*/raw/*')):
         rel_file = os.path.relpath(f, repository)
-        local_file = os.path.join(workdir, 'ckpts', rel_file)
+        local_file = os.path.join(workdir, 'ckpts', os.path.basename(rel_file))
         if os.path.dirname(local_file):
             os.makedirs(os.path.dirname(local_file), exist_ok=True)
         download_file(
