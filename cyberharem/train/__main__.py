@@ -37,3 +37,7 @@ def download(repository, workdir):
             hf_hub_url(repository, filename=rel_file),
             local_file
         )
+
+
+if __name__ == '__main__':
+    cli()
