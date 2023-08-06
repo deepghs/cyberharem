@@ -617,6 +617,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             description_md=version_desc_md or '',
             trigger_words=[trigger_word],
             session=session,
+            steps=step,
         )
         version_id = version_data['id']
 
