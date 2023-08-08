@@ -31,7 +31,7 @@ def get_source(source) -> BaseDataSource:
 
 
 def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
-                    no_character_tags: bool = True) -> BaseDataSource:
+                    no_character_tags: bool = True, drop_multi: bool = True) -> BaseDataSource:
     source: BaseDataSource = get_source(source)
     actions = [
         ModeConvertAction('RGB', bg_color),
@@ -41,9 +41,10 @@ def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
     if no_r18:
         actions.append(RatingFilterAction(['safe', 'r15']))
 
+    actions.append(FilterSimilarAction('all'))  # filter duplicated images
+    if drop_multi:
+        actions.append(FaceCountAction(count=1))  # drop images with 0 or >1 faces
     actions.extend([
-        FilterSimilarAction('all'),  # filter duplicated images
-        FaceCountAction(count=1),  # drop images with 0 or >1 faces
         PersonSplitAction(),  # crop for each person
         FaceCountAction(count=1),
         FileOrderAction(),  # Rename files in order
@@ -83,7 +84,7 @@ def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
         name: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
         resolutions: Mapping[str, Union[Tuple[int, int], List[BaseAction]]] = None,
-        no_r18: bool = False, bg_color: str = 'white', no_character_tags: bool = True,
+        no_r18: bool = False, bg_color: str = 'white', no_character_tags: bool = True, drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
 ):
     if isinstance(source, (str, Character)):
@@ -101,7 +102,7 @@ def crawl_dataset_to_huggingface(
         if not repository:
             repository = f'CyberHarem/{get_alphabet_name(name)}'
 
-    origin_source = get_main_source(source, no_r18, bg_color, no_character_tags)
+    origin_source = get_main_source(source, no_r18, bg_color, no_character_tags, drop_multi)
     with TemporaryDirectory() as td:
         # save origin directory
         origin_dir = os.path.join(td, 'origin')
