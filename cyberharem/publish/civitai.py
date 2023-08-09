@@ -502,7 +502,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             step = max(all_steps)
 
     logging.info(f'Expected step is {step!r}.')
-    _, _actual_step = sorted([(abs(s - step), step) for s in all_steps])
+    _, _actual_step = sorted([(abs(s - step), step) for s in all_steps])[0]
     if _actual_step != step:
         logging.info(f'Actual used step is {_actual_step!r}.')
 
