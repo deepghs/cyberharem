@@ -508,6 +508,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
 
     step = _actual_step
     epoch = int(math.ceil(step / dataset_size))
+    logging.info(f'Using step {step}, epoch {epoch}.')
 
     with TemporaryDirectory() as td:
         models_dir = os.path.join(td, 'models')
