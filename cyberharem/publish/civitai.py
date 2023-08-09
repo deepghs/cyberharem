@@ -1,5 +1,7 @@
+import glob
 import json
 import logging
+import math
 import os.path
 import re
 import textwrap
@@ -23,6 +25,7 @@ except (ModuleNotFoundError, ImportError):
 
 import markdown
 
+from ..dataset import load_dataset_for_character
 from ..utils import get_civitai_session, srequest, get_ch_name, get_hf_fs, download_file, parse_time
 
 
@@ -468,7 +471,8 @@ def try_find_title(char_name, game_name):
 
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
                             version_name: str = 'v1.0', version_desc_md: str = None,
-                            step: int = 1500, draft: bool = False, publish_at=None, safe_only: bool = False,
+                            step: Optional[int] = None, epoch: Optional[int] = None,
+                            draft: bool = False, publish_at=None, safe_only: bool = False,
                             session=None):
     if isinstance(source, Character):
         repo = f'CyberHarem/{get_ch_name(source)}'
@@ -478,7 +482,33 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         raise TypeError(f'Unknown source type - {source!r}.')
     game_name = repo.split('_')[-1]
 
+    with load_dataset_for_character(repo, size=(384, 512)) as (_, d):
+        dataset_size = len(glob.glob(os.path.join(d, '*.png')))
+        logging.info(f'Size of dataset if {dataset_size!r}.')
+
     hf_fs = get_hf_fs()
+    all_steps = sorted([
+        int(os.path.basename(os.path.dirname(fn)))
+        for fn in hf_fs.glob(f'{repo}/*/*.zip')
+    ])
+    logging.info(f'Available steps: {all_steps!r}.')
+    if step is not None:
+        if epoch is not None:
+            logging.warning(f'Step {step!r} is set, epoch value ({epoch}) will be ignored.')
+    else:
+        if epoch is not None:
+            step = dataset_size * epoch
+        else:
+            step = max(all_steps)
+
+    logging.info(f'Expected step is {step!r}.')
+    _, _actual_step = sorted([(abs(s - step), step) for s in all_steps])
+    if _actual_step != step:
+        logging.info(f'Actual used step is {_actual_step!r}.')
+
+    step = _actual_step
+    epoch = int(math.ceil(step / dataset_size))
+
     with TemporaryDirectory() as td:
         models_dir = os.path.join(td, 'models')
         os.makedirs(models_dir, exist_ok=True)
@@ -618,6 +648,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             trigger_words=[trigger_word],
             session=session,
             steps=step,
+            epochs=epoch,
         )
         version_id = version_data['id']
 

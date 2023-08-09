@@ -39,18 +39,23 @@ def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model)
               help='Repository to publish from.', show_default=True)
 @click.option('--title', '-t', 'title', type=str, default=None,
               help='Title of the civitai model.', show_default=True)
-@click.option('--steps', '-s', 'steps', type=int, default=1500,
+@click.option('--steps', '-s', 'steps', type=int, default=None,
               help='Steps to deploy.', show_default=True)
+@click.option('--epochs', '-e', 'epochs', type=int, default=None,
+              help='Epochs to deploy.', show_default=True)
 @click.option('--draft', '-d', 'draft', is_flag=True, type=bool, default=False,
               help='Only create draft without publishing.', show_default=True)
 @click.option('--time', '-T', 'publish_time', type=str, default=None,
               help='Publish time, publish immediately when not given.', show_default=True)
 @click.option('--safe_only', '-S', 'safe_only', is_flag=True, type=bool, default=False,
               help='Upload safe images only.', show_default=True)
-def civitai(repository, title, steps, draft, publish_time, safe_only):
+def civitai(repository, title, steps, epochs, draft, publish_time, safe_only):
     logging.try_init_root(logging.INFO)
-    model_id = civitai_publish_from_hf(repository, title, step=steps, draft=draft,
-                                       publish_at=publish_time, safe_only=safe_only)
+    model_id = civitai_publish_from_hf(
+        repository, title,
+        step=steps, epoch=epochs, draft=draft,
+        publish_at=publish_time, safe_only=safe_only,
+    )
     url = f'https://civitai.com/models/{model_id}'
     if not draft:
         logging.info(f'Deploy success, model now can be seen at {url} .')
