@@ -45,7 +45,7 @@ def _bikini_pos_words(generic_words, name, core_tags):
 def _nude_pos_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        ('lyging on bed', 1.1),
+        ('lying on bed', 1.1),
         ('extremely detailed background', 1.2),
         ('nude', 1.4),
         ('spread legs', 1.1),
