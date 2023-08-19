@@ -563,9 +563,9 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             nsfw = (info.get('Safe For Word', info.get('Safe For Work')) or '').lower() != 'yes'
             if not nsfw or not safe_only:
                 rating_score = anime_rating_score(local_img_file)
-                safe_v = int(round(rating_score['safe'] * 20))
-                safe_r15 = int(round(rating_score['r15'] * 20))
-                safe_r18 = int(round(rating_score['r18'] * 20))
+                safe_v = int(round(rating_score['safe'] * 10))
+                safe_r15 = int(round(rating_score['r15'] * 10))
+                safe_r18 = int(round(rating_score['r18'] * 10))
                 images.append((
                     (-safe_v, -safe_r15, -safe_r18) if safe_only else (0,),
                     1 if nsfw else 0,
