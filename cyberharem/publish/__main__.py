@@ -2,12 +2,15 @@ from functools import partial
 
 import click
 from ditk import logging
+from gchar.generic import import_generic
 from gchar.utils import GLOBAL_CONTEXT_SETTINGS
 from gchar.utils import print_version as _origin_print_version
 
 from .civitai import civitai_publish_from_hf
 from .huggingface import deploy_to_huggingface
 from ..infer.draw import _DEFAULT_INFER_MODEL
+
+import_generic()
 
 print_version = partial(_origin_print_version, 'cyberharem')
 
