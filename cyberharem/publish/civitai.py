@@ -16,7 +16,7 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
 from imgutils.data import load_image
-from imgutils.validate import anime_rating
+from imgutils.validate import anime_rating_score
 from urlobject import URLObject
 
 try:
@@ -562,9 +562,12 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             }
             nsfw = (info.get('Safe For Word', info.get('Safe For Work')) or '').lower() != 'yes'
             if not nsfw or not safe_only:
-                rating, _ = anime_rating(local_img_file)
+                rating_score = anime_rating_score(local_img_file)
+                safe_v = int(round(rating_score['safe'] * 20))
+                safe_r15 = int(round(rating_score['r15'] * 20))
+                safe_r18 = int(round(rating_score['r18'] * 20))
                 images.append((
-                    0 if rating == 'safe' and safe_only else 1,
+                    (-safe_v, -safe_r15, -safe_r18) if safe_only else (0,),
                     1 if nsfw else 0,
                     0 if img_name.startswith('pattern_') else 1,
                     img_name,
