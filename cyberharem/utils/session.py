@@ -77,7 +77,7 @@ def get_requests_session(max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT,
     session = session or requests.session()
     retries = Retry(
         total=max_retries, backoff_factor=1,
-        status_forcelist=[413, 429, 500, 501, 502, 503, 504, 505, 506, 507, 509, 510, 511],
+        status_forcelist=[408, 413, 429, 500, 501, 502, 503, 504, 505, 506, 507, 509, 510, 511],
         allowed_methods=["HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS", "TRACE"],
     )
     adapter = TimeoutHTTPAdapter(max_retries=retries, timeout=timeout, pool_connections=32, pool_maxsize=32)
