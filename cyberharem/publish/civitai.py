@@ -583,7 +583,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                                   key=lambda x: tags_idx[x])
 
         # publish model
-        session = session or get_civitai_session()
+        session = session or get_civitai_session(timeout=30)
 
         model_desc_default = f"""
         **NOTE: ALL CHARACTERS IN THE IMAGES ARE ADULTS.**
