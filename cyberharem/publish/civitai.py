@@ -27,7 +27,8 @@ except (ModuleNotFoundError, ImportError):
 import markdown
 
 from ..dataset import load_dataset_for_character
-from ..utils import get_civitai_session, srequest, get_ch_name, get_hf_fs, download_file, parse_time
+from ..utils import get_civitai_session, srequest, get_ch_name, get_hf_fs, download_file, parse_time, \
+    load_tags_from_directory, repr_tags
 
 
 def _norm(x, keep_space: bool = True):
@@ -485,6 +486,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
 
     with load_dataset_for_character(repo, size=(384, 512)) as (_, d):
         dataset_size = len(glob.glob(os.path.join(d, '*.png')))
+        core_tags, _ = load_tags_from_directory(d)
         logging.info(f'Size of dataset if {dataset_size!r}.')
 
     hf_fs = get_hf_fs()
@@ -652,7 +654,10 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             model_id=model_id,
             version_name=version_name,
             description_md=version_desc_md or '',
-            trigger_words=[trigger_word],
+            trigger_words=[
+                trigger_word,
+                repr_tags([key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])]),
+            ],
             session=session,
             steps=step,
             epochs=epoch,
