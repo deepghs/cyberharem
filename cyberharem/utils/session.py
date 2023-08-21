@@ -9,7 +9,7 @@ from huggingface_hub import hf_hub_download
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException
 
-DEFAULT_TIMEOUT = 10  # seconds
+DEFAULT_TIMEOUT = 30  # seconds
 
 
 class TimeoutHTTPAdapter(HTTPAdapter):
