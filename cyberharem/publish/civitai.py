@@ -686,3 +686,25 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         else:
             civiti_publish(model_id, version_id, publish_at, session)
         return civitai_get_model_info(model_id, session)['id']
+
+
+def get_draft_models(session=None):
+    session = session or get_civitai_session()
+    resp = srequest(
+        session, 'GET', 'https://civitai.com/api/trpc/model.getMyDraftModels',
+        params={
+            'input': json.dumps({"json": {"page": 1, "limit": 200, "authed": True}}),
+        },
+        headers={'Referer': f'https://civitai.com/user'},
+    )
+    return resp.json()['result']['data']['json']['items']
+
+
+def delete_model(model_id: int, session=None):
+    session = session or get_civitai_session()
+    resp = srequest(
+        session, 'POST', 'https://civitai.com/api/trpc/model.delete',
+        json={"json": {"id": model_id, "permanently": False, "authed": True}},
+        headers={'Referer': f'https://civitai.com/models/{model_id}'},
+    )
+    resp.raise_for_status()
