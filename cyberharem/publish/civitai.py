@@ -639,6 +639,20 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         and for this purpose, we have developed a complete set of software infrastructure, including data filtering, 
         automatic training, and automated publishing. Therefore, if possible, we would appreciate more feedback or 
         suggestions as they are highly valuable to us.
+
+        ## Why Can't the Desired Character Outfits Be Accurately Generated
+
+        Our current training data is sourced from various image websites, and for a fully automated pipeline, 
+        it's challenging to accurately predict which official images a character possesses. 
+        Consequently, outfit generation relies on clustering based on labels from the training dataset 
+        in an attempt to achieve the best possible recreation. We will continue to address this issue and attempt 
+        optimization, but it remains a challenge that cannot be completely resolved. The accuracy of outfit 
+        recreation is also unlikely to match the level achieved by manually trained models.
+
+        In fact, this model's greatest strengths lie in recreating the inherent characteristics of the characters 
+        themselves and its relatively strong generalization capabilities, owing to its larger dataset. 
+        As such, this model is well-suited for tasks such as changing outfits, posing characters, and, 
+        of course, generating NSFW images of character!😉".
         """
         model_id, nsfw = civitai_create_model(
             name=model_name or try_find_title(char_name, game_name) or trigger_word.replace('_', ' '),
