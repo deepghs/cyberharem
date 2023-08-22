@@ -96,7 +96,7 @@ def _nude_stand_words(generic_words, name, core_tags):
 def _safe_maid_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        ('maid', 1.3),
+        ('maid', 1.4),
         ('long maid dress', 1.15),
         (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
@@ -140,11 +140,14 @@ def _safe_miko_words(generic_words, name, core_tags):
 def _safe_suit_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        ('black suite', 1.4),
+        ('black business suit', 1.4),
         ('tie', 1.2),
         ('sunglasses', 1.25),
         ('white gloves', 1.15),
+        ('white shirt', 1.1),
+        ('black skirt', 1.15),
         ('smoking', 1.2),
+        'handsome',
         (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], [
