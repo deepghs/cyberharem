@@ -651,8 +651,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
 
         In fact, this model's greatest strengths lie in recreating the inherent characteristics of the characters 
         themselves and its relatively strong generalization capabilities, owing to its larger dataset. 
-        As such, this model is well-suited for tasks such as changing outfits, posing characters, and, 
-        of course, generating NSFW images of character!😉".
+        As such, **this model is well-suited for tasks such as changing outfits, posing characters, and, 
+        of course, generating NSFW images of characters!**😉".
         """
         model_id, nsfw = civitai_create_model(
             name=model_name or try_find_title(char_name, game_name) or trigger_word.replace('_', ' '),
