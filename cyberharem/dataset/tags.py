@@ -148,6 +148,23 @@ def _safe_miko_words(generic_words, name, core_tags):
     ], None, True
 
 
+def _safe_suit_words(generic_words, name, core_tags):
+    return [
+        *generic_words,
+        ('black suite', 1.35),
+        ('tie', 1.15),
+        ('sunglasses', 1.2),
+        ('white gloves', 1.1),
+        ('smoking', 1.2),
+        (name, 1.1),
+        *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
+    ], [
+        'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
+        'skin of legs', 'bare legs', 'bare skin', 'navel',
+        *generic_neg_words,
+    ], None, True
+
+
 EXTRAS = [
     ('free', _free_pos_words),
     ('bikini', _bikini_pos_words),
@@ -157,6 +174,7 @@ EXTRAS = [
     ('nude', _nude_pos_words),
     ('nude2', _nude_stand_words),
     ('bondage', _nude_bondage_words),
+    ('suit', _safe_suit_words),
 ]
 
 
