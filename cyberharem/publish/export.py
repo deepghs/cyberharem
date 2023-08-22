@@ -110,7 +110,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
         print('', file=f)
 
         d_names = sort_draw_names(list(d_names))
-        columns = ['Steps', *d_names, 'Download']
+        columns = ['Steps', 'Download', *d_names]
         t_data = []
 
         for step in steps[::-1]:
@@ -125,7 +125,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                 else:
                     d_mds.append('')
 
-            t_data.append((str(step), *d_mds, f'[Download]({step}/{name}.zip)'))
+            t_data.append((str(step), f'[Download]({step}/{name}.zip)', *d_mds))
 
         df = pd.DataFrame(columns=columns, data=t_data)
         print(df.to_markdown(index=False), file=f)
