@@ -89,7 +89,6 @@ def _nude_bondage_words(generic_words, name, core_tags):
         ('standing', 1.1),
         ('nude', 1.4),
         ('bondage', 1.3),
-        ('ball gag', 1.1),
         'completely nude',
         'mature',
         (name, 1.1),
@@ -99,8 +98,6 @@ def _nude_bondage_words(generic_words, name, core_tags):
         ('pussy juice', 1.3),
         'looking at viewer',
         ('embarrassed', 1.1),
-        ('tears', 1.15),
-        'crying',
     ], generic_neg_words, 758691538, False
 
 
