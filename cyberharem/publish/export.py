@@ -29,7 +29,8 @@ Safe For Word: {"yes" if draw.sfw else "no"}
 
 
 def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
-                   pretrained_model: str = _DEFAULT_INFER_MODEL):
+                   pretrained_model: str = _DEFAULT_INFER_MODEL, clip_skip: int = 1,
+                   image_width: int = 512, image_height: int = 768, infer_steps: int = 30):
     name, steps = find_steps_in_workdir(workdir)
     logging.info(f'Starting export trained artifacts of {name!r}, with steps: {steps!r}')
 
@@ -49,6 +50,8 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                 drawings = draw_with_workdir(
                     workdir, model_steps=step, n_repeats=n_repeats,
                     pretrained_model=pretrained_model,
+                    width=image_width, height=image_height, infer_steps=infer_steps,
+                    clip_skip=clip_skip,
                 )
             except RuntimeError:
                 n_repeats += 1

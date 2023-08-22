@@ -30,6 +30,7 @@ def draw_images(
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = 'output', cfg_file: str = _DEFAULT_INFER_CFG_FILE,
+        clip_skip: int = 1,
 ):
     emb_name = emb_name or os.path.basename(workdir)
     with TemporaryDirectory() as emb_dir:
@@ -43,6 +44,8 @@ def draw_images(
         cli_args = data_to_cli_args({
             'pretrained_model': pretrained_model,
             'N_repeats': n_repeats,
+
+            'clip_skip': clip_skip,
 
             'bs': 1,
             'num': 1,
@@ -111,6 +114,7 @@ def draw_with_workdir(
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
+        clip_skip: int = 1,
 ):
     pnames, prompts, neg_prompts, seeds, sfws = [], [], [], [], []
     for jfile in glob.glob(os.path.join(workdir, 'rtags', '*.json')):
@@ -127,7 +131,8 @@ def draw_with_workdir(
         draw_images(
             workdir, prompts, neg_prompts, seeds,
             emb_name, save_cfg, model_steps, n_repeats, pretrained_model,
-            width, height, gscale, infer_steps, lora_alpha, output_dir, cfg_file
+            width, height, gscale, infer_steps, lora_alpha, output_dir, cfg_file,
+            clip_skip,
         )
 
         retval = []

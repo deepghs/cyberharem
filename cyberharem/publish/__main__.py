@@ -32,9 +32,21 @@ def cli():
               help='N Repeats for text encoder', show_default=True)
 @click.option('-m', '--pretrained_model', 'pretrained_model', type=str, default=_DEFAULT_INFER_MODEL,
               help='Pretrained model for preview drawing.', show_default=True)
-def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model):
+@click.option('--width', 'width', type=int, default=512,
+              help='Width of images.', show_default=True)
+@click.option('--height', 'height', type=int, default=768,
+              help='Height of images.', show_default=True)
+@click.option('-C', '--clip_skip', 'clip_skip', type=int, default=1,
+              help='Clip skip.', show_default=True)
+@click.option('-S', '--infer_steps', 'infer_steps', type=int, default=30,
+              help='Steps of inference.', show_default=True)
+def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model,
+                width, height, clip_skip, infer_steps):
     logging.try_init_root(logging.INFO)
-    deploy_to_huggingface(workdir, repository, revision, n_repeats, pretrained_model)
+    deploy_to_huggingface(
+        workdir, repository, revision, n_repeats, pretrained_model,
+        clip_skip, width, height, infer_steps,
+    )
 
 
 @cli.command('civitai', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish to huggingface')
