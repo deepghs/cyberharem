@@ -24,13 +24,33 @@ _DEFAULT_INFER_CFG_FILE = 'cfgs/infer/text2img_anime_lora.yaml'
 _DEFAULT_INFER_MODEL = 'Meina/MeinaMix_V11'
 
 
+def sample_method_to_config(method):
+    if method == 'DPM++ SDE Karras':
+        return {
+            '_target_': 'diffusers.DPMSolverSDEScheduler',
+            'beta_start': 0.00085,
+            'beta_end': 0.012,
+            'beta_schedule': 'scaled_linear',
+            'use_karras_sigmas': True,
+        }
+    elif method == 'Euler a':
+        return {
+            '_target_': 'diffusers.EulerAncestralDiscreteScheduler',
+            'beta_start': 0.00085,
+            'beta_end': 0.012,
+            'beta_schedule': 'scaled_linear',
+        }
+    else:
+        raise ValueError(f'Unknown sample method - {method!r}.')
+
+
 def draw_images(
         workdir: str, prompts: Union[str, List[str]], neg_prompts: Union[str, List[str]] = None,
         seeds: Union[int, List[str]] = None, emb_name: str = None, save_cfg: bool = True,
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = 'output', cfg_file: str = _DEFAULT_INFER_CFG_FILE,
-        clip_skip: int = 2,
+        clip_skip: int = 2, sample_method: str = 'DPM++ SDE Karras',
 ):
     emb_name = emb_name or os.path.basename(workdir)
     with TemporaryDirectory() as emb_dir:
@@ -67,13 +87,7 @@ def draw_images(
             },
 
             'new_components': {
-                'scheduler': {
-                    '_target_': 'diffusers.DPMSolverSDEScheduler',
-                    'beta_start': 0.00085,
-                    'beta_end': 0.012,
-                    'beta_schedule': 'scaled_linear',
-                    'use_karras_sigmas': True,
-                }
+                'scheduler': sample_method_to_config(sample_method),
             }
         })
         logging.info(f'Infer based on {cfg_file!r}, with {cli_args!r}')
@@ -117,6 +131,7 @@ class Drawing:
     gscale: float
     steps: int
     image: Image.Image
+    sample_method: str
 
 
 def draw_with_workdir(
@@ -124,7 +139,7 @@ def draw_with_workdir(
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
-        clip_skip: int = 2,
+        clip_skip: int = 2, sample_method: str = 'DPM++ SDE Karras',
 ):
     pnames, prompts, neg_prompts, seeds, sfws = [], [], [], [], []
     for jfile in glob.glob(os.path.join(workdir, 'rtags', '*.json')):
@@ -142,7 +157,7 @@ def draw_with_workdir(
             workdir, prompts, neg_prompts, seeds,
             emb_name, save_cfg, model_steps, n_repeats, pretrained_model,
             width, height, gscale, infer_steps, lora_alpha, output_dir, cfg_file,
-            clip_skip,
+            clip_skip, sample_method,
         )
 
         retval = []
@@ -160,7 +175,7 @@ def draw_with_workdir(
                 pname, prompt, neg_prompt, seed,
                 sfw=sfw and len(detect_censors(img, conf_threshold=0.45)) == 0,
                 width=width, height=height, gscale=gscale, steps=infer_steps,
-                image=img
+                image=img, sample_method=sample_method,
             ))
 
         return retval

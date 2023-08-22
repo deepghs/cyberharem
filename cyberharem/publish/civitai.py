@@ -558,7 +558,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 'cfgScale': int(round(float(info.get('Guidance Scale')))),
                 'negativePrompt': info.get('Neg Prompt'),
                 'prompt': info.get('Prompt'),
-                'sampler': "Euler a",
+                'sampler': info.get('Sample Method', "Euler a"),
                 'seed': int(info.get('Seed')),
                 'steps': int(info.get('Infer Steps')),
             }

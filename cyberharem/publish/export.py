@@ -21,16 +21,18 @@ Neg Prompt: {draw.neg_prompt}
 Width: {draw.width}
 Height: {draw.height}
 Guidance Scale: {draw.gscale}
+Sample Method: {draw.sample_method}
 Infer Steps: {draw.steps}
 N Repeats: {n_repeats}
 Seed: {draw.seed}
-Safe For Word: {"yes" if draw.sfw else "no"}
+Safe For Work: {"yes" if draw.sfw else "no"}
     """).lstrip()
 
 
 def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                    pretrained_model: str = _DEFAULT_INFER_MODEL, clip_skip: int = 2,
-                   image_width: int = 512, image_height: int = 768, infer_steps: int = 30):
+                   image_width: int = 512, image_height: int = 768, infer_steps: int = 30,
+                   sample_method: str = 'DPM++ SDE Karras', ):
     name, steps = find_steps_in_workdir(workdir)
     logging.info(f'Starting export trained artifacts of {name!r}, with steps: {steps!r}')
 
@@ -51,7 +53,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                     workdir, model_steps=step, n_repeats=n_repeats,
                     pretrained_model=pretrained_model,
                     width=image_width, height=image_height, infer_steps=infer_steps,
-                    clip_skip=clip_skip,
+                    clip_skip=clip_skip, sample_method=sample_method,
                 )
             except RuntimeError:
                 n_repeats += 1
