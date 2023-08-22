@@ -21,16 +21,16 @@ from hcpdiff.utils import load_config_with_cli
 from ..utils import data_to_cli_args
 
 _DEFAULT_INFER_CFG_FILE = 'cfgs/infer/text2img_anime_lora.yaml'
-_DEFAULT_INFER_MODEL = 'stablediffusionapi/anything-v5'
+_DEFAULT_INFER_MODEL = 'Meina/MeinaMix_V11'
 
 
 def draw_images(
         workdir: str, prompts: Union[str, List[str]], neg_prompts: Union[str, List[str]] = None,
         seeds: Union[int, List[str]] = None, emb_name: str = None, save_cfg: bool = True,
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
-        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
+        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 50,
         lora_alpha: float = 0.85, output_dir: str = 'output', cfg_file: str = _DEFAULT_INFER_CFG_FILE,
-        clip_skip: int = 1,
+        clip_skip: int = 2,
 ):
     emb_name = emb_name or os.path.basename(workdir)
     with TemporaryDirectory() as emb_dir:
@@ -112,9 +112,9 @@ class Drawing:
 def draw_with_workdir(
         workdir: str, emb_name: str = None, save_cfg: bool = True,
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
-        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
+        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 50,
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
-        clip_skip: int = 1,
+        clip_skip: int = 2,
 ):
     pnames, prompts, neg_prompts, seeds, sfws = [], [], [], [], []
     for jfile in glob.glob(os.path.join(workdir, 'rtags', '*.json')):
