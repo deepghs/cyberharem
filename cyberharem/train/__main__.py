@@ -8,6 +8,8 @@ from gchar.utils import print_version as _origin_print_version
 from huggingface_hub import hf_hub_url
 from tqdm.auto import tqdm
 
+from cyberharem.dataset import save_recommended_tags
+from cyberharem.publish import find_steps_in_workdir
 from ..utils import get_hf_fs, download_file
 
 print_version = partial(_origin_print_version, 'cyberharem.train')
@@ -24,9 +26,12 @@ def cli():
               help='Repository.', show_default=True)
 @click.option('-w', '--workdir', 'workdir', type=str, required=True,
               help='Work directory', show_default=True)
-def download(repository, workdir):
+@click.option('--no-tags', 'no_tags', is_flag=True, type=bool, default=False,
+              help='Do not generate tags.', show_default=True)
+def download(repository, workdir, no_tags):
     logging.try_init_root(logging.INFO)
 
+    logging.info(f'Downloading models for {workdir!r} ...')
     hf_fs = get_hf_fs()
     for f in tqdm(hf_fs.glob(f'{repository}/*/raw/*')):
         rel_file = os.path.relpath(f, repository)
@@ -37,6 +42,15 @@ def download(repository, workdir):
             hf_hub_url(repository, filename=rel_file),
             local_file
         )
+
+    if not no_tags:
+        logging.info(f'Regenerating tags for {workdir!r} ...')
+        pt_name, _ = find_steps_in_workdir(workdir)
+        name = '_'.join(pt_name.split('_'))
+
+        logging.info(f'Regenerate tags for {name!r}, on {workdir!r}.')
+        save_recommended_tags(name, workdir=workdir)
+        logging.info('Success!')
 
 
 if __name__ == '__main__':
