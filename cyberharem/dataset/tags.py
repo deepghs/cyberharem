@@ -3,6 +3,8 @@ import os.path
 import random
 from typing import List
 
+from gchar.games.base import Character
+
 from .load import load_dataset_for_character
 from ..utils import load_tags_from_directory, get_ch_name, repr_tags
 
@@ -189,7 +191,7 @@ def save_recommended_tags(source, name: str = None, workdir: str = None):
 
         generic_words = []
         generic_words.extend(basic_words)
-        if ch is not None:
+        if isinstance(ch, Character):
             if ch.gender == 'male':
                 generic_words.extend(['1boy', 'solo'])
             elif ch.gender == 'female':

@@ -48,9 +48,25 @@ def download(repository, workdir, no_tags):
         )
 
     if not no_tags:
-        logging.info(f'Regenerate tags for {repository!r}, on {workdir!r}.')
+        logging.info(f'Regenerating tags for {workdir!r} ...')
         pt_name, _ = find_steps_in_workdir(workdir)
-        save_recommended_tags(repository, name=pt_name, workdir=workdir)
+        game_name = pt_name.split('_')[-1]
+        name = '_'.join(pt_name.split('_')[:-1])
+
+        from gchar.games.dispatch.access import GAME_CHARS
+        if game_name in GAME_CHARS:
+            ch_cls = GAME_CHARS[game_name]
+            ch = ch_cls.get(name)
+        else:
+            ch = None
+
+        if ch is None:
+            source = repository
+        else:
+            source = ch
+
+        logging.info(f'Regenerate tags for {source!r}, on {workdir!r}.')
+        save_recommended_tags(source, name=pt_name, workdir=workdir)
         logging.info('Success!')
 
 
