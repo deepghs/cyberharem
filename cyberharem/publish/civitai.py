@@ -16,8 +16,11 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
 from imgutils.data import load_image
+from imgutils.metrics import ccip_extract_feature, ccip_batch_same
 from imgutils.validate import anime_rating_score
+from tqdm.auto import tqdm
 from urlobject import URLObject
+from waifuc.source import LocalSource
 
 try:
     from typing import Literal
@@ -489,6 +492,10 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         core_tags, _ = load_tags_from_directory(d)
         logging.info(f'Size of dataset if {dataset_size!r}.')
 
+        ccip_feats = []
+        for item in tqdm(list(LocalSource(d)[:10]), desc='Extracting features'):
+            ccip_feats.append(ccip_extract_feature(item.image))
+
     hf_fs = get_hf_fs()
     all_steps = sorted([
         int(os.path.basename(os.path.dirname(fn)))
@@ -563,6 +570,14 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 'steps': int(info.get('Infer Steps')),
             }
             nsfw = (info.get('Safe For Word', info.get('Safe For Work')) or '').lower() != 'yes'
+
+            current_feat = ccip_extract_feature(local_img_file)
+            similarity = ccip_batch_same([current_feat, *ccip_feats])[0, 1:].mean()
+            logging.info(f'Similarity of character on image {local_img_file!r}: {similarity!r}')
+            if similarity < 0.6:
+                logging.info(f'Similarity of {local_img_file!r}({similarity!r}) is too low, skipped.')
+                continue
+
             if not nsfw or not safe_only:
                 rating_score = anime_rating_score(local_img_file)
                 safe_v = int(round(rating_score['safe'] * 10))
