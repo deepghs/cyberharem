@@ -3,6 +3,7 @@ from functools import partial
 
 import click
 from ditk import logging
+from gchar.generic import import_generic
 from gchar.utils import GLOBAL_CONTEXT_SETTINGS
 from gchar.utils import print_version as _origin_print_version
 from huggingface_hub import hf_hub_url
@@ -13,6 +14,8 @@ from cyberharem.publish import find_steps_in_workdir
 from ..utils import get_hf_fs, download_file
 
 print_version = partial(_origin_print_version, 'cyberharem.train')
+
+import_generic()
 
 
 @click.group(context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish trained models')
@@ -47,10 +50,23 @@ def download(repository, workdir, no_tags):
     if not no_tags:
         logging.info(f'Regenerating tags for {workdir!r} ...')
         pt_name, _ = find_steps_in_workdir(workdir)
+        game_name = pt_name.split('_')[-1]
         name = '_'.join(pt_name.split('_')[:-1])
 
-        logging.info(f'Regenerate tags for {name!r}, on {workdir!r}.')
-        save_recommended_tags(name, workdir=workdir)
+        from gchar.games.dispatch.access import GAME_CHARS
+        if game_name in GAME_CHARS:
+            ch_cls = GAME_CHARS[game_name]
+            ch = ch_cls.get(name)
+        else:
+            ch = None
+
+        if ch is None:
+            source = repository
+        else:
+            source = ch
+
+        logging.info(f'Regenerate tags for {source!r}, on {workdir!r}.')
+        save_recommended_tags(source, workdir=workdir)
         logging.info('Success!')
 
 
