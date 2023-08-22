@@ -24,12 +24,13 @@ def cli():
 @cli.command('download', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Download trained ckpts from huggingface.')
 @click.option('-r', '--repository', 'repository', type=str, required=True,
               help='Repository.', show_default=True)
-@click.option('-w', '--workdir', 'workdir', type=str, required=True,
+@click.option('-w', '--workdir', 'workdir', type=str, default=None,
               help='Work directory', show_default=True)
 @click.option('--no-tags', 'no_tags', is_flag=True, type=bool, default=False,
               help='Do not generate tags.', show_default=True)
 def download(repository, workdir, no_tags):
     logging.try_init_root(logging.INFO)
+    workdir = workdir or repository.split('/')[-1]
 
     logging.info(f'Downloading models for {workdir!r} ...')
     hf_fs = get_hf_fs()
