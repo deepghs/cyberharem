@@ -30,7 +30,7 @@ def cli():
               help='Do not generate tags.', show_default=True)
 def download(repository, workdir, no_tags):
     logging.try_init_root(logging.INFO)
-    workdir = workdir or repository.split('/')[-1]
+    workdir = workdir or os.path.join('runs', repository.split('/')[-1])
 
     logging.info(f'Downloading models for {workdir!r} ...')
     hf_fs = get_hf_fs()
