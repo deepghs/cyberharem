@@ -19,3 +19,5 @@ blurhash
 dateparser
 backports.zoneinfo; python_version < '3.9'
 pycivitai
+diffusers>=0.19.0
+torchsde
