@@ -47,7 +47,7 @@ def download(repository, workdir, no_tags):
     if not no_tags:
         logging.info(f'Regenerating tags for {workdir!r} ...')
         pt_name, _ = find_steps_in_workdir(workdir)
-        name = '_'.join(pt_name.split('_'))
+        name = '_'.join(pt_name.split('_')[:-1])
 
         logging.info(f'Regenerate tags for {name!r}, on {workdir!r}.')
         save_recommended_tags(name, workdir=workdir)
