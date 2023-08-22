@@ -1,3 +1,4 @@
+import json
 from typing import Mapping, Optional, List
 
 
@@ -11,7 +12,7 @@ def _yaml_recursive(data, segments: Optional[list] = None):
             yield from _yaml_recursive(item, [*segments, i])
     else:
         key = '.'.join(map(str, segments))
-        value = str(data)
+        value = json.dumps(data)
         yield f'{key}={value}'
 
 

@@ -21,6 +21,7 @@ basic_words = [
 ]
 
 generic_neg_words = [
+    ('worst quality, low quality', 1.4), ('zombie, sketch, interlocked fingers, comic', 1.1),
     'lowres', 'bad anatomy', 'bad hands', 'text', 'error', 'missing fingers', 'extra digit', 'fewer digits',
     'cropped', 'worst quality', 'low quality', 'normal quality', 'jpeg artifacts', 'signature', 'watermark',
     'username', 'blurry', 'white border',

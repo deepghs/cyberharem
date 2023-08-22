@@ -28,7 +28,7 @@ def draw_images(
         workdir: str, prompts: Union[str, List[str]], neg_prompts: Union[str, List[str]] = None,
         seeds: Union[int, List[str]] = None, emb_name: str = None, save_cfg: bool = True,
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
-        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 50,
+        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = 'output', cfg_file: str = _DEFAULT_INFER_CFG_FILE,
         clip_skip: int = 2,
 ):
@@ -65,6 +65,16 @@ def draw_images(
             'merge': {
                 'alpha': lora_alpha,
             },
+
+            'new_components': {
+                'scheduler': {
+                    '_target_': 'diffusers.DPMSolverSDEScheduler',
+                    'beta_start': 0.00085,
+                    'beta_end': 0.012,
+                    'beta_schedule': 'scaled_linear',
+                    'use_karras_sigmas': True,
+                }
+            }
         })
         logging.info(f'Infer based on {cfg_file!r}, with {cli_args!r}')
         cfgs = load_config_with_cli(cfg_file, args_list=cli_args)  # skip --cfg
@@ -112,7 +122,7 @@ class Drawing:
 def draw_with_workdir(
         workdir: str, emb_name: str = None, save_cfg: bool = True,
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
-        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 50,
+        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
         clip_skip: int = 2,
 ):

@@ -45,7 +45,7 @@ def cli():
               help='Height of images.', show_default=True)
 @click.option('-C', '--clip_skip', 'clip_skip', type=int, default=2,
               help='Clip skip.', show_default=True)
-@click.option('-S', '--infer_steps', 'infer_steps', type=int, default=50,
+@click.option('-S', '--infer_steps', 'infer_steps', type=int, default=30,
               help='Steps of inference.', show_default=True)
 def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model,
                 width, height, clip_skip, infer_steps):
@@ -71,7 +71,7 @@ def huggingface(workdir: str, repository, revision, n_repeats, pretrained_model,
               help='Height of images.', show_default=True)
 @click.option('-C', '--clip_skip', 'clip_skip', type=int, default=2,
               help='Clip skip.', show_default=True)
-@click.option('-S', '--infer_steps', 'infer_steps', type=int, default=50,
+@click.option('-S', '--infer_steps', 'infer_steps', type=int, default=30,
               help='Steps of inference.', show_default=True)
 def rehf(repository, revision, n_repeats, pretrained_model,
          width, height, clip_skip, infer_steps):

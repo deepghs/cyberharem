@@ -15,7 +15,7 @@ from ..utils import get_hf_client
 
 def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main', n_repeats: int = 3,
                           pretrained_model: str = _DEFAULT_INFER_MODEL, clip_skip: int = 2,
-                          image_width: int = 512, image_height: int = 768, infer_steps: int = 50):
+                          image_width: int = 512, image_height: int = 768, infer_steps: int = 30):
     name, _ = find_steps_in_workdir(workdir)
     repository = repository or f'CyberHarem/{name}'
 
