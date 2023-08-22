@@ -10,6 +10,7 @@ from huggingface_hub import hf_hub_url
 from tqdm.auto import tqdm
 
 from cyberharem.dataset import save_recommended_tags
+from cyberharem.publish import find_steps_in_workdir
 from ..utils import get_hf_fs, download_file
 
 print_version = partial(_origin_print_version, 'cyberharem.train')
@@ -48,7 +49,8 @@ def download(repository, workdir, no_tags):
 
     if not no_tags:
         logging.info(f'Regenerate tags for {repository!r}, on {workdir!r}.')
-        save_recommended_tags(repository, workdir=workdir)
+        pt_name, _ = find_steps_in_workdir(workdir)
+        save_recommended_tags(repository, name=pt_name, workdir=workdir)
         logging.info('Success!')
 
 
