@@ -591,7 +591,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         session = session or get_civitai_session(timeout=30)
 
         model_desc_default = f"""
-        **NOTE: ALL CHARACTERS IN THE IMAGES ARE ADULTS.**
+        **NOTE: Due to technology issues, highres fix is not available when creating post images.**
+        The actual performance on a1111's webui of this model should be better than what you see here.
 
         ## How to Use This Model
 
