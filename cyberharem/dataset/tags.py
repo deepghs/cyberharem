@@ -82,6 +82,28 @@ def _nude_stand_words(generic_words, name, core_tags):
     ], generic_neg_words, 758691538, False
 
 
+def _nude_bondage_words(generic_words, name, core_tags):
+    return [
+        'nsfw',
+        *generic_words,
+        ('standing', 1.1),
+        ('nude', 1.4),
+        ('bondage', 1.3),
+        ('ball gag', 1.1),
+        'completely nude',
+        'mature',
+        (name, 1.1),
+        *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
+        'nipples',
+        ('pussy', 1.15),
+        ('pussy juice', 1.3),
+        'looking at viewer',
+        ('embarrassed', 1.1),
+        ('tears', 1.15),
+        'crying',
+    ], generic_neg_words, 758691538, False
+
+
 def _safe_maid_words(generic_words, name, core_tags):
     return [
         *generic_words,
@@ -134,6 +156,7 @@ EXTRAS = [
     ('yukata', _safe_yukata_words),
     ('nude', _nude_pos_words),
     ('nude2', _nude_stand_words),
+    ('bondage', _nude_bondage_words),
 ]
 
 
