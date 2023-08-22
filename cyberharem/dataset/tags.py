@@ -114,6 +114,9 @@ def _safe_miko_words(generic_words, name, core_tags):
     return [
         *generic_words,
         ('miko attire', 1.2),
+        'white kimono',
+        'red hakama',
+        'wide sleeves',
         (name, 1.1),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], [
@@ -128,6 +131,7 @@ EXTRAS = [
     ('bikini', _bikini_pos_words),
     ('maid', _safe_maid_words),
     ('miko', _safe_miko_words),
+    ('yukata', _safe_yukata_words),
     ('nude', _nude_pos_words),
     ('nude2', _nude_stand_words),
 ]
