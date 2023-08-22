@@ -31,7 +31,7 @@ generic_neg_words = [
 def _free_pos_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        (name, 1.1),
+        (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], generic_neg_words, None, True
 
@@ -44,7 +44,7 @@ def _bikini_pos_words(generic_words, name, core_tags):
         'beach',
         'beautiful detailed sky',
         ('extremely detailed background', 1.2),
-        (name, 1.1),
+        (name, 1.0),
         ('standing', 1.1),
         'looking at viewer',
         ('bikini', 1.3),
@@ -63,7 +63,7 @@ def _nude_pos_words(generic_words, name, core_tags):
         ('spread legs', 1.1),
         ('arms up', 1.1),
         'mature',
-        (name, 1.1),
+        (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
         'nipples',
         ('pussy', 1.15),
@@ -81,28 +81,9 @@ def _nude_stand_words(generic_words, name, core_tags):
         *generic_words,
         ('standing', 1.1),
         ('nude', 1.4),
-        'completely nude',
+        ('completely nude', 1.2),
         'mature',
-        (name, 1.1),
-        *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
-        'nipples',
-        ('pussy', 1.15),
-        ('pussy juice', 1.3),
-        'looking at viewer',
-        ('embarrassed', 1.1),
-    ], generic_neg_words, 758691538, False
-
-
-def _nude_bondage_words(generic_words, name, core_tags):
-    return [
-        'nsfw',
-        *generic_words,
-        ('standing', 1.1),
-        ('nude', 1.4),
-        ('bondage', 1.3),
-        'completely nude',
-        'mature',
-        (name, 1.1),
+        (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
         'nipples',
         ('pussy', 1.15),
@@ -115,9 +96,9 @@ def _nude_bondage_words(generic_words, name, core_tags):
 def _safe_maid_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        ('maid', 1.2),
-        ('long maid dress', 1.1),
-        (name, 1.1),
+        ('maid', 1.3),
+        ('long maid dress', 1.15),
+        (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], [
         'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
@@ -129,9 +110,9 @@ def _safe_maid_words(generic_words, name, core_tags):
 def _safe_yukata_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        ('yukata', 1.2),
-        'kimono',
-        (name, 1.1),
+        ('yukata', 1.4),
+        ('kimono', 1.2),
+        (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], [
         'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
@@ -143,11 +124,11 @@ def _safe_yukata_words(generic_words, name, core_tags):
 def _safe_miko_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        ('miko attire', 1.2),
-        'white kimono',
-        'red hakama',
-        'wide sleeves',
-        (name, 1.1),
+        ('miko attire', 1.4),
+        ('white kimono', 1.2),
+        ('red hakama', 1.2),
+        ('wide sleeves', 1.15),
+        (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], [
         'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
@@ -159,12 +140,12 @@ def _safe_miko_words(generic_words, name, core_tags):
 def _safe_suit_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        ('black suite', 1.35),
-        ('tie', 1.15),
-        ('sunglasses', 1.2),
-        ('white gloves', 1.1),
+        ('black suite', 1.4),
+        ('tie', 1.2),
+        ('sunglasses', 1.25),
+        ('white gloves', 1.15),
         ('smoking', 1.2),
-        (name, 1.1),
+        (name, 1.0),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], [
         'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
@@ -181,7 +162,6 @@ EXTRAS = [
     ('yukata', _safe_yukata_words),
     ('nude', _nude_pos_words),
     ('nude2', _nude_stand_words),
-    ('bondage', _nude_bondage_words),
     ('suit', _safe_suit_words),
 ]
 
@@ -212,7 +192,7 @@ def save_recommended_tags(source, name: str = None, workdir: str = None):
 
         core_tags, feats = load_tags_from_directory(ds_dir)
         for i, f in enumerate(feats, start=1):
-            pos_words = [*generic_words, (name, 1.1), *f.keys()]
+            pos_words = [*generic_words, (name, 1.0), *f.keys()]
             pos_prompt = repr_tags(pos_words)
             neg_prompt = repr_tags(generic_neg_words)
 
