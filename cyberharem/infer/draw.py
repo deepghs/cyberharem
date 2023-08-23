@@ -33,6 +33,15 @@ def sample_method_to_config(method):
             'beta_schedule': 'scaled_linear',
             'use_karras_sigmas': True,
         }
+    elif method == 'DPM++ 2M Karras':
+        return {
+            '_target_': 'diffusers.DPMSolverMultistepScheduler',
+            'beta_start': 0.00085,
+            'beta_end': 0.012,
+            'algorithm_type': 'dpmsolver++',
+            'beta_schedule': 'scaled_linear',
+            'use_karras_sigmas': True
+        }
     elif method == 'Euler a':
         return {
             '_target_': 'diffusers.EulerAncestralDiscreteScheduler',
@@ -50,7 +59,7 @@ def draw_images(
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = 'output', cfg_file: str = _DEFAULT_INFER_CFG_FILE,
-        clip_skip: int = 2, sample_method: str = 'DPM++ SDE Karras',
+        clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
 ):
     emb_name = emb_name or os.path.basename(workdir)
     with TemporaryDirectory() as emb_dir:
@@ -65,7 +74,7 @@ def draw_images(
             'pretrained_model': pretrained_model,
             'N_repeats': n_repeats,
 
-            'clip_skip': clip_skip,
+            'clip_skip': clip_skip - 1,
 
             'bs': 1,
             'num': 1,
@@ -139,7 +148,7 @@ def draw_with_workdir(
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
-        clip_skip: int = 2, sample_method: str = 'DPM++ SDE Karras',
+        clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
 ):
     pnames, prompts, neg_prompts, seeds, sfws = [], [], [], [], []
     for jfile in glob.glob(os.path.join(workdir, 'rtags', '*.json')):
