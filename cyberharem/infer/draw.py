@@ -1,12 +1,15 @@
 import glob
+import io
 import json
 import logging
 import os
 import shutil
 from dataclasses import dataclass
-from typing import List, Union
+from textwrap import dedent
+from typing import List, Union, Optional
 
 import yaml
+from PIL.PngImagePlugin import PngInfo
 from imgutils.detect import detect_censors
 
 try:
@@ -21,7 +24,7 @@ from hcpdiff.utils import load_config_with_cli
 from ..utils import data_to_cli_args
 
 _DEFAULT_INFER_CFG_FILE = 'cfgs/infer/text2img_anime_lora.yaml'
-_DEFAULT_INFER_MODEL = 'Meina/MeinaMix_V11'
+_DEFAULT_INFER_MODEL = 'AIARTCHAN/anidosmixV2'
 
 
 def sample_method_to_config(method):
@@ -145,6 +148,50 @@ class Drawing:
     steps: int
     image: Image.Image
     sample_method: str
+    clip_skip: int
+    model: str
+    model_hash: Optional[str] = None
+
+    @property
+    def preview_info(self):
+        return dedent(f"""
+Prompt: {self.prompt}
+Neg Prompt: {self.neg_prompt}
+Width: {self.width}
+Height: {self.height}
+Guidance Scale: {self.gscale}
+Sample Method: {self.sample_method}
+Infer Steps: {self.steps}
+Clip Skip: {self.clip_skip}
+Seed: {self.seed}
+Model: {self.model}
+Safe For Work: {"yes" if self.sfw else "no"}
+    """).lstrip()
+
+    @property
+    def pnginfo_text(self) -> str:
+        with io.StringIO() as sf:
+            print(self.prompt, file=sf)
+            print(f'Negative prompt: {self.neg_prompt}', file=sf)
+
+            if self.model_hash:
+                print(f'Steps: {self.steps}, Sampler: {self.sample_method}, '
+                      f'CFG scale: {self.gscale}, Seed: {self.steps}, Size: {self.width}x{self.height}, '
+                      f'Model hash: {self.model_hash.lower()}, Model: {self.model}, '
+                      f'Clip skip: {self.clip_skip}', file=sf)
+            else:
+                print(f'Steps: {self.steps}, Sampler: {self.sample_method}, '
+                      f'CFG scale: {self.gscale}, Seed: {self.steps}, Size: {self.width}x{self.height}, '
+                      f'Model: {self.model}, '
+                      f'Clip skip: {self.clip_skip}', file=sf)
+
+            return sf.getvalue()
+
+    @property
+    def pnginfo(self) -> PngInfo:
+        info = PngInfo()
+        info.add_text('parameters', self.pnginfo_text)
+        return info
 
 
 def draw_with_workdir(
@@ -152,7 +199,7 @@ def draw_with_workdir(
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
         width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
-        clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
+        clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras', model_hash: Optional[str] = None,
 ):
     pnames, prompts, neg_prompts, seeds, sfws = [], [], [], [], []
     for jfile in glob.glob(os.path.join(workdir, 'rtags', '*.json')):
@@ -188,7 +235,8 @@ def draw_with_workdir(
                 pname, prompt, neg_prompt, seed,
                 sfw=sfw and len(detect_censors(img, conf_threshold=0.45)) == 0,
                 width=width, height=height, gscale=gscale, steps=infer_steps,
-                image=img, sample_method=sample_method,
+                image=img, sample_method=sample_method, clip_skip=clip_skip,
+                model=pretrained_model, model_hash=model_hash,
             ))
 
         return retval

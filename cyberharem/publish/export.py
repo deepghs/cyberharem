@@ -4,6 +4,7 @@ import os.path
 import shutil
 import zipfile
 from textwrap import dedent
+from typing import Optional
 
 import pandas as pd
 
@@ -11,30 +12,24 @@ from .convert import convert_to_webui_lora
 from .steps import find_steps_in_workdir
 from ..dataset.tags import sort_draw_names
 from ..infer.draw import _DEFAULT_INFER_MODEL
-from ..infer.draw import draw_with_workdir, Drawing
+from ..infer.draw import draw_with_workdir
 
-
-def _make_preview_info(draw: Drawing, n_repeats: int = 2):
-    return dedent(f"""
-Prompt: {draw.prompt}
-Neg Prompt: {draw.neg_prompt}
-Width: {draw.width}
-Height: {draw.height}
-Guidance Scale: {draw.gscale}
-Sample Method: {draw.sample_method}
-Infer Steps: {draw.steps}
-N Repeats: {n_repeats}
-Seed: {draw.seed}
-Safe For Work: {"yes" if draw.sfw else "no"}
-    """).lstrip()
+KNOWN_MODEL_HASHES = {
+    'AIARTCHAN/anidosmixV2': 'EB49192009',
+    'stablediffusionapi/anything-v5': None,
+    'stablediffusionapi/cetusmix': 'B42B09FF12',
+}
 
 
 def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                    pretrained_model: str = _DEFAULT_INFER_MODEL, clip_skip: int = 2,
                    image_width: int = 512, image_height: int = 768, infer_steps: int = 30,
-                   sample_method: str = 'DPM++ 2M Karras', ):
+                   sample_method: str = 'DPM++ 2M Karras', model_hash: Optional[str] = None):
     name, steps = find_steps_in_workdir(workdir)
     logging.info(f'Starting export trained artifacts of {name!r}, with steps: {steps!r}')
+    model_hash = model_hash or KNOWN_MODEL_HASHES.get(pretrained_model, None)
+    if model_hash:
+        logging.info(f'Model hash {model_hash!r} detected for model {pretrained_model!r}.')
 
     d_names = set()
     all_drawings = {}
@@ -54,15 +49,21 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                     pretrained_model=pretrained_model,
                     width=image_width, height=image_height, infer_steps=infer_steps,
                     clip_skip=clip_skip, sample_method=sample_method,
+                    model_hash=model_hash,
                 )
             except RuntimeError:
                 n_repeats += 1
             else:
                 break
+
+        all_image_files = []
         for draw in drawings:
-            draw.image.save(os.path.join(preview_dir, f'{draw.name}.png'))
+            img_file = os.path.join(preview_dir, f'{draw.name}.png')
+            draw.image.save(img_file, pnginfo=draw.pnginfo)
+            all_image_files.append(img_file)
+
             with open(os.path.join(preview_dir, f'{draw.name}_info.txt'), 'w', encoding='utf-8') as f:
-                print(_make_preview_info(draw, n_repeats), file=f)
+                print(draw.preview_info, file=f)
             d_names.add(draw.name)
             all_drawings[(draw.name, step)] = draw
             if not draw.sfw:
@@ -82,6 +83,8 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
         with zipfile.ZipFile(os.path.join(step_dir, f'{name}.zip'), 'w') as zf:
             zf.write(os.path.join(step_dir, f'{name}.pt'), f'{name}.pt')
             zf.write(os.path.join(step_dir, f'{name}.safetensors'), f'{name}.safetensors')
+            for img_file in all_image_files:
+                zf.write(img_file, os.path.basename(img_file))
 
     nsfw_ratio = {name: count * 1.0 / len(steps) for name, count in nsfw_count.items()}
     with open(os.path.join(export_dir, 'meta.json'), 'w', encoding='utf-8') as f:
@@ -98,6 +101,11 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
               '[DeepGHS Team](https://huggingface.co/deepghs).', file=f)
         print('', file=f)
 
+        print('The base model used during training is [NAI](https://huggingface.co/deepghs/animefull-latest), '
+              f'and the base model used for generating preview images is '
+              f'[{pretrained_model}](https://huggingface.co/{pretrained_model}).', file=f)
+        print('', file=f)
+
         print(f'After downloading the pt and safetensors files for the specified step, '
               f'you need to use them simultaneously. The pt file will be used as an embedding, '
               f'while the safetensors file will be loaded for Lora.', file=f)
@@ -109,6 +117,16 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
         print('', file=f)
 
         print(f'**The trigger word is `{name}`.**', file=f)
+        print('', file=f)
+
+        print(dedent("""
+For the following groups, it is not recommended to use this model and we express regret:
+1. Individuals who cannot tolerate any deviations from the original character design, even in the slightest detail.
+2. Individuals who are facing the application scenarios with high demands for accuracy in recreating character outfits.
+3. Individuals who cannot accept the potential randomness in AI-generated images based on the Stable Diffusion algorithm.
+4. Individuals who are not comfortable with the fully automated process of training character models using LoRA, or those who believe that training character models must be done purely through manual operations to avoid disrespecting the characters.
+5. Individuals who finds the generated image content offensive to their values.
+        """).strip(), file=f)
         print('', file=f)
 
         print(f'These are available steps:', file=f)
