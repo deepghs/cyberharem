@@ -9,15 +9,9 @@ from .load import load_dataset_for_character
 from ..utils import load_tags_from_directory, get_ch_name, repr_tags
 
 basic_words = [
-    ('extremely detailed CG unity 8k wallpaper', 1.1),
-    ('masterpiece', 1.3),
-    ('best quality', 1.3),
-    ('ultra-detailed', 1.2),
-    ('best illustration', 1.1),
-    ('best shadow', 1.1),
-    ('an extremely delicate and beautiful', 1.1),
-    'dynamic angle',
-    'floating',
+    'best quality',
+    'masterpiece',
+    'highres',
 ]
 
 generic_neg_words = [
