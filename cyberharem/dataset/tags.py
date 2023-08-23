@@ -79,7 +79,8 @@ def _nude_bondage_words(generic_words, name, core_tags):
     return [
         'nsfw',
         *generic_words,
-        ('standing', 1.1),
+        ('simple background', 1.1),
+        ('standing', 1.15),
         ('nude', 1.4),
         ('bondage', 1.3),
         'completely nude',
@@ -98,7 +99,8 @@ def _nude_stand_words(generic_words, name, core_tags):
     return [
         'nsfw',
         *generic_words,
-        ('standing', 1.1),
+        ('simple background', 1.1),
+        ('standing', 1.15),
         ('nude', 1.4),
         ('completely nude', 1.2),
         'mature',
