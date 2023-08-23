@@ -60,7 +60,7 @@ def draw_images(
         workdir: str, prompts: Union[str, List[str]], neg_prompts: Union[str, List[str]] = None,
         seeds: Union[int, List[str]] = None, emb_name: str = None, save_cfg: bool = True,
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
-        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
+        width: int = 512, height: int = 768, gscale: float = 7, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = 'output', cfg_file: str = _DEFAULT_INFER_CFG_FILE,
         clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
 ):
@@ -176,12 +176,12 @@ Safe For Work: {"yes" if self.sfw else "no"}
 
             if self.model_hash:
                 print(f'Steps: {self.steps}, Sampler: {self.sample_method}, '
-                      f'CFG scale: {self.gscale}, Seed: {self.steps}, Size: {self.width}x{self.height}, '
+                      f'CFG scale: {self.gscale}, Seed: {self.seed}, Size: {self.width}x{self.height}, '
                       f'Model hash: {self.model_hash.lower()}, Model: {self.model}, '
                       f'Clip skip: {self.clip_skip}', file=sf)
             else:
                 print(f'Steps: {self.steps}, Sampler: {self.sample_method}, '
-                      f'CFG scale: {self.gscale}, Seed: {self.steps}, Size: {self.width}x{self.height}, '
+                      f'CFG scale: {self.gscale}, Seed: {self.seed}, Size: {self.width}x{self.height}, '
                       f'Model: {self.model}, '
                       f'Clip skip: {self.clip_skip}', file=sf)
 
@@ -197,7 +197,7 @@ Safe For Work: {"yes" if self.sfw else "no"}
 def draw_with_workdir(
         workdir: str, emb_name: str = None, save_cfg: bool = True,
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
-        width: int = 512, height: int = 768, gscale: float = 7.5, infer_steps: int = 30,
+        width: int = 512, height: int = 768, gscale: float = 7, infer_steps: int = 30,
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
         clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras', model_hash: Optional[str] = None,
 ):

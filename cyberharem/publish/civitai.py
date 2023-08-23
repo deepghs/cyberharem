@@ -18,6 +18,8 @@ from huggingface_hub import hf_hub_url
 from imgutils.data import load_image
 from imgutils.metrics import ccip_extract_feature, ccip_batch_same
 from imgutils.validate import anime_rating_score
+from pycivitai import civitai_find_online
+from pycivitai.client import ModelNotFound
 from tqdm.auto import tqdm
 from urlobject import URLObject
 from waifuc.source import LocalSource
@@ -478,7 +480,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                             version_name: str = 'v1.0', version_desc_md: str = None,
                             step: Optional[int] = None, epoch: Optional[int] = None,
                             draft: bool = False, publish_at=None, safe_only: bool = False,
-                            session=None):
+                            force_create_model: bool = False, session=None):
     if isinstance(source, Character):
         repo = f'CyberHarem/{get_ch_name(source)}'
     elif isinstance(source, str):
@@ -606,8 +608,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         session = session or get_civitai_session(timeout=30)
 
         model_desc_default = f"""
-        **NOTE: Due to technology issues, highres fix is not available when creating post images.**
-        The actual performance on a1111's webui of this model should be better than what you see here.
+        **NOTE: The associated trigger words are only for reference, it may need to be adjusted at some times**.
 
         ## How to Use This Model
 
@@ -639,8 +640,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         issues occurring.
 
         In practice, based on our internal testing, most models that experience such issues perform better in 
-        actual usage than what is seen in the preview images. **The only thing you may need to do is fine-tune 
-        the tags you use**.
+        actual usage than what is seen in the preview images. **The only thing you may need to do is adjusting 
+        the tags you are using**.
 
         ## I Felt This Model May Be Overfitting or Underfitting, What Shall I Do
 
@@ -669,16 +670,36 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         themselves and its relatively strong generalization capabilities, owing to its larger dataset. 
         As such, **this model is well-suited for tasks such as changing outfits, posing characters, and, 
         of course, generating NSFW images of characters!**😉".
+        
+        For the following groups, it is not recommended to use this model and we express regret:
+        1. Individuals who cannot tolerate any deviations from the original character design, even in the slightest detail.
+        2. Individuals who are facing the application scenarios with high demands for accuracy in recreating character outfits.
+        3. Individuals who cannot accept the potential randomness in AI-generated images based on the Stable Diffusion algorithm.
+        4. Individuals who are not comfortable with the fully automated process of training character models using LoRA, or those who believe that training character models must be done purely through manual operations to avoid disrespecting the characters.
+        5. Individuals who finds the generated image content offensive to their values.
         """
-        model_id, nsfw = civitai_create_model(
-            name=model_name or try_find_title(char_name, game_name) or trigger_word.replace('_', ' '),
-            description_md=model_desc_md or model_desc_default,
-            tags=[
-                game_name, f"{game_name} {char_name}",
-                'female', 'girl', 'character', 'game character',
-            ],
-            session=session,
-        )
+        model_name or try_find_title(char_name, game_name) or trigger_word.replace('_', ' ')
+        if not force_create_model:
+            try:
+                exist_model = civitai_find_online(model_name)
+            except ModelNotFound:
+                model_id = None
+            else:
+                logging.info(f'Existing model {exist_model.model_name}({exist_model.model_id}) found.')
+                model_id = exist_model.model_id
+        else:
+            model_id = None
+        if model_id is None:
+            logging.info('No existing model found, creating model ...')
+            model_id, _ = civitai_create_model(
+                name=model_name,
+                description_md=model_desc_md or model_desc_default,
+                tags=[
+                    game_name, f"{game_name} {char_name}",
+                    'female', 'girl', 'character', 'game character', 'fully-automated'
+                ],
+                session=session,
+            )
 
         version_data = civitai_create_version(
             model_id=model_id,
