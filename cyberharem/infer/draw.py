@@ -74,6 +74,10 @@ def draw_images(
             'pretrained_model': pretrained_model,
             'N_repeats': n_repeats,
 
+            'vae_optimize': {
+                'tiling': False,
+            },
+
             'clip_skip': clip_skip - 1,
 
             'bs': 1,
