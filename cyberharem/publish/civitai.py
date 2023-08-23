@@ -678,7 +678,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         4. Individuals who are not comfortable with the fully automated process of training character models using LoRA, or those who believe that training character models must be done purely through manual operations to avoid disrespecting the characters.
         5. Individuals who finds the generated image content offensive to their values.
         """
-        model_name or try_find_title(char_name, game_name) or trigger_word.replace('_', ' ')
+        model_name = model_name or try_find_title(char_name, game_name) or trigger_word.replace('_', ' ')
         if not force_create_model:
             try:
                 exist_model = civitai_find_online(model_name)
