@@ -91,6 +91,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
         json.dump({
             'name': name,
             'steps': steps,
+            'mark': 'v1.1',
         }, f, ensure_ascii=False, indent=4)
     with open(os.path.join(export_dir, 'README.md'), 'w', encoding='utf-8') as f:
         print(f'# Lora of {name}', file=f)
