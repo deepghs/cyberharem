@@ -131,12 +131,17 @@ def rehf(repository, revision, n_repeats, pretrained_model,
               help='Publish time, publish immediately when not given.', show_default=True)
 @click.option('--safe_only', '-S', 'safe_only', is_flag=True, type=bool, default=False,
               help='Upload safe images only.', show_default=True)
-def civitai(repository, title, steps, epochs, draft, publish_time, safe_only):
+@click.option('--version_name', 'version_name', type=str, default='v1.0',
+              help='Name of the version.', show_default=True)
+@click.option('--force_create', '-F', 'force_create', is_flag=True, type=bool, default=False,
+              help='Force create new model.', show_default=True)
+def civitai(repository, title, steps, epochs, draft, publish_time, safe_only, version_name, force_create):
     logging.try_init_root(logging.INFO)
     model_id = civitai_publish_from_hf(
         repository, title,
         step=steps, epoch=epochs, draft=draft,
         publish_at=publish_time, safe_only=safe_only,
+        version_name=version_name, force_create_model=force_create,
     )
     url = f'https://civitai.com/models/{model_id}'
     if not draft:
