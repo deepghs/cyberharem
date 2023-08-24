@@ -1,8 +1,11 @@
+import glob
 import logging
+import math
 import os.path
 from typing import Optional, Tuple, Union
 
 from gchar.games.base import Character
+from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hcpdiff.train_ac import Trainer
 from hcpdiff.train_ac_single import TrainerSingleCard
@@ -16,7 +19,8 @@ _DEFAULT_TRAIN_CFG = 'cfgs/train/examples/lora_anime_character.yaml'
 
 
 def train_plora(
-        source: Union[str, Character], name: Optional[str] = None, steps: int = 1000, save_per_steps: int = 100,
+        source: Union[str, Character], name: Optional[str] = None,
+        epochs: int = 12, save_per_steps: int = 100,
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
         unet_rank: float = 8, text_encoder_rank: float = 4,
@@ -28,6 +32,11 @@ def train_plora(
                 raise ValueError(f'Name should be specified when using custom source - {source!r}.')
         else:
             name = name or get_ch_name(ch)
+
+        dataset_size = len(glob.glob(os.path.join(ds_dir, '*.png')))
+        logging.info(f'{plural_word(dataset_size, "image")} found in dataset.')
+        steps = int(math.ceil(epochs * dataset_size / save_per_steps) * save_per_steps)
+        logging.info(f'Training for {plural_word(steps, "step")}, {plural_word(epochs, "epoch")} ...')
 
         workdir = workdir or os.path.join('runs', name)
         os.makedirs(workdir, exist_ok=True)

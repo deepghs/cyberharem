@@ -18,6 +18,8 @@ KNOWN_MODEL_HASHES = {
     'AIARTCHAN/anidosmixV2': 'EB49192009',
     'stablediffusionapi/anything-v5': None,
     'stablediffusionapi/cetusmix': 'B42B09FF12',
+    'Meina/MeinaMix_V10': 'D967BCAE4A',
+    'Meina/MeinaMix_V11': '54EF3E3610',
 }
 
 

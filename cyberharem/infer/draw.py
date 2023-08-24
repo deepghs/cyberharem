@@ -24,7 +24,7 @@ from hcpdiff.utils import load_config_with_cli
 from ..utils import data_to_cli_args
 
 _DEFAULT_INFER_CFG_FILE = 'cfgs/infer/text2img_anime_lora.yaml'
-_DEFAULT_INFER_MODEL = 'AIARTCHAN/anidosmixV2'
+_DEFAULT_INFER_MODEL = 'Meina/MeinaMix_V10'
 
 
 def sample_method_to_config(method):
@@ -104,6 +104,11 @@ def draw_images(
 
             'new_components': {
                 'scheduler': sample_method_to_config(sample_method),
+                'vae': {
+                    '_target_': 'diffusers.AutoencoderKL.from_pretrained',
+                    'pretrained_model_name_or_path': 'deepghs/animefull-latest',  # path to vae model
+                    'subfolder': 'vae',
+                }
             }
         })
         logging.info(f'Infer based on {cfg_file!r}, with {cli_args!r}')
