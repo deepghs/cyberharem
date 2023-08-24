@@ -37,7 +37,7 @@ def train_plora(
         logging.info(f'{plural_word(dataset_size, "image")} found in dataset.')
 
         actual_steps = epochs * dataset_size
-        save_per_steps = min(int(math.ceil(actual_steps / save_for_times / 20) * 20), 20)
+        save_per_steps = max(int(math.ceil(actual_steps / save_for_times / 20) * 20), 20)
         steps = int(math.ceil(actual_steps / save_per_steps) * save_per_steps)
         logging.info(f'Training for {plural_word(steps, "step")}, {plural_word(epochs, "epoch")}, '
                      f'save per {plural_word(save_per_steps, "step")} ...')
