@@ -20,7 +20,7 @@ _DEFAULT_TRAIN_CFG = 'cfgs/train/examples/lora_anime_character.yaml'
 
 def train_plora(
         source: Union[str, Character], name: Optional[str] = None,
-        epochs: int = 12, save_per_steps: int = 100,
+        epochs: int = 12, save_for_times: int = 15,
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
         unet_rank: float = 8, text_encoder_rank: float = 4,
@@ -35,8 +35,12 @@ def train_plora(
 
         dataset_size = len(glob.glob(os.path.join(ds_dir, '*.png')))
         logging.info(f'{plural_word(dataset_size, "image")} found in dataset.')
-        steps = int(math.ceil(epochs * dataset_size / save_per_steps) * save_per_steps)
-        logging.info(f'Training for {plural_word(steps, "step")}, {plural_word(epochs, "epoch")} ...')
+
+        actual_steps = epochs * dataset_size
+        save_per_steps = min(int(math.ceil(actual_steps / save_for_times / 20) * 20), 20)
+        steps = int(math.ceil(actual_steps / save_per_steps) * save_per_steps)
+        logging.info(f'Training for {plural_word(steps, "step")}, {plural_word(epochs, "epoch")}, '
+                     f'save per {plural_word(save_per_steps, "step")} ...')
 
         workdir = workdir or os.path.join('runs', name)
         os.makedirs(workdir, exist_ok=True)

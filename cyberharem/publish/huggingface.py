@@ -5,13 +5,13 @@ from typing import Optional
 
 from ditk import logging
 from hbutils.system import TemporaryDirectory
-from huggingface_hub import CommitOperationAdd
+from huggingface_hub import CommitOperationAdd, CommitOperationDelete
 from huggingface_hub.utils import RepositoryNotFoundError
 
 from .export import export_workdir
 from .steps import find_steps_in_workdir
 from ..infer.draw import _DEFAULT_INFER_MODEL
-from ..utils import get_hf_client
+from ..utils import get_hf_client, get_hf_fs
 
 
 def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main', n_repeats: int = 3,
@@ -24,6 +24,7 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
     hf_client.create_repo(repo_id=repository, repo_type='model', exist_ok=True)
+    hf_fs = get_hf_fs()
 
     with TemporaryDirectory() as td:
         export_workdir(
@@ -53,6 +54,7 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
             print('', file=f)
             print(readme_text, file=f)
 
+        _exist_files = set([os.path.relpath(file, repository) for file in hf_fs.glob(f'{repository}/**')])
         operations = []
         for directory, _, files in os.walk(td):
             for file in files:
@@ -62,6 +64,9 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
                     path_in_repo=file_in_repo,
                     path_or_fileobj=filename,
                 ))
+                _exist_files.remove(file_in_repo)
+        for file in sorted(_exist_files):
+            operations.append(CommitOperationDelete(path_in_repo=file))
 
         current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
         commit_message = f'Publish {name}\'s lora, on {current_time}'
