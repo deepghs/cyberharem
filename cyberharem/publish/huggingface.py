@@ -54,7 +54,14 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
             print('', file=f)
             print(readme_text, file=f)
 
-        _exist_files = set([os.path.relpath(file, repository) for file in hf_fs.glob(f'{repository}/**')])
+        _exist_files = [os.path.relpath(file, repository) for file in hf_fs.glob(f'{repository}/**')]
+        _exist_ps = sorted([(file, file.split('/')) for file in _exist_files], key=lambda x: x[1])
+        pre_exist_files = set()
+        for i, (file, segments) in enumerate(_exist_ps):
+            if i < len(_exist_ps) - 1 and segments == _exist_ps[i + 1][1][:len(segments)]:
+                continue
+            pre_exist_files.add(file)
+
         operations = []
         for directory, _, files in os.walk(td):
             for file in files:
@@ -64,10 +71,10 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
                     path_in_repo=file_in_repo,
                     path_or_fileobj=filename,
                 ))
-                if file_in_repo in _exist_files:
-                    _exist_files.remove(file_in_repo)
-        logging.info(f'Useless files: {sorted(_exist_files)} ...')
-        for file in sorted(_exist_files):
+                if file_in_repo in pre_exist_files:
+                    pre_exist_files.remove(file_in_repo)
+        logging.info(f'Useless files: {sorted(pre_exist_files)} ...')
+        for file in sorted(pre_exist_files):
             operations.append(CommitOperationDelete(path_in_repo=file))
 
         current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
