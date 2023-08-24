@@ -66,6 +66,7 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
                 ))
                 if file_in_repo in _exist_files:
                     _exist_files.remove(file_in_repo)
+        logging.info(f'Useless files: {sorted(_exist_files)} ...')
         for file in sorted(_exist_files):
             operations.append(CommitOperationDelete(path_in_repo=file))
 
