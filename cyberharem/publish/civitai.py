@@ -477,6 +477,10 @@ def try_find_title(char_name, game_name):
         return None
 
 
+def _tag_decode(text):
+    return re.sub(r'[\s_]+', ' ', re.sub(r'\\([\\()])', r'\1', text)).strip()
+
+
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
                             version_name: Optional[str] = None, version_desc_md: str = None,
                             step: Optional[int] = None, epoch: Optional[int] = None,
@@ -717,7 +721,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 tags=[
                     game_name, f"{game_name} {char_name}",
                     'female', 'girl', 'character', 'game character', 'fully-automated',
-                    *core_tags.keys(),
+                    *map(_tag_decode, core_tags.keys()),
                 ],
                 session=session,
             )
@@ -748,7 +752,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             tags=[
                 game_name, f"{game_name} {char_name}",
                 'female', 'girl', 'character', 'game character',
-                *core_tags.keys(),
+                *map(_tag_decode, core_tags.keys()),
             ],
             model_id=model_id,
             session=session,
