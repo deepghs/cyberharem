@@ -691,6 +691,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         of course, generating NSFW images of characters!**😉".
         
         For the following groups, it is not recommended to use this model and we express regret:
+
         1. Individuals who cannot tolerate any deviations from the original character design, even in the slightest detail.
         2. Individuals who are facing the application scenarios with high demands for accuracy in recreating character outfits.
         3. Individuals who cannot accept the potential randomness in AI-generated images based on the Stable Diffusion algorithm.
