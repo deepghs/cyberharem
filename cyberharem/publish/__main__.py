@@ -131,7 +131,7 @@ def rehf(repository, revision, n_repeats, pretrained_model,
               help='Publish time, publish immediately when not given.', show_default=True)
 @click.option('--safe_only', '-S', 'safe_only', is_flag=True, type=bool, default=False,
               help='Upload safe images only.', show_default=True)
-@click.option('--version_name', '-v', 'version_name', type=str, default='v1.0',
+@click.option('--version_name', '-v', 'version_name', type=str, default=None,
               help='Name of the version.', show_default=True)
 @click.option('--force_create', '-F', 'force_create', is_flag=True, type=bool, default=False,
               help='Force create new model.', show_default=True)

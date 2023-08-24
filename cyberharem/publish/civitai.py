@@ -478,7 +478,7 @@ def try_find_title(char_name, game_name):
 
 
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
-                            version_name: str = 'v1.0', version_desc_md: str = None,
+                            version_name: Optional[str] = None, version_desc_md: str = None,
                             step: Optional[int] = None, epoch: Optional[int] = None,
                             draft: bool = False, publish_at=None, safe_only: bool = False,
                             force_create_model: bool = False, session=None):
@@ -500,10 +500,9 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             ccip_feats.append(ccip_extract_feature(item.image))
 
     hf_fs = get_hf_fs()
-    all_steps = sorted([
-        int(os.path.basename(os.path.dirname(fn)))
-        for fn in hf_fs.glob(f'{repo}/*/*.zip')
-    ])
+    meta_json = json.loads(hf_fs.read_text(f'{repo}/meta.json'))
+    version_name = version_name or meta_json.get('mark') or 'v1.0'
+    all_steps = meta_json['steps']
     logging.info(f'Available steps: {all_steps!r}.')
     if step is not None:
         if epoch is not None:
