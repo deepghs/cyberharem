@@ -24,7 +24,7 @@ from hcpdiff.utils import load_config_with_cli
 from ..utils import data_to_cli_args
 
 _DEFAULT_INFER_CFG_FILE = 'cfgs/infer/text2img_anime_lora.yaml'
-_DEFAULT_INFER_MODEL = 'Meina/MeinaMix_V10'
+_DEFAULT_INFER_MODEL = 'Meina/MeinaMix_V11'
 
 
 def sample_method_to_config(method):

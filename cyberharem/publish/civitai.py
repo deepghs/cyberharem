@@ -10,6 +10,7 @@ from typing import Optional, Tuple, List, Union
 
 import blurhash
 import numpy as np
+from PIL import Image
 from gchar.games.base import Character
 from gchar.games.dispatch.access import GAME_CHARS
 from hbutils.string import plural_word
@@ -570,7 +571,26 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 'sampler': info.get('Sample Method', "Euler a"),
                 'seed': int(info.get('Seed')),
                 'steps': int(info.get('Infer Steps')),
+                'Size': f"{info['Width']}x{info['Height']}",
             }
+            if info.get('Model'):
+                meta['Model'] = info['Model']
+                pil_img_file = Image.open(local_img_file)
+                if pil_img_file.info.get('parameters'):
+                    png_info_text = pil_img_file.info['parameters']
+                    find_hash = re.findall(r'Model hash:\s*([a-zA-Z\d]+)', png_info_text, re.IGNORECASE)
+                    if find_hash:
+                        model_hash = find_hash[0].lower()
+                        meta['hashes'] = {"model": model_hash}
+                        meta["resources"] = [
+                            {
+                                "hash": model_hash,
+                                "name": info['Model'],
+                                "type": "model"
+                            }
+                        ]
+                        meta["Model hash"] = model_hash
+
             nsfw = (info.get('Safe For Word', info.get('Safe For Work')) or '').lower() != 'yes'
 
             current_feat = ccip_extract_feature(local_img_file)
