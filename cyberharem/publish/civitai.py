@@ -631,7 +631,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         session = session or get_civitai_session(timeout=30)
 
         model_desc_default = f"""
-        * * **<span style="color:#fa5252">THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER!!!</span>**
+        * **<span style="color:#fa5252">THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER!!!</span>**
         * **The associated trigger words are only for reference, it may need to be adjusted at some times**.
 
         ## How to Use This Model
