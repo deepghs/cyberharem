@@ -139,10 +139,9 @@ def _safe_yukata_words(generic_words, name, core_tags):
 def _safe_miko_words(generic_words, name, core_tags):
     return [
         *generic_words,
-        ('miko attire', 1.4),
-        ('white kimono', 1.2),
-        ('red hakama', 1.2),
-        ('wide sleeves', 1.15),
+        ('white kimono', 1.35),
+        ('red hakama', 1.35),
+        ('wide sleeves', 1.2),
         (name, 1.15),
         *[key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])],
     ], [
