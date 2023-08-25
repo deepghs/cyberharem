@@ -631,25 +631,25 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         session = session or get_civitai_session(timeout=30)
 
         model_desc_default = f"""
-        * <b style='color: red'>THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER!!!</b>
+        * * **<span style="color:#fa5252">THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER!!!</span>**
         * **The associated trigger words are only for reference, it may need to be adjusted at some times**.
 
         ## How to Use This Model
 
-        <b style='color: red'>THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER!!!</b>. 
+        **<span style="color:#fa5252">THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER!!!</span>**. 
         In this case, you need to download both `{pt_file}` and 
         `{lora_file}`, then **use `{pt_file}` as texture inversion embedding, and use
         `{lora_file}` as LoRA at the same time**.
 
-        <b style='color: red'>このモデルには2つのファイルがあります。一緒に使う必要があります！！！</b>。
+        **<span style="color:#fa5252">このモデルには2つのファイルがあります。一緒に使う必要があります！！！</span>**。
         この場合、`{pt_file}`と`{lora_file}`の両方をダウンロード
         する必要があります。`{pt_file}`をテクスチャ反転埋め込みとして使用し、同時に`{lora_file}`をLoRAとして使用してください。
 
-        <b style='color: red'>这个模型有两个文件。你需要同时使用它们！！！</b>。
+        **<span style="color:#fa5252">这个模型有两个文件。你需要同时使用它们！！！</span>**。
         在这种情况下，您需要下载`{pt_file}`和`{lora_file}`这两个文件，然后将`{pt_file}`用作纹理反转嵌入，
         同时使用`{lora_file}`作为LoRA。
 
-        <b style='color: red'>이 모델은 두 개의 파일이 있습니다. 두 파일을 함께 사용해야 합니다!!!</b>. 
+        **<span style="color:#fa5252">이 모델은 두 개의 파일이 있습니다. 두 파일을 함께 사용해야 합니다!!!</span>**. 
         이 경우에는 `{pt_file}`와 `{lora_file}` 두 파일을 모두 다운로드하신 다음에 **`{pt_file}`을 텍스처 반전 임베딩으로 사용하고, 
         동시에 `{lora_file}`을 LoRA로 사용하셔야 합니다**.
 
