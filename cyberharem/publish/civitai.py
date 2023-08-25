@@ -144,7 +144,7 @@ def _vae_model_same(x, y):
 def civitai_create_version(
         model_id: int, version_name: str, description_md: str, trigger_words: List[str],
         base_model: str = 'SD 1.5', steps: Optional[int] = None, epochs: Optional[int] = None,
-        clip_skip: Optional[int] = 1, vae_name: Optional[str] = None, early_access_time: int = 0,
+        clip_skip: Optional[int] = 2, vae_name: Optional[str] = None, early_access_time: int = 0,
         session=None
 ):
     session = session or get_civitai_session()
