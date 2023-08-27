@@ -577,6 +577,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 'steps': int(info.get('Infer Steps')),
                 'Size': f"{info['Width']}x{info['Height']}",
             }
+            if info.get('Clip Skip'):
+                meta['clipSkip'] = int(info['Clip Skip'])
             if info.get('Model'):
                 meta['Model'] = info['Model']
                 pil_img_file = Image.open(local_img_file)
