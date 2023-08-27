@@ -486,7 +486,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                             version_name: Optional[str] = None, version_desc_md: str = None,
                             step: Optional[int] = None, epoch: Optional[int] = None,
                             draft: bool = False, publish_at=None, safe_only: bool = False,
-                            force_create_model: bool = False, session=None):
+                            force_create_model: bool = False, no_ccip_check: bool = False, session=None):
     if isinstance(source, Character):
         repo = f'CyberHarem/{get_ch_name(source)}'
     elif isinstance(source, str):
@@ -600,7 +600,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             current_feat = ccip_extract_feature(local_img_file)
             similarity = ccip_batch_same([current_feat, *ccip_feats])[0, 1:].mean()
             logging.info(f'Similarity of character on image {local_img_file!r}: {similarity!r}')
-            if similarity < 0.6:
+            if similarity < 0.6 and not no_ccip_check:
                 logging.info(f'Similarity of {local_img_file!r}({similarity!r}) is too low, skipped.')
                 continue
 
