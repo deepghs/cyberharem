@@ -111,6 +111,7 @@ def civitai_create_model(
                 "authed": True,
                 "status": "Draft",
                 "checkpointType": None,
+                "uploadType": "Created",
             },
             "meta": {
                 "values": _meta_values,
