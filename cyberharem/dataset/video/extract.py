@@ -239,7 +239,7 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
 
 def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
                            repository: str, revision: str = 'main', no_extract: bool = False,
-                           min_size: int = 320, merge_threshold: float = 0.7, preview_count: int = 5):
+                           min_size: int = 320, merge_threshold: float = 0.7, preview_count: int = 8):
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
     hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)

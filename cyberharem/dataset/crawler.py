@@ -1,9 +1,11 @@
 import datetime
 import glob
+import json
 import os.path
 import zipfile
-from typing import Union, Mapping, Tuple, List, Optional
+from typing import Union, Tuple, List, Optional
 
+import pandas as pd
 from ditk import logging
 from gchar.games import get_character
 from gchar.games.base import Character
@@ -12,9 +14,11 @@ from hbutils.system import TemporaryDirectory
 from huggingface_hub import CommitOperationAdd
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
-    FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction
+    FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
+    AlignMinSizeAction, MinSizeFilterAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
+from waifuc.utils import task_ctx
 
 from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client
 
@@ -30,8 +34,7 @@ def get_source(source) -> BaseDataSource:
     return source
 
 
-def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
-                    no_character_tags: bool = True, drop_multi: bool = True) -> BaseDataSource:
+def get_main_source(source, no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True) -> BaseDataSource:
     source: BaseDataSource = get_source(source)
     actions = [
         ModeConvertAction('RGB', bg_color),
@@ -43,48 +46,64 @@ def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
 
     actions.append(FilterSimilarAction('all'))  # filter duplicated images
     if drop_multi:
-        actions.append(FaceCountAction(count=1))  # drop images with 0 or >1 faces
+        actions.append(FaceCountAction(count=1, level='n'))  # drop images with 0 or >1 faces
     actions.extend([
-        PersonSplitAction(),  # crop for each person
-        FaceCountAction(count=1),
+        PersonSplitAction(level='n'),  # crop for each person
+        FaceCountAction(count=1, level='n'),
         FileOrderAction(),  # Rename files in order
         CCIPAction(min_val_count=15),  # CCIP, filter the character you may not want to see in dataset
         FilterSimilarAction('all'),  # filter duplicated images
+        MinSizeFilterAction(320),
     ])
-    if no_character_tags:
-        actions.append(TaggingAction(force=True, character_threshold=1.01))
-    else:
-        actions.append(TaggingAction(force=True))
     actions.append(RandomFilenameAction(ext='.png'))
 
     return source.attach(*actions)
 
 
-def actions_parse(actions: Union[Tuple[int, int], List[BaseAction]], bg_color: str = 'white'):
+def actions_parse(actions: Union[int, Tuple[int, int], List[BaseAction]], bg_color: str = 'white'):
     if isinstance(actions, list):
         return actions
     elif isinstance(actions, tuple):
         width, height = actions
         return [PaddingAlignAction((width, height), bg_color)]
+    elif isinstance(actions, int):
+        return [AlignMinSizeAction(actions)]
     else:
         raise TypeError(f'Unknown post action type - {actions!r}.')
 
 
-_DEFAULT_RESOLUTIONS = {
-    'raw': [],
-    '384x512': (384, 512),
-    '512x512': (512, 512),
-    '512x704': (512, 704),
-    '640x640': (640, 640),
-    '640x880': (640, 880),
+_SOURCES = {
+    'native': [
+        TaggingAction(force=True, character_threshold=1.01),
+    ],
+    'stage3': [
+        ThreeStageSplitAction(),
+        FilterSimilarAction(),
+        MinSizeFilterAction(280),
+        TaggingAction(force=True, character_threshold=1.01),
+    ]
 }
+
+_DEFAULT_RESOLUTIONS = {
+    'raw': ('native', [], 'Raw data with meta information.'),
+    'raw-stage3': ('stage3', [], '3-stage cropped raw data with meta information.'),
+    '384x512': ('native', (384, 512), '384x512 aligned dataset.'),
+    '512x512': ('native', (512, 512), '512x512 aligned dataset.'),
+    '512x704': ('native', (512, 704), '512x704 aligned dataset.'),
+    '640x640': ('native', (640, 640), '640x640 aligned dataset.'),
+    '640x880': ('native', (640, 880), '640x880 aligned dataset.'),
+    'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
+    'stage3-800': ('stage3', 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
+    'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 1200 pixels.'),
+}
+
+DATASET_PVERSION = 'v1.4'
 
 
 def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
         name: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
-        resolutions: Mapping[str, Union[Tuple[int, int], List[BaseAction]]] = None,
-        no_r18: bool = False, bg_color: str = 'white', no_character_tags: bool = True, drop_multi: bool = True,
+        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
 ):
     if isinstance(source, (str, Character)):
@@ -102,14 +121,15 @@ def crawl_dataset_to_huggingface(
         if not repository:
             repository = f'CyberHarem/{get_alphabet_name(name)}'
 
-    origin_source = get_main_source(source, no_r18, bg_color, no_character_tags, drop_multi)
+    origin_source = get_main_source(source, no_r18, bg_color, drop_multi)
     with TemporaryDirectory() as td:
         # save origin directory
         origin_dir = os.path.join(td, 'origin')
         os.makedirs(origin_dir, exist_ok=True)
         if limit is not None:
             origin_source = origin_source[:limit]
-        origin_source.export(SaveExporter(origin_dir))
+        with task_ctx('origin'):
+            origin_source.export(SaveExporter(origin_dir))
 
         img_count = len(glob.glob(os.path.join(origin_dir, '*.png')))
         if img_count < min_images:
@@ -117,23 +137,33 @@ def crawl_dataset_to_huggingface(
                          f'skip post-processing and uploading.')
             return
 
+        source_dir = os.path.join(td, 'source')
+        os.makedirs(source_dir, exist_ok=True)
+        for sname, actions in _SOURCES.items():
+            with task_ctx(f'source/{sname}'):
+                LocalSource(origin_dir).attach(*actions).export(SaveExporter(os.path.join(source_dir, sname)))
+
         processed_dir = os.path.join(td, 'processed')
         os.makedirs(processed_dir, exist_ok=True)
         archive_dir = os.path.join(td, 'archives')
         os.makedirs(archive_dir, exist_ok=True)
 
         files_to_upload: List[Tuple[str, str]] = []
-        if resolutions is None:
-            resolutions = _DEFAULT_RESOLUTIONS
-        for rname, actions in resolutions.items():
+        resolutions = _DEFAULT_RESOLUTIONS
+
+        columns = ['Name', 'Images', 'Download', 'Description']
+        rows = []
+        for rname, (sname, actions, description) in resolutions.items():
             actions = actions_parse(actions, bg_color)
 
-            ox = LocalSource(origin_dir)
+            ox = LocalSource(os.path.join(source_dir, sname))
             current_processed_dir = os.path.join(processed_dir, rname)
-            if rname != 'raw':  # raw is preserved for exporting json data
-                ox.attach(*actions).export(TextualInversionExporter(current_processed_dir))
-            else:
-                ox.attach(*actions).export(SaveExporter(current_processed_dir))
+            with task_ctx(f'archive/{rname}'):
+                if not rname.startswith('raw'):  # raw is preserved for exporting json data
+                    ox.attach(*actions).export(TextualInversionExporter(current_processed_dir))
+                else:
+                    ox.attach(*actions).export(SaveExporter(current_processed_dir))
+            current_img_cnt = len(glob.glob(os.path.join(current_processed_dir, '*.png')))
 
             zip_file = os.path.join(archive_dir, f'dataset-{rname}.zip')
             with zipfile.ZipFile(zip_file, mode='w') as zf:
@@ -146,7 +176,22 @@ def crawl_dataset_to_huggingface(
                             '/'.join(rel_file_path.split(os.sep))
                         )
 
+            rows.append((
+                rname,
+                current_img_cnt,
+                f'[Download]({os.path.basename(zip_file)})',
+                description,
+            ))
+
             files_to_upload.append((zip_file, os.path.basename(zip_file)))
+
+        meta_file = os.path.join(td, 'meta.json')
+        with open(meta_file, 'w', encoding='utf-8') as mf:
+            json.dump({
+                'name': name,
+                'version': DATASET_PVERSION,
+            }, mf, indent=4, sort_keys=True, ensure_ascii=False)
+        files_to_upload.append((meta_file, 'meta.json'))
 
         readme_file = os.path.join(td, 'README.md')
         with open(readme_file, 'w', encoding='utf-8') as rf:
@@ -172,6 +217,10 @@ def crawl_dataset_to_huggingface(
                   f'the auto-crawling system is powered by [DeepGHS Team](https://github.com/deepghs)'
                   f'([huggingface organization](https://huggingface.co/deepghs)).', file=rf)
             print(f'', file=rf)
+
+            df = pd.DataFrame(columns=columns, data=rows)
+            print(df.to_markdown(index=False), file=rf)
+            print('', file=rf)
 
         files_to_upload.append((readme_file, 'README.md'))
 

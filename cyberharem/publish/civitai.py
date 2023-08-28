@@ -478,6 +478,15 @@ def try_find_title(char_name, game_name):
         return None
 
 
+def try_get_title_from_repo(repo):
+    hf_fs = get_hf_fs()
+    if hf_fs.exists(f'dataset/{repo}/meta.json'):
+        data = json.loads(hf_fs.read_text(f'dataset/{repo}/meta.json'))
+        return data['name']
+    else:
+        return None
+
+
 def _tag_decode(text):
     return re.sub(r'[\s_]+', ' ', re.sub(r'\\([\\()])', r'\1', text)).strip()
 
@@ -715,7 +724,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         4. Individuals who are not comfortable with the fully automated process of training character models using LoRA, or those who believe that training character models must be done purely through manual operations to avoid disrespecting the characters.
         5. Individuals who finds the generated image content offensive to their values.
         """
-        model_name = model_name or try_find_title(char_name, game_name) or trigger_word.replace('_', ' ')
+        model_name = model_name or try_find_title(char_name, game_name) or \
+                     try_get_title_from_repo(repo) or trigger_word.replace('_', ' ')
         if not force_create_model:
             try:
                 exist_model = civitai_find_online(model_name)
