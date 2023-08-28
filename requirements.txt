@@ -1,4 +1,4 @@
-git+https://github.com/deepghs/waifuc.git@main
+git+https://github.com/deepghs/waifuc.git@main#egg=waifuc[video]
 git+https://github.com/narugo1992/HCP-Diffusion.git@main
 dghs-imgutils>=0.2.1
 git+https://github.com/narugo1992/gchar.git@main
@@ -21,3 +21,4 @@ backports.zoneinfo; python_version < '3.9'
 pycivitai
 diffusers>=0.19.0
 torchsde
+natsort
