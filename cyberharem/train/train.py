@@ -21,12 +21,12 @@ _DEFAULT_TRAIN_CFG = 'cfgs/train/examples/lora_anime_character.yaml'
 
 def train_plora(
         source: Union[str, Character], name: Optional[str] = None,
-        epochs: int = 12, save_for_times: int = 15,
+        epochs: int = 13, save_for_times: int = 15,
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
         unet_rank: float = 8, text_encoder_rank: float = 4,
         cfg_file: str = _DEFAULT_TRAIN_CFG, single_card: bool = True,
-        dataset_type: str = '512x704', use_ratio: bool = False,
+        dataset_type: str = 'stage3-1200', use_ratio: bool = True,
 ):
     with load_dataset_for_character(source, dataset_type) as (ch, ds_dir):
         if ch is None:

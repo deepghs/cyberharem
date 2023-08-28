@@ -23,7 +23,7 @@ KNOWN_MODEL_HASHES = {
     'Meina/MeinaMix_V11': '54EF3E3610',
 }
 
-EXPORT_MARK = 'v1.3'
+EXPORT_MARK = 'v1.4'
 
 _GITLFS = dedent("""
 *.7z filter=lfs diff=lfs merge=lfs -text
