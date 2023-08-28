@@ -91,7 +91,7 @@ def train_plora(
 
                         'bucket': {
                             '_target_': 'hcpdiff.data.bucket.RatioBucket.from_files',
-                            'target_area': '${times:512,512}',
+                            'target_area': '${times:640,880}',
                             'num_bucket': 5,
                         } if use_ratio else {
                             '_target_': 'hcpdiff.data.bucket.SizeBucket.from_files',
