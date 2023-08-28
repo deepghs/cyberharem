@@ -1,8 +1,9 @@
 import glob
+import json
 import logging
 import math
 import os.path
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 from gchar.games.base import Character
 from hbutils.string import plural_word
@@ -24,9 +25,10 @@ def train_plora(
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
         unet_rank: float = 8, text_encoder_rank: float = 4,
-        cfg_file: str = _DEFAULT_TRAIN_CFG, single_card: bool = True, dataset_size: Tuple[int, int] = (512, 704),
+        cfg_file: str = _DEFAULT_TRAIN_CFG, single_card: bool = True,
+        dataset_type: str = '512x704', use_ratio: bool = False,
 ):
-    with load_dataset_for_character(source, dataset_size) as (ch, ds_dir):
+    with load_dataset_for_character(source, dataset_type) as (ch, ds_dir):
         if ch is None:
             if name is None:
                 raise ValueError(f'Name should be specified when using custom source - {source!r}.')
@@ -45,6 +47,13 @@ def train_plora(
         workdir = workdir or os.path.join('runs', name)
         os.makedirs(workdir, exist_ok=True)
         save_recommended_tags(ds_dir, name, workdir)
+        with open(os.path.join(workdir, 'meta.json'), 'w', encoding='utf-8') as f:
+            json.dump({
+                'dataset': {
+                    'size': dataset_size,
+                    'type': dataset_type,
+                },
+            }, f, indent=4, sort_keys=True, ensure_ascii=False)
 
         with TemporaryDirectory() as embs_dir:
             logging.info(f'Creating embeddings {name!r} at {embs_dir!r}, '
@@ -79,6 +88,16 @@ def train_plora(
                 'data': {
                     'dataset1': {
                         'batch_size': batch_size,
+
+                        'bucket': {
+                            '_target_': 'hcpdiff.data.bucket.RatioBucket.from_files',
+                            'target_area': '${times:512,512}',
+                            'num_bucket': 5,
+                        } if use_ratio else {
+                            '_target_': 'hcpdiff.data.bucket.SizeBucket.from_files',
+                            'target_area': '---',
+                            'num_bucket': 1,
+                        }
                     },
                 },
             })

@@ -502,10 +502,17 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         repo = source
     else:
         raise TypeError(f'Unknown source type - {source!r}.')
+    hf_fs = get_hf_fs()
+    meta_json = json.loads(hf_fs.read_text(f'{repo}/meta.json'))
     game_name = repo.split('_')[-1]
 
-    with load_dataset_for_character(repo, size=(384, 512)) as (_, d):
-        dataset_size = len(glob.glob(os.path.join(d, '*.png')))
+    dataset_info = meta_json.get('dataset')
+    ds_size = (384, 512) if not dataset_info or not dataset_info['type'] else dataset_info['type']
+    with load_dataset_for_character(repo, size=ds_size) as (_, d):
+        if dataset_info and dataset_info['size']:
+            dataset_size = dataset_info['size']
+        else:
+            dataset_size = len(glob.glob(os.path.join(d, '*.png')))
         core_tags, _ = load_tags_from_directory(d)
         logging.info(f'Size of dataset if {dataset_size!r}.')
 
@@ -513,8 +520,6 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         for item in tqdm(list(LocalSource(d)[:10]), desc='Extracting features'):
             ccip_feats.append(ccip_extract_feature(item.image))
 
-    hf_fs = get_hf_fs()
-    meta_json = json.loads(hf_fs.read_text(f'{repo}/meta.json'))
     version_name = version_name or meta_json.get('mark') or 'v1.0'
     all_steps = meta_json['steps']
     logging.info(f'Available steps: {all_steps!r}.')

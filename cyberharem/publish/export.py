@@ -76,6 +76,12 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
     if model_hash:
         logging.info(f'Model hash {model_hash!r} detected for model {pretrained_model!r}.')
 
+    if os.path.exists(os.path.join(workdir, 'meta.json')):
+        with open(os.path.join(workdir, 'meta.json'), 'r', encoding='utf-8') as f:
+            dataset_info = json.load(f)['dataset']
+    else:
+        dataset_info = None
+
     d_names = set()
     all_drawings = {}
     nsfw_count = {}
@@ -138,6 +144,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
             'steps': steps,
             'mark': EXPORT_MARK,
             'time': time.time(),
+            'dataset': dataset_info,
         }, f, ensure_ascii=False, indent=4)
     with open(os.path.join(export_dir, '.gitattributes'), 'w', encoding='utf-8') as f:
         print(_GITLFS, file=f)
