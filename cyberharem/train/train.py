@@ -20,7 +20,7 @@ _DEFAULT_TRAIN_CFG = 'cfgs/train/examples/lora_anime_character.yaml'
 
 
 def _min_training_steps(dataset_size: int, unit: int = 20):
-    steps = 2250.101 + (203.2317 - 2250.101) / (1 + (dataset_size / 21.65839) ** 0.6543184)
+    steps = 4000.9 + (720.9319 - 4000.9) / (1 + (dataset_size / 297.2281) ** 0.6543184)
     return int(round(steps / unit)) * unit
 
 
