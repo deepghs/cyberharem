@@ -26,7 +26,8 @@ def _min_training_steps(dataset_size: int, unit: int = 20):
 
 def train_plora(
         source: Union[str, Character], name: Optional[str] = None,
-        epochs: int = 13, save_for_times: int = 15, use_min_steps: bool = True,
+        epochs: int = 13, min_steps: Optional[int] = None,
+        save_for_times: int = 15, no_min_steps: bool = False,
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
         unet_rank: float = 8, text_encoder_rank: float = 4,
@@ -44,8 +45,10 @@ def train_plora(
         logging.info(f'{plural_word(dataset_size, "image")} found in dataset.')
 
         actual_steps = epochs * dataset_size
-        if use_min_steps:
+        if not no_min_steps:
             actual_steps = max(actual_steps, _min_training_steps(dataset_size, 20))
+            if min_steps is not None:
+                actual_steps = max(actual_steps, min_steps)
         save_per_steps = max(int(math.ceil(actual_steps / save_for_times / 20) * 20), 20)
         steps = int(math.ceil(actual_steps / save_per_steps) * save_per_steps)
         epochs = int(math.ceil(steps / dataset_size))
