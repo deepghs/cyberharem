@@ -14,7 +14,7 @@ from hcpdiff.utils import load_config_with_cli
 
 from .embedding import create_embedding, _DEFAULT_TRAIN_MODEL
 from ..dataset import load_dataset_for_character, save_recommended_tags
-from ..utils import data_to_cli_args, get_ch_name
+from ..utils import data_to_cli_args, get_ch_name, get_hf_fs
 
 _DEFAULT_TRAIN_CFG = 'cfgs/train/examples/lora_anime_character.yaml'
 

@@ -7,13 +7,19 @@ import zipfile
 from textwrap import dedent
 from typing import Optional
 
+import numpy as np
 import pandas as pd
+from imgutils.metrics import ccip_extract_feature, ccip_batch_same
+from tqdm.auto import tqdm
+from waifuc.source import LocalSource
 
 from .convert import convert_to_webui_lora
 from .steps import find_steps_in_workdir
+from ..dataset import load_dataset_for_character
 from ..dataset.tags import sort_draw_names
 from ..infer.draw import _DEFAULT_INFER_MODEL
 from ..infer.draw import draw_with_workdir
+from ..utils import repr_tags, load_tags_from_directory
 
 KNOWN_MODEL_HASHES = {
     'AIARTCHAN/anidosmixV2': 'EB49192009',
@@ -82,9 +88,20 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
     else:
         dataset_info = None
 
+    ds_repo = f'CyberHarem/{name}'
+    ds_size = (384, 512) if not dataset_info or not dataset_info['type'] else dataset_info['type']
+    with load_dataset_for_character(ds_repo, ds_size) as (ch, ds_dir):
+        core_tags, _ = load_tags_from_directory(ds_dir)
+        ds_source = LocalSource(ds_dir)
+        ds_feats = []
+        for item in tqdm(list(ds_source), desc='Extract Dataset Feature'):
+            ds_feats.append(ccip_extract_feature(item.image))
+
     d_names = set()
     all_drawings = {}
     nsfw_count = {}
+    all_scores = {}
+    all_scores_lst = []
     for step in steps:
         logging.info(f'Exporting for {name}-{step} ...')
         step_dir = os.path.join(export_dir, f'{step}')
@@ -108,8 +125,10 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                 break
 
         all_image_files = []
+        image_feats = []
         for draw in drawings:
             img_file = os.path.join(preview_dir, f'{draw.name}.png')
+            image_feats.append(ccip_extract_feature(draw.image))
             draw.image.save(img_file, pnginfo=draw.pnginfo)
             all_image_files.append(img_file)
 
@@ -137,6 +156,14 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
             for img_file in all_image_files:
                 zf.write(img_file, os.path.basename(img_file))
 
+        same_matrix = ccip_batch_same([*image_feats, *ds_feats])
+        score = same_matrix[:len(image_feats), len(image_feats):].mean()
+        all_scores[step] = score
+        all_scores_lst.append(score)
+        logging.info(f'Score of step {step} is {score}.')
+
+    best_idx = np.argmax(np.array(all_scores_lst))
+    best_step = np.array(steps)[best_idx].item()
     nsfw_ratio = {name: count * 1.0 / len(steps) for name, count in nsfw_count.items()}
     with open(os.path.join(export_dir, 'meta.json'), 'w', encoding='utf-8') as f:
         json.dump({
@@ -145,6 +172,13 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
             'mark': EXPORT_MARK,
             'time': time.time(),
             'dataset': dataset_info,
+            'scores': [
+                {
+                    'step': step,
+                    'score': score,
+                } for step, score in sorted(all_scores.items())
+            ],
+            'best_step': best_step,
         }, f, ensure_ascii=False, indent=4)
     with open(os.path.join(export_dir, '.gitattributes'), 'w', encoding='utf-8') as f:
         print(_GITLFS, file=f)
@@ -166,13 +200,17 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
               f'you need to use them simultaneously. The pt file will be used as an embedding, '
               f'while the safetensors file will be loaded for Lora.', file=f)
         print('', file=f)
-        print(f'For example, if you want to use the model from step {steps[-1]}, '
-              f'you need to download `{steps[-1]}/{name}.pt` as the embedding and '
-              f'`{steps[-1]}/{name}.safetensors` for loading Lora. '
+        print(f'For example, if you want to use the model from step {best_step}, '
+              f'you need to download `{best_step}/{name}.pt` as the embedding and '
+              f'`{best_step}/{name}.safetensors` for loading Lora. '
               f'By using both files together, you can generate images for the desired characters.', file=f)
         print('', file=f)
 
-        print(f'**The trigger word is `{name}`.**', file=f)
+        print(dedent(f"""
+**The best step we recommend is {best_step}**, with the score of {all_scores[best_step]:.3f}. The trigger words are:
+1. `{name}`
+2. `{repr_tags([key for key, _ in sorted(core_tags.items(), key=lambda x: -x[1])])}`
+        """).strip(), file=f)
         print('', file=f)
 
         print(dedent("""
@@ -189,7 +227,7 @@ For the following groups, it is not recommended to use this model and we express
         print('', file=f)
 
         d_names = sort_draw_names(list(d_names))
-        columns = ['Steps', 'Download', *d_names]
+        columns = ['Steps', 'Score', 'Download', *d_names]
         t_data = []
 
         for step in steps[::-1]:
@@ -204,7 +242,12 @@ For the following groups, it is not recommended to use this model and we express
                 else:
                     d_mds.append('')
 
-            t_data.append((str(step), f'[Download]({step}/{name}.zip)', *d_mds))
+            t_data.append((
+                str(step) if step != best_step else f'**{step}**',
+                f'{all_scores[step]:.3f}' if step != best_step else f'**{all_scores[step]:.3f}**',
+                f'[Download]({step}/{name}.zip)' if step != best_step else f'[**Download**]({step}/{name}.zip)',
+                *d_mds,
+            ))
 
         df = pd.DataFrame(columns=columns, data=t_data)
         print(df.to_markdown(index=False), file=f)
