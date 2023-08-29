@@ -90,6 +90,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
 
     ds_repo = f'CyberHarem/{name}'
     ds_size = (384, 512) if not dataset_info or not dataset_info['type'] else dataset_info['type']
+    logging.info(f'Loading dataset {ds_repo!r}, {ds_size!r} ...')
     with load_dataset_for_character(ds_repo, ds_size) as (ch, ds_dir):
         core_tags, _ = load_tags_from_directory(ds_dir)
         ds_source = LocalSource(ds_dir)
