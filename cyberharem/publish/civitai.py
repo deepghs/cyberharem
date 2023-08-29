@@ -530,7 +530,10 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         if epoch is not None:
             step = dataset_size * epoch
         else:
-            step = max(all_steps)
+            if 'best_step' in meta_json:
+                step = meta_json['best_step']
+            else:
+                step = max(all_steps)
 
     logging.info(f'Expected step is {step!r}.')
     _, _actual_step = sorted([(abs(s - step), s) for s in all_steps])[0]
