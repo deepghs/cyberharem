@@ -11,7 +11,7 @@ from gchar.games import get_character
 from gchar.games.base import Character
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
-from huggingface_hub import CommitOperationAdd
+from huggingface_hub import CommitOperationAdd, hf_hub_url
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
@@ -20,7 +20,7 @@ from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
 from waifuc.utils import task_ctx
 
-from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client
+from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, download_file
 
 
 def get_source(source) -> BaseDataSource:
@@ -34,28 +34,32 @@ def get_source(source) -> BaseDataSource:
     return source
 
 
-def get_main_source(source, no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True) -> BaseDataSource:
+def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
+                    drop_multi: bool = True, skip: bool = False) -> BaseDataSource:
     source: BaseDataSource = get_source(source)
-    actions = [
-        ModeConvertAction('RGB', bg_color),
-        NoMonochromeAction(),  # no monochrome, greyscale or sketch
-        ClassFilterAction(['illustration', 'bangumi']),  # no comic or 3d
-    ]
-    if no_r18:
-        actions.append(RatingFilterAction(['safe', 'r15']))
+    if not skip:
+        actions = [
+            ModeConvertAction('RGB', bg_color),
+            NoMonochromeAction(),  # no monochrome, greyscale or sketch
+            ClassFilterAction(['illustration', 'bangumi']),  # no comic or 3d
+        ]
+        if no_r18:
+            actions.append(RatingFilterAction(['safe', 'r15']))
 
-    actions.append(FilterSimilarAction('all'))  # filter duplicated images
-    if drop_multi:
-        actions.append(FaceCountAction(count=1, level='n'))  # drop images with 0 or >1 faces
-    actions.extend([
-        PersonSplitAction(level='n'),  # crop for each person
-        FaceCountAction(count=1, level='n'),
-        FileOrderAction(),  # Rename files in order
-        CCIPAction(min_val_count=15),  # CCIP, filter the character you may not want to see in dataset
-        FilterSimilarAction('all'),  # filter duplicated images
-        MinSizeFilterAction(320),
-    ])
-    actions.append(RandomFilenameAction(ext='.png'))
+        actions.append(FilterSimilarAction('all'))  # filter duplicated images
+        if drop_multi:
+            actions.append(FaceCountAction(count=1, level='n'))  # drop images with 0 or >1 faces
+        actions.extend([
+            PersonSplitAction(level='n'),  # crop for each person
+            FaceCountAction(count=1, level='n'),
+            FileOrderAction(),  # Rename files in order
+            CCIPAction(min_val_count=15),  # CCIP, filter the character you may not want to see in dataset
+            FilterSimilarAction('all'),  # filter duplicated images
+            MinSizeFilterAction(320),
+        ])
+        actions.append(RandomFilenameAction(ext='.png'))
+    else:
+        actions = []
 
     return source.attach(*actions)
 
@@ -103,7 +107,7 @@ DATASET_PVERSION = 'v1.4'
 def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
         name: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
-        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
+        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True, skip_preprocess: bool = False,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
 ):
     if isinstance(source, (str, Character)):
@@ -121,7 +125,7 @@ def crawl_dataset_to_huggingface(
         if not repository:
             repository = f'CyberHarem/{get_alphabet_name(name)}'
 
-    origin_source = get_main_source(source, no_r18, bg_color, drop_multi)
+    origin_source = get_main_source(source, no_r18, bg_color, drop_multi, skip_preprocess)
     with TemporaryDirectory() as td:
         # save origin directory
         origin_dir = os.path.join(td, 'origin')
@@ -243,4 +247,27 @@ def crawl_dataset_to_huggingface(
             repo_type=repo_type,
             revision=revision,
             run_as_future=False,
+        )
+
+
+def remake_dataset_to_huggingface(
+        repository: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
+        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
+        repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
+):
+    with TemporaryDirectory() as td:
+        zip_file = os.path.join(td, 'dataset-raw.zip')
+        download_file(hf_hub_url(repository, 'dataset-raw.zip', repo_type='dataset'), zip_file)
+
+        source_dir = os.path.join(td, 'source')
+        os.makedirs(source_dir, exist_ok=True)
+        with zipfile.ZipFile(zip_file, 'r') as zf:
+            zf.extractall(source_dir)
+
+        source = LocalSource(source_dir)
+        name = repository.split('/')[-1]
+        return crawl_dataset_to_huggingface(
+            source, repository, name,
+            limit, min_images, no_r18, bg_color, drop_multi, True,
+            repo_type, revision, path_in_repo
         )
