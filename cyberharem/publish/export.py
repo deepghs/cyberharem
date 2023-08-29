@@ -13,6 +13,11 @@ from imgutils.metrics import ccip_extract_feature, ccip_batch_same
 from tqdm.auto import tqdm
 from waifuc.source import LocalSource
 
+try:
+    import torch
+except (ImportError, ModuleNotFoundError):
+    torch = None
+
 from .convert import convert_to_webui_lora
 from .steps import find_steps_in_workdir
 from ..dataset import load_dataset_for_character
