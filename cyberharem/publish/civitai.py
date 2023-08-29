@@ -482,7 +482,15 @@ def try_get_title_from_repo(repo):
     hf_fs = get_hf_fs()
     if hf_fs.exists(f'dataset/{repo}/meta.json'):
         data = json.loads(hf_fs.read_text(f'dataset/{repo}/meta.json'))
-        return data['name']
+        character_name = data['name']
+
+        source_name = repo.split('_')[-1]
+        if hf_fs.exists(f'dataset/BangumiBase/{source_name}/meta.json'):
+            base_data = json.loads(hf_fs.read_text(f'dataset/BangumiBase/{source_name}/meta.json'))
+            source_full_name = base_data['name']
+            return f'{character_name} ({source_full_name})'
+        else:
+            return character_name
     else:
         return None
 
