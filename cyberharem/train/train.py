@@ -14,7 +14,7 @@ from hcpdiff.utils import load_config_with_cli
 
 from .embedding import create_embedding, _DEFAULT_TRAIN_MODEL
 from ..dataset import load_dataset_for_character, save_recommended_tags
-from ..utils import data_to_cli_args, get_ch_name, get_hf_fs
+from ..utils import data_to_cli_args, get_ch_name
 
 _DEFAULT_TRAIN_CFG = 'cfgs/train/examples/lora_anime_character.yaml'
 
@@ -48,6 +48,7 @@ def train_plora(
             actual_steps = max(actual_steps, _min_training_steps(dataset_size, 20))
         save_per_steps = max(int(math.ceil(actual_steps / save_for_times / 20) * 20), 20)
         steps = int(math.ceil(actual_steps / save_per_steps) * save_per_steps)
+        epochs = int(math.ceil(steps / dataset_size))
         logging.info(f'Training for {plural_word(steps, "step")}, {plural_word(epochs, "epoch")}, '
                      f'save per {plural_word(save_per_steps, "step")} ...')
 
