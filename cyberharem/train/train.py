@@ -19,9 +19,14 @@ from ..utils import data_to_cli_args, get_ch_name
 _DEFAULT_TRAIN_CFG = 'cfgs/train/examples/lora_anime_character.yaml'
 
 
+def _min_training_steps(dataset_size: int, unit: int = 20):
+    steps = 2250.101 + (203.2317 - 2250.101) / (1 + (dataset_size / 21.65839) ** 0.6543184)
+    return int(round(steps / unit)) * unit
+
+
 def train_plora(
         source: Union[str, Character], name: Optional[str] = None,
-        epochs: int = 13, save_for_times: int = 15,
+        epochs: int = 13, save_for_times: int = 15, use_min_steps: bool = True,
         batch_size: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
         workdir: str = None, emb_n_words: int = 4, emb_init_text: str = '*0.017',
         unet_rank: float = 8, text_encoder_rank: float = 4,
@@ -39,6 +44,8 @@ def train_plora(
         logging.info(f'{plural_word(dataset_size, "image")} found in dataset.')
 
         actual_steps = epochs * dataset_size
+        if use_min_steps:
+            actual_steps = max(actual_steps, _min_training_steps(dataset_size, 20))
         save_per_steps = max(int(math.ceil(actual_steps / save_for_times / 20) * 20), 20)
         steps = int(math.ceil(actual_steps / save_per_steps) * save_per_steps)
         logging.info(f'Training for {plural_word(steps, "step")}, {plural_word(epochs, "epoch")}, '

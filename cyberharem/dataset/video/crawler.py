@@ -1,4 +1,6 @@
+import logging
 import os.path
+import re
 import zipfile
 from typing import Optional, Union, List
 
@@ -12,13 +14,17 @@ from ...utils import download_file
 
 def crawl_base_to_huggingface(
         source_repository: str, ch_id: Union[int, List[int]],
-        name: str, repository: str,
+        name: str, repository: Optional[str] = None,
         limit: Optional[int] = 200, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
 ):
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
+    if not repository:
+        repository = 'CyberHarem/' + re.sub(r'[\W_]+', '_', name.lower()).strip('_') + \
+                     '_' + source_repository.split('/')[-1]
+    logging.info(f'Target repository name {repository!r} will be used.')
     with TemporaryDirectory() as td:
         for cid in ch_ids:
             url = hf_hub_url(source_repository, filename=f'{cid}/dataset.zip', repo_type='dataset')
