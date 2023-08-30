@@ -41,7 +41,7 @@ class ListFeatImageSource(BaseDataSource):
             yield ImageItem(load_image(file), {'ccip_feature': feat, 'filename': os.path.basename(file)})
 
 
-def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.8, clu_min_samples: int = 5,
+def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_min_samples: int = 5,
                            extract_from_noise: bool = True):
     image_files = np.array(natsorted(glob.glob(os.path.join(src_dir, '*.png'))))
 
@@ -202,7 +202,7 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
 
 @contextmanager
 def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: bool = False,
-                        min_size: int = 320, merge_threshold: float = 0.8, preview_count: int = 8):
+                        min_size: int = 320, merge_threshold: float = 0.9, preview_count: int = 8):
     if no_extract:
         source = LocalSource(video_or_directory)
     else:
@@ -219,7 +219,7 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
             FaceCountAction(1, level='n'),
             HeadCountAction(1, level='n'),
             MinSizeFilterAction(min_size),
-            FilterSimilarAction('all'),
+            # FilterSimilarAction('all'),
             FileOrderAction(ext='.png'),
         )
 
@@ -239,7 +239,7 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
 
 def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
                            repository: str, revision: str = 'main', no_extract: bool = False,
-                           min_size: int = 320, merge_threshold: float = 0.7, preview_count: int = 8):
+                           min_size: int = 320, merge_threshold: float = 0.9, preview_count: int = 8):
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
     hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)
