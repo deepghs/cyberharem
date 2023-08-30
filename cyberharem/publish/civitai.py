@@ -502,7 +502,7 @@ def _tag_decode(text):
 
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
                             version_name: Optional[str] = None, version_desc_md: str = None,
-                            step: Optional[int] = None, epoch: Optional[int] = None,
+                            step: Optional[int] = None, epoch: Optional[int] = None, upload_min_epoch: int = 6,
                             draft: bool = False, publish_at=None, safe_only: bool = False,
                             force_create_model: bool = False, no_ccip_check: bool = False, session=None):
     if isinstance(source, Character):
@@ -540,7 +540,20 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             step = dataset_size * epoch
         else:
             if 'best_step' in meta_json:
-                step = meta_json['best_step']
+                if upload_min_epoch is not None:
+                    upload_min_step = upload_min_epoch * dataset_size
+                else:
+                    upload_min_step = -1
+                best_step, best_score = None, None
+                for score_item in meta_json["scores"]:
+                    if best_step is None or \
+                            (score_item['step'] >= upload_min_step and score_item['score'] >= best_score):
+                        best_step, best_score = score_item['step'], score_item['score']
+
+                if best_step is not None:
+                    return best_step
+                else:
+                    step = meta_json['best_step']
             else:
                 step = max(all_steps)
 
