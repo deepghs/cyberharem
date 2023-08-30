@@ -56,6 +56,7 @@ def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
             CCIPAction(min_val_count=15),  # CCIP, filter the character you may not want to see in dataset
             FilterSimilarAction('all'),  # filter duplicated images
             MinSizeFilterAction(320),
+            TaggingAction(force=True, character_threshold=1.01),
         ])
         actions.append(RandomFilenameAction(ext='.png'))
     else:
@@ -78,13 +79,13 @@ def actions_parse(actions: Union[int, Tuple[int, int], List[BaseAction]], bg_col
 
 _SOURCES = {
     'native': [
-        TaggingAction(force=True, character_threshold=1.01),
+        TaggingAction(force=False, character_threshold=1.01),
     ],
     'stage3': [
-        ThreeStageSplitAction(),
+        ThreeStageSplitAction(split_person=False),
         FilterSimilarAction(),
         MinSizeFilterAction(280),
-        TaggingAction(force=True, character_threshold=1.01),
+        TaggingAction(force=False, character_threshold=1.01),
     ]
 }
 
