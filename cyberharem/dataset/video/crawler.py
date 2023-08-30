@@ -18,6 +18,7 @@ def crawl_base_to_huggingface(
         limit: Optional[int] = 200, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
+        skip_preprocess: bool = False,
 ):
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
@@ -41,6 +42,6 @@ def crawl_base_to_huggingface(
 
         return crawl_dataset_to_huggingface(
             source, repository, name,
-            limit, min_images, no_r18, bg_color, drop_multi, False,
+            limit, min_images, no_r18, bg_color, drop_multi, skip_preprocess,
             repo_type, revision, path_in_repo
         )
