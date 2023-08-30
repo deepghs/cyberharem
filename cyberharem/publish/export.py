@@ -168,8 +168,17 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
         all_scores_lst.append(score)
         logging.info(f'Score of step {step} is {score}.')
 
-    best_idx = np.argmax(np.array(all_scores_lst))
-    best_step = np.array(steps)[best_idx].item()
+    lst_scores = np.array(all_scores_lst)
+    lst_steps = np.array(steps)
+    if dataset_info and 'size' in dataset_info:
+        min_best_steps = 6 * dataset_info['size']
+        _lst_scores = lst_scores[lst_steps >= min_best_steps]
+        _lst_steps = lst_steps[lst_steps >= min_best_steps]
+        if _lst_scores.shape[0] > 0:
+            lst_steps, lst_scores = _lst_steps, _lst_scores
+
+    best_idx = np.argmax(lst_scores)
+    best_step = lst_steps[best_idx].item()
     nsfw_ratio = {name: count * 1.0 / len(steps) for name, count in nsfw_count.items()}
     with open(os.path.join(export_dir, 'meta.json'), 'w', encoding='utf-8') as f:
         json.dump({
