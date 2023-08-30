@@ -37,7 +37,7 @@ def crawl_base_to_huggingface(
             with zipfile.ZipFile(zip_file, 'r') as zf:
                 zf.extractall(source_dir)
 
-            source = source + LocalSource(source_dir)
+            source = source + LocalSource(source_dir, shuffle=True)
 
         return crawl_dataset_to_huggingface(
             source, repository, name,
