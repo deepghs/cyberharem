@@ -36,7 +36,7 @@ def cli():
 def huggingface(video_or_directory: str, bangumi_name: str,
                 repository: str, revision: str = 'main', min_size: int = 320, no_extract: bool = False):
     logging.try_init_root(logging.INFO)
-    rname = re.sub(r'[\W_]+', '', bangumi_name)
+    rname = re.sub(r'[\W_]+', '', bangumi_name.lower())
     repository = repository or f"BangumiBase/{rname}"
     extract_to_huggingface(
         video_or_directory, bangumi_name, repository, revision,
