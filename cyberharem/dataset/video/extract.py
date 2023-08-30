@@ -219,7 +219,7 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
             FaceCountAction(1, level='n'),
             HeadCountAction(1, level='n'),
             MinSizeFilterAction(min_size),
-            # FilterSimilarAction('all'),
+            FilterSimilarAction('all'),
             FileOrderAction(ext='.png'),
         )
 
