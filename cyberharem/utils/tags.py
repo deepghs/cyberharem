@@ -8,6 +8,9 @@ from typing import Mapping, List, Tuple, Union
 import numpy as np
 from sklearn.cluster import OPTICS
 
+_GLOBAL_BLACKLISTED_WORDS = [
+    'text', 'signature',
+]
 _CORE_WORDS = [
     'skin', 'eye', 'eyes', 'pupil', 'pupils', 'hair', 'horn', 'horns', 'ear', 'ears', 'neck',
     'breast', 'breasts', 'scar', 'scars', 'face', 'faces', 'blood', 'bleed', 'teeth', 'tooth',
@@ -34,7 +37,12 @@ def _contains_core_word(tag: str):
 
 def _contains_blacklisted_word(tag: str):
     words = [word for word in re.split(r'[\W_]+', tag.lower()) if word]
-    return any(word in _BLACKLISTED_WORDS for word in words)
+    return any((word in _BLACKLISTED_WORDS) or (word in _GLOBAL_BLACKLISTED_WORDS) for word in words)
+
+
+def _contains_global_blacklisted_word(tag):
+    words = [word for word in re.split(r'[\W_]+', tag.lower()) if word]
+    return any(word in _GLOBAL_BLACKLISTED_WORDS for word in words)
 
 
 def find_core_tags(tags: Mapping[str, float], core_threshold: float = 0.35, threshold: float = 0.45) \
@@ -99,6 +107,7 @@ def load_tags_from_directory(directory: str, core_threshold: float = 0.35, thres
             **{key: 1.0 + value for key, value in sorted(core_tags.items(), key=lambda x: -x[1])},
             **{key: value for key, value in wds.items() if key not in core_tags}
         }
+        pattern_tags = {key: value for key, value in pattern_tags.items() if not _contains_global_blacklisted_word(key)}
         feats.append(pattern_tags)
         logging.info(f'Pattern {i} found: {pattern_tags!r}.')
 
