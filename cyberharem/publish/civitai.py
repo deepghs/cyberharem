@@ -17,6 +17,7 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
 from imgutils.data import load_image
+from imgutils.detect import detect_faces
 from imgutils.metrics import ccip_extract_feature, ccip_batch_same
 from imgutils.validate import anime_rating_score
 from pycivitai import civitai_find_online
@@ -650,8 +651,19 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 safe_v = int(round(rating_score['safe'] * 10))
                 safe_r15 = int(round(rating_score['r15'] * 10))
                 safe_r18 = int(round(rating_score['r18'] * 10))
+                faces = detect_faces(local_img_file)
+                if faces:
+                    (x0, y0, x1, y1), _, _ = faces[0]
+                    width, height = load_image(local_img_file).size
+                    face_area = abs((x1 - x0) * (y1 - y0))
+                    face_ratio = face_area * 1.0 / (width * height)
+                    face_ratio = int(round(face_ratio * 20))
+                else:
+                    face_ratio = 0
+
                 images.append((
                     (-safe_v, -safe_r15, -safe_r18) if safe_only else (0,),
+                    -face_ratio,
                     1 if nsfw else 0,
                     0 if img_name.startswith('pattern_') else 1,
                     img_name,
