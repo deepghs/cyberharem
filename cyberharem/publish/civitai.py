@@ -657,7 +657,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                     width, height = load_image(local_img_file).size
                     face_area = abs((x1 - x0) * (y1 - y0))
                     face_ratio = face_area * 1.0 / (width * height)
-                    face_ratio = int(round(face_ratio * 20))
+                    face_ratio = int(round(face_ratio * 50))
                 else:
                     face_ratio = 0
 
@@ -784,8 +784,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 name=model_name,
                 description_md=model_desc_md or model_desc_default,
                 tags=[
-                    game_name, f"{game_name} {char_name}",
-                    'female', 'girl', 'character', 'game character', 'fully-automated',
+                    game_name, f"{game_name} {char_name}", char_name,
+                    'female', 'girl', 'character', 'fully-automated',
                     *map(_tag_decode, core_tags.keys()),
                 ],
                 session=session,
@@ -815,8 +815,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
             model_version_id=version_id,
             image_files=images,
             tags=[
-                game_name, f"{game_name} {char_name}",
-                'female', 'girl', 'character', 'game character',
+                game_name, f"{game_name} {char_name}", char_name,
+                'female', 'girl', 'character', 'fully-automated', 'random prompt', 'random seed',
                 *map(_tag_decode, core_tags.keys()),
             ],
             model_id=model_id,
