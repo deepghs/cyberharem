@@ -552,7 +552,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                         best_step, best_score = score_item['step'], score_item['score']
 
                 if best_step is not None:
-                    return best_step
+                    step = best_step
                 else:
                     step = meta_json['best_step']
             else:
