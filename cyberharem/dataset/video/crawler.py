@@ -6,6 +6,7 @@ from typing import Optional, Union, List
 
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
+from unidecode import unidecode
 from waifuc.source import EmptySource, LocalSource
 
 from ..crawler import crawl_dataset_to_huggingface
@@ -23,7 +24,7 @@ def crawl_base_to_huggingface(
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
     if not repository:
-        repository = 'CyberHarem/' + re.sub(r'[\W_]+', '_', name.lower()).strip('_') + \
+        repository = 'CyberHarem/' + re.sub(r'[\W_]+', '_', unidecode(name.lower())).strip('_') + \
                      '_' + source_repository.split('/')[-1]
     logging.info(f'Target repository name {repository!r} will be used.')
     with TemporaryDirectory() as td:
