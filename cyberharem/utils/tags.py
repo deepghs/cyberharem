@@ -66,6 +66,7 @@ def load_tags_from_directory(directory: str, core_threshold: float = 0.35, thres
         id_ = os.path.splitext(os.path.basename(txt_file))[0]
         origin_text = pathlib.Path(txt_file).read_text().strip()
         words = [word.strip() for word in re.split(r'\s*,\s*', origin_text) if word.strip()]
+        words = [word for word in words if not _contains_global_blacklisted_word(word)]
         ids_.append(id_)
         word_lists.append(words)
 
