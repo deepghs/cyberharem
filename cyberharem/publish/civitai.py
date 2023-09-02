@@ -688,7 +688,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         * **<span style="color:#fa5252">THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER!!!</span>**
         * **The associated trigger words are only for reference, it may need to be adjusted at some times**.
         * The recommended weight for the embedding model is 1, which provides higher fidelity; if greater generalization is required, it can be lowered to 0.5. 
-        * The recommended weight for the LoRA model is 0.85; if there's evidence of contamination, consider lowering it to 0.6.
+        * The recommended weight for the LoRA model is 0.85; if there's evidence of contamination, consider lowering it to 0.5.
 
         ## How to Use This Model
 
