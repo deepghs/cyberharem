@@ -21,12 +21,11 @@ from imgutils.metrics import ccip_extract_feature, ccip_batch_differences, ccip_
 from natsort import natsorted
 from sklearn.cluster import OPTICS
 from tqdm.auto import tqdm
-from waifuc.action import CCIPAction, PaddingAlignAction, PersonSplitAction, FaceCountAction, MinSizeFilterAction, \
+from waifuc.action import PaddingAlignAction, PersonSplitAction, FaceCountAction, MinSizeFilterAction, \
     NoMonochromeAction, FilterSimilarAction, HeadCountAction, FileOrderAction
 from waifuc.export import SaveExporter
 from waifuc.model import ImageItem
 from waifuc.source import VideoSource, BaseDataSource, LocalSource
-from waifuc.utils import task_ctx
 
 from ...utils import number_to_tag, get_hf_client, get_hf_fs
 
@@ -61,9 +60,26 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
     clustering = OPTICS(min_samples=clu_min_samples, metric=_metric).fit(samples)
     labels = clustering.labels_
 
-    # trying to merge clusters
     max_clu_id = labels.max().item()
     logging.info(f'Cluster complete, with {plural_word(max_clu_id, "cluster")}.')
+
+    if extract_from_noise:
+        mask_labels = labels.copy()
+        for nid in tqdm(np.where(labels == -1)[0], desc='Matching for noises'):
+            avg_dists = np.array([
+                batch_diff[nid][labels == i].mean()
+                for i in range(0, max_clu_id + 1)
+            ])
+            r_sames = np.array([
+                batch_same[nid][labels == i].mean()
+                for i in range(0, max_clu_id + 1)
+            ])
+            best_id = np.argmin(avg_dists)
+            if r_sames[best_id] >= 0.85:
+                mask_labels[nid] = best_id
+        labels = mask_labels
+
+    # trying to merge clusters
     _exist_ids = set(range(0, max_clu_id + 1))
     while True:
         _round_merged = False
@@ -87,32 +103,19 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
     logging.info(f'Merge complete, remained cluster ids: {sorted(_exist_ids)}.')
     ids = []
     for i, clu_id in enumerate(tqdm(sorted(_exist_ids))):
-        logging.info(f'Cluster {clu_id} will be renamed as #{i}.')
-        logging.info(f'Filtering #{i} from cluster {clu_id} and noise data ...')
-        source = ListFeatImageSource(image_files[labels == clu_id], l_images[labels == clu_id])
-        if extract_from_noise:
-            noise_source = ListFeatImageSource(image_files[labels == -1], l_images[labels == -1])
-            source = noise_source.attach(CCIPAction(source, cmp_threshold=0.85))
+        total = (labels == clu_id).sum()
+        logging.info(f'Cluster {clu_id} will be renamed as #{i}, {plural_word(total, "image")} in total.')
+        for imgfile in image_files[labels == clu_id]:
+            shutil.copyfile(imgfile, os.path.join(dst_dir, str(i), os.path.basename(imgfile)))
+        ids.append(i)
 
-        with task_ctx(f'#{i}'):
-            source.export(SaveExporter(os.path.join(dst_dir, str(i)), no_meta=True))
-
-        if glob.glob(os.path.join(dst_dir, str(i), '*.png')):
-            ids.append(i)
-
-    _exist_filenames = set([
-        os.path.basename(file) for file in
-        glob.glob(os.path.join(dst_dir, '*', '*.png'))
-    ])
-    noise_dir = os.path.join(dst_dir, '-1')
-    os.makedirs(noise_dir, exist_ok=True)
-    for file in glob.glob(os.path.join(src_dir, '*.png')):
-        if os.path.basename(file) not in _exist_filenames:
-            shutil.copyfile(file, os.path.join(noise_dir, os.path.basename(file)))
-    noise_cnt = len(glob.glob(os.path.join(noise_dir, '*.png')))
-    if noise_cnt > 0:
-        logging.info(f'{plural_word(noise_cnt, "noise images")} found.')
+    n_total = (labels == -1).sum()
+    if n_total > 0:
+        logging.info(f'Save noise images, {plural_word(n_total, "image")} in total.')
+        for imgfile in image_files[labels == -1]:
+            shutil.copyfile(imgfile, os.path.join(dst_dir, str(-1), os.path.basename(imgfile)))
         ids.append(-1)
+
     return ids
 
 
