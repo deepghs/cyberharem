@@ -20,7 +20,7 @@ def crawl_base_to_huggingface(
         limit: Optional[int] = 200, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
-        skip_preprocess: bool = False, parallel: bool = True, standalone_ccip: bool = False
+        skip_preprocess: bool = True, parallel: bool = True, standalone_ccip: bool = True
 ):
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()

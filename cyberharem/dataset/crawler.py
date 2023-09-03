@@ -20,7 +20,7 @@ from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
 from waifuc.utils import task_ctx
 
-from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, download_file
+from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, download_file, get_hf_fs
 
 
 def get_source(source) -> BaseDataSource:
@@ -256,6 +256,7 @@ def remake_dataset_to_huggingface(
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
 ):
+    hf_fs = get_hf_fs()
     with TemporaryDirectory() as td:
         zip_file = os.path.join(td, 'dataset-raw.zip')
         download_file(hf_hub_url(repository, 'dataset-raw.zip', repo_type='dataset'), zip_file)
@@ -266,7 +267,12 @@ def remake_dataset_to_huggingface(
             zf.extractall(source_dir)
 
         source = LocalSource(source_dir)
-        name = repository.split('/')[-1]
+        name = None
+        if hf_fs.exists(f'datasets/{repository}/meta.json'):
+            meta_json = json.loads(hf_fs.read_text(f'datasets/{repository}/meta.json'))
+            if 'name' in meta_json:
+                name = meta_json['name']
+        name = name or repository.split('/')[-1]
         return crawl_dataset_to_huggingface(
             source, repository, name,
             limit, min_images, no_r18, bg_color, drop_multi, True,
