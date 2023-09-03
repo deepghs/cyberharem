@@ -7,6 +7,7 @@ from typing import Optional, Union, List
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
 from unidecode import unidecode
+from waifuc.action import CCIPAction
 from waifuc.source import EmptySource, LocalSource
 
 from ..crawler import crawl_dataset_to_huggingface
@@ -19,7 +20,7 @@ def crawl_base_to_huggingface(
         limit: Optional[int] = 200, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
-        skip_preprocess: bool = False, parallel: bool = True,
+        skip_preprocess: bool = False, parallel: bool = True, standalone_ccip: bool = False
 ):
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
@@ -40,6 +41,8 @@ def crawl_base_to_huggingface(
                 zf.extractall(source_dir)
 
             new_source = LocalSource(source_dir, shuffle=True)
+            if standalone_ccip:
+                new_source = new_source.attach(CCIPAction())
             if parallel:
                 source = source | new_source
             else:
