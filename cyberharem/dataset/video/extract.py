@@ -46,7 +46,6 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
 
     logging.info(f'Extracting feature of {plural_word(len(image_files), "images")} ...')
     images = [ccip_extract_feature(img) for img in tqdm(image_files, desc='Extract features')]
-    l_images = np.stack(images)
     batch_diff = ccip_batch_differences(images)
     batch_same = batch_diff <= ccip_default_threshold()
 
@@ -61,7 +60,10 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
     labels = clustering.labels_
 
     max_clu_id = labels.max().item()
+    all_label_ids = np.array([-1, *range(0, max_clu_id + 1)])
     logging.info(f'Cluster complete, with {plural_word(max_clu_id, "cluster")}.')
+    label_cnt = {i: (labels == i).sum() for i in all_label_ids if (labels == i).sum() > 0}
+    logging.info(f'Current label count: {label_cnt}')
 
     if extract_from_noise:
         mask_labels = labels.copy()
@@ -78,6 +80,9 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
             if r_sames[best_id] >= 0.85:
                 mask_labels[nid] = best_id
         labels = mask_labels
+        logging.info('Noise extracting complete.')
+        label_cnt = {i: (labels == i).sum() for i in all_label_ids if (labels == i).sum() > 0}
+        logging.info(f'Current label count: {label_cnt}')
 
     # trying to merge clusters
     _exist_ids = set(range(0, max_clu_id + 1))
@@ -91,6 +96,7 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
                     continue
 
                 score = (batch_same[labels == xi][:, labels == yi]).mean()
+                logging.info(f'Label {xi} and {yi}\'s similarity score: {score}')
                 if score >= merge_threshold:
                     labels[labels == yi] = xi
                     logging.info(f'Merging label {yi} into {xi} ...')
@@ -101,6 +107,8 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
             break
 
     logging.info(f'Merge complete, remained cluster ids: {sorted(_exist_ids)}.')
+    label_cnt = {i: (labels == i).sum() for i in all_label_ids if (labels == i).sum() > 0}
+    logging.info(f'Current label count: {label_cnt}')
     ids = []
     for i, clu_id in enumerate(tqdm(sorted(_exist_ids))):
         total = (labels == clu_id).sum()
