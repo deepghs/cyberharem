@@ -105,6 +105,7 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
     for i, clu_id in enumerate(tqdm(sorted(_exist_ids))):
         total = (labels == clu_id).sum()
         logging.info(f'Cluster {clu_id} will be renamed as #{i}, {plural_word(total, "image")} in total.')
+        os.makedirs(os.path.join(dst_dir, str(i)), exist_ok=True)
         for imgfile in image_files[labels == clu_id]:
             shutil.copyfile(imgfile, os.path.join(dst_dir, str(i), os.path.basename(imgfile)))
         ids.append(i)
@@ -112,6 +113,7 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.9, clu_m
     n_total = (labels == -1).sum()
     if n_total > 0:
         logging.info(f'Save noise images, {plural_word(n_total, "image")} in total.')
+        os.makedirs(os.path.join(dst_dir, str(-1)), exist_ok=True)
         for imgfile in image_files[labels == -1]:
             shutil.copyfile(imgfile, os.path.join(dst_dir, str(-1), os.path.basename(imgfile)))
         ids.append(-1)
