@@ -7,7 +7,7 @@ from typing import Optional, Union, List
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
 from unidecode import unidecode
-from waifuc.action import CCIPAction, FilterSimilarAction
+from waifuc.action import CCIPAction, FilterSimilarAction, RandomFilenameAction
 from waifuc.source import EmptySource, LocalSource
 
 from ..crawler import crawl_dataset_to_huggingface
@@ -48,7 +48,10 @@ def crawl_base_to_huggingface(
             else:
                 source = source + new_source
             if skip_preprocess:
-                source = source.attach(FilterSimilarAction('all'))
+                source = source.attach(
+                    FilterSimilarAction('all'),
+                    RandomFilenameAction(ext='.png'),
+                )
 
         return crawl_dataset_to_huggingface(
             source, repository, name,
