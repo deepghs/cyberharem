@@ -219,15 +219,15 @@ def draw_with_workdir(
             n_seeds.append(data['seed'])
             n_sfws.append(data['sfw'])
 
-    with TemporaryDirectory() as td:
-        output_dir = output_dir or td
-        n_total = len(n_pnames)
-        retval = []
-        for x in range(0, n_total, _N_MAX_DRAW):
-            pnames, prompts, neg_prompts, seeds, sfws = \
-                n_pnames[x:x + _N_MAX_DRAW], n_prompts[x:x + _N_MAX_DRAW], n_neg_prompts[x:x + _N_MAX_DRAW], \
-                    n_seeds[x:x + _N_MAX_DRAW], n_sfws[x:x + _N_MAX_DRAW]
+    n_total = len(n_pnames)
+    retval = []
+    for x in range(0, n_total, _N_MAX_DRAW):
+        pnames, prompts, neg_prompts, seeds, sfws = \
+            n_pnames[x:x + _N_MAX_DRAW], n_prompts[x:x + _N_MAX_DRAW], n_neg_prompts[x:x + _N_MAX_DRAW], \
+                n_seeds[x:x + _N_MAX_DRAW], n_sfws[x:x + _N_MAX_DRAW]
 
+        with TemporaryDirectory() as td:
+            output_dir = output_dir or td
             draw_images(
                 workdir, prompts, neg_prompts, seeds,
                 emb_name, save_cfg, model_steps, n_repeats, pretrained_model,
@@ -253,4 +253,4 @@ def draw_with_workdir(
                     model=pretrained_model, model_hash=model_hash,
                 ))
 
-        return retval
+    return retval
