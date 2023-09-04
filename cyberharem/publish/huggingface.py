@@ -61,7 +61,8 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
         for i, (file, segments) in enumerate(_exist_ps):
             if i < len(_exist_ps) - 1 and segments == _exist_ps[i + 1][1][:len(segments)]:
                 continue
-            pre_exist_files.add(file)
+            if file != '.':
+                pre_exist_files.add(file)
 
         operations = []
         for directory, _, files in os.walk(td):

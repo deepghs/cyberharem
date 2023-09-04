@@ -199,6 +199,9 @@ Safe For Work: {"yes" if self.sfw else "no"}
         return info
 
 
+_N_MAX_DRAW = 20
+
+
 def draw_with_workdir(
         workdir: str, emb_name: str = None, save_cfg: bool = True,
         model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
@@ -206,42 +209,48 @@ def draw_with_workdir(
         lora_alpha: float = 0.85, output_dir: str = None, cfg_file: str = _DEFAULT_INFER_CFG_FILE,
         clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras', model_hash: Optional[str] = None,
 ):
-    pnames, prompts, neg_prompts, seeds, sfws = [], [], [], [], []
+    n_pnames, n_prompts, n_neg_prompts, n_seeds, n_sfws = [], [], [], [], []
     for jfile in glob.glob(os.path.join(workdir, 'rtags', '*.json')):
         with open(jfile, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            pnames.append(data['name'])
-            prompts.append(data['prompt'])
-            neg_prompts.append(data['neg_prompt'])
-            seeds.append(data['seed'])
-            sfws.append(data['sfw'])
+            n_pnames.append(data['name'])
+            n_prompts.append(data['prompt'])
+            n_neg_prompts.append(data['neg_prompt'])
+            n_seeds.append(data['seed'])
+            n_sfws.append(data['sfw'])
 
     with TemporaryDirectory() as td:
         output_dir = output_dir or td
-        draw_images(
-            workdir, prompts, neg_prompts, seeds,
-            emb_name, save_cfg, model_steps, n_repeats, pretrained_model,
-            width, height, gscale, infer_steps, lora_alpha, output_dir, cfg_file,
-            clip_skip, sample_method,
-        )
-
+        n_total = len(n_pnames)
         retval = []
-        for i, (pname, prompt, neg_prompt, seed, sfw) in \
-                enumerate(zip(pnames, prompts, neg_prompts, seeds, sfws), start=1):
-            img_file = glob.glob(os.path.join(output_dir, f'{i}-*.png'))[0]
-            yaml_file = glob.glob(os.path.join(output_dir, f'{i}-*.yaml'))[0]
-            with open(yaml_file, 'r', encoding='utf-8') as f:
-                seed = yaml.load(f, Loader)['seed']
+        for x in range(0, n_total, _N_MAX_DRAW):
+            pnames, prompts, neg_prompts, seeds, sfws = \
+                n_pnames[x:x + _N_MAX_DRAW], n_prompts[x:x + _N_MAX_DRAW], n_neg_prompts[x:x + _N_MAX_DRAW], \
+                    n_seeds[x:x + _N_MAX_DRAW], n_sfws[x:x + _N_MAX_DRAW]
 
-            img = Image.open(img_file)
-            img.load()
+            draw_images(
+                workdir, prompts, neg_prompts, seeds,
+                emb_name, save_cfg, model_steps, n_repeats, pretrained_model,
+                width, height, gscale, infer_steps, lora_alpha, output_dir, cfg_file,
+                clip_skip, sample_method,
+            )
 
-            retval.append(Drawing(
-                pname, prompt, neg_prompt, seed,
-                sfw=sfw and len(detect_censors(img, conf_threshold=0.45)) == 0,
-                width=width, height=height, gscale=gscale, steps=infer_steps,
-                image=img, sample_method=sample_method, clip_skip=clip_skip,
-                model=pretrained_model, model_hash=model_hash,
-            ))
+            for i, (pname, prompt, neg_prompt, seed, sfw) in \
+                    enumerate(zip(pnames, prompts, neg_prompts, seeds, sfws), start=1):
+                img_file = glob.glob(os.path.join(output_dir, f'{i}-*.png'))[0]
+                yaml_file = glob.glob(os.path.join(output_dir, f'{i}-*.yaml'))[0]
+                with open(yaml_file, 'r', encoding='utf-8') as f:
+                    seed = yaml.load(f, Loader)['seed']
+
+                img = Image.open(img_file)
+                img.load()
+
+                retval.append(Drawing(
+                    pname, prompt, neg_prompt, seed,
+                    sfw=sfw and len(detect_censors(img, conf_threshold=0.45)) == 0,
+                    width=width, height=height, gscale=gscale, steps=infer_steps,
+                    image=img, sample_method=sample_method, clip_skip=clip_skip,
+                    model=pretrained_model, model_hash=model_hash,
+                ))
 
         return retval

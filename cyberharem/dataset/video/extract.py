@@ -264,7 +264,8 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
     for i, (file, segments) in enumerate(_exist_ps):
         if i < len(_exist_ps) - 1 and segments == _exist_ps[i + 1][1][:len(segments)]:
             continue
-        pre_exist_files.add(file)
+        if file != '.':
+            pre_exist_files.add(file)
 
     with extract_from_videos(video_or_directory, bangumi_name, no_extract,
                              min_size, merge_threshold, preview_count) as dst_dir:
