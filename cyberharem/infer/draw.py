@@ -227,18 +227,18 @@ def draw_with_workdir(
                 n_seeds[x:x + _N_MAX_DRAW], n_sfws[x:x + _N_MAX_DRAW]
 
         with TemporaryDirectory() as td:
-            output_dir = output_dir or td
+            _tmp_output_dir = output_dir or td
             draw_images(
                 workdir, prompts, neg_prompts, seeds,
                 emb_name, save_cfg, model_steps, n_repeats, pretrained_model,
-                width, height, gscale, infer_steps, lora_alpha, output_dir, cfg_file,
+                width, height, gscale, infer_steps, lora_alpha, _tmp_output_dir, cfg_file,
                 clip_skip, sample_method,
             )
 
             for i, (pname, prompt, neg_prompt, seed, sfw) in \
                     enumerate(zip(pnames, prompts, neg_prompts, seeds, sfws), start=1):
-                img_file = glob.glob(os.path.join(output_dir, f'{i}-*.png'))[0]
-                yaml_file = glob.glob(os.path.join(output_dir, f'{i}-*.yaml'))[0]
+                img_file = glob.glob(os.path.join(_tmp_output_dir, f'{i}-*.png'))[0]
+                yaml_file = glob.glob(os.path.join(_tmp_output_dir, f'{i}-*.yaml'))[0]
                 with open(yaml_file, 'r', encoding='utf-8') as f:
                     seed = yaml.load(f, Loader)['seed']
 
