@@ -8,7 +8,7 @@ from hbutils.system import TemporaryDirectory
 from huggingface_hub import CommitOperationAdd, CommitOperationDelete
 from huggingface_hub.utils import RepositoryNotFoundError
 
-from .export import export_workdir
+from .export import export_workdir, _GITLFS
 from .steps import find_steps_in_workdir
 from ..infer.draw import _DEFAULT_INFER_MODEL
 from ..utils import get_hf_client, get_hf_fs
@@ -26,6 +26,32 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
     hf_client = get_hf_client()
     hf_client.create_repo(repo_id=repository, repo_type='model', exist_ok=True)
     hf_fs = get_hf_fs()
+
+    if not hf_fs.exists(f'{repository}/.gitattributes') or \
+            '*.png filter=lfs diff=lfs merge=lfs -text' not in hf_fs.read_text(f'{repository}/.gitattributes'):
+        logging.info(f'Preparing for lfs attributes of repository {repository!r}.')
+        with TemporaryDirectory() as td:
+            _git_attr_file = os.path.join(td, '.gitattributes')
+            with open(_git_attr_file, 'w', encoding='utf-8') as f:
+                print(_GITLFS, file=f)
+
+            operations = [
+                CommitOperationAdd(
+                    path_in_repo='.gitattributes',
+                    path_or_fileobj=_git_attr_file,
+                )
+            ]
+
+            current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+            commit_message = f'Update {name}\'s .gitattributes, on {current_time}'
+            logging.info(f'Updating {name}\'s .gitattributes to repository {repository!r} ...')
+            hf_client.create_commit(
+                repository,
+                operations,
+                commit_message=commit_message,
+                repo_type='model',
+                revision=revision,
+            )
 
     with TemporaryDirectory() as td:
         export_workdir(
