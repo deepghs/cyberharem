@@ -255,8 +255,9 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
                            min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8):
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
-    hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)
     hf_fs = get_hf_fs()
+    if not hf_fs.exists(f'datasets/{repository}/.gitattributes'):
+        hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)
 
     _exist_files = [os.path.relpath(file, repository) for file in hf_fs.glob(f'{repository}/**')]
     _exist_ps = sorted([(file, file.split('/')) for file in _exist_files], key=lambda x: x[1])

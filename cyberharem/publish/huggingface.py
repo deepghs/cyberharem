@@ -24,8 +24,9 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
 
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
-    hf_client.create_repo(repo_id=repository, repo_type='model', exist_ok=True)
     hf_fs = get_hf_fs()
+    if not hf_fs.exists(f'{repository}/.gitattributes'):
+        hf_client.create_repo(repo_id=repository, repo_type='model', exist_ok=True)
 
     if not hf_fs.exists(f'{repository}/.gitattributes') or \
             '*.png filter=lfs diff=lfs merge=lfs -text' not in hf_fs.read_text(f'{repository}/.gitattributes'):

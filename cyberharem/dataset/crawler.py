@@ -230,8 +230,10 @@ def crawl_dataset_to_huggingface(
         files_to_upload.append((readme_file, 'README.md'))
 
         hf_client = get_hf_client()
+        hf_fs = get_hf_fs()
         logging.info(f'Initialize repository {repository!r}')
-        hf_client.create_repo(repo_id=repository, repo_type=repo_type, exist_ok=True)
+        if not hf_fs.exists(f'datasets/{repository}/.gitattributes'):
+            hf_client.create_repo(repo_id=repository, repo_type=repo_type, exist_ok=True)
 
         current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
         commit_message = f"Publish character {name}, on {current_time}"
