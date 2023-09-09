@@ -292,6 +292,21 @@ def get_clamped_size(width, height, max_val, _type='all'):
     return width, height
 
 
+def parse_publish_at(publish_at: Optional[str] = None, keep_none: bool = True) -> Optional[str]:
+    try:
+        from zoneinfo import ZoneInfo
+    except (ImportError, ModuleNotFoundError):
+        from backports.zoneinfo import ZoneInfo
+
+    if not keep_none and publish_at is None:
+        publish_at = 'now'
+    if publish_at is not None:
+        local_time = parse_time(publish_at)
+        publish_at = local_time.astimezone(ZoneInfo('UTC')).isoformat()
+
+    return publish_at
+
+
 def civitai_upload_images(
         model_version_id: int, image_files: List[Union[str, Tuple[str, str], Tuple[str, str, dict]]],
         tags: List[str], nsfw: bool = False, model_id: int = None, session=None
@@ -405,7 +420,7 @@ def civitai_upload_images(
         session, 'POST', 'https://civitai.com/api/trpc/post.update',
         json={
             'json': {
-                'id': 456175,
+                'id': post_id,
                 'nsfw': nsfw,
                 'authed': True,
             }
@@ -416,15 +431,8 @@ def civitai_upload_images(
 
 
 def civiti_publish(model_id: int, model_version_id: int, publish_at=None, session=None):
-    try:
-        from zoneinfo import ZoneInfo
-    except (ImportError, ModuleNotFoundError):
-        from backports.zoneinfo import ZoneInfo
-
     session = session or get_civitai_session()
-    if publish_at is not None:
-        local_time = parse_time(publish_at)
-        publish_at = local_time.astimezone(ZoneInfo('UTC')).isoformat()
+    publish_at = parse_publish_at(publish_at, keep_none=True)
 
     if publish_at:
         logging.info(f'Publishing model {model_id!r}\'s version {model_version_id!r}, at {publish_at!r} ...')
@@ -770,7 +778,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                      try_get_title_from_repo(repo) or trigger_word.replace('_', ' ')
         if not force_create_model:
             try:
-                exist_model = civitai_find_online(model_name)
+                exist_model = civitai_find_online(model_name, creator='narugo1992')
             except ModelNotFound:
                 model_id = None
             else:

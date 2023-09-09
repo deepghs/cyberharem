@@ -18,7 +18,7 @@ urlobject
 blurhash
 dateparser
 backports.zoneinfo; python_version < '3.9'
-pycivitai
+pycivitai>=0.1.0
 diffusers>=0.19.0
 torchsde
 natsort
