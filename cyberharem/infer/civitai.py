@@ -2,8 +2,10 @@ import glob
 import logging
 import os
 import re
+import textwrap
 from typing import Union, Optional
 
+import markdown
 from PIL import Image
 from imgutils.data import load_image
 from imgutils.detect import detect_faces
@@ -135,5 +137,46 @@ def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version
             }
         },
         headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=4'},
+    )
+    resp.raise_for_status()
+
+
+def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
+                   model_creator='narugo1992', rating: int = 5, description_md: Optional[str] = None,
+                   session_repo: str = 'narugo/civitai_session_p1'):
+    resource = civitai_find_online(model, model_version, creator=model_creator)
+
+    from ..publish.civitai import get_civitai_session
+    session = get_civitai_session(session_repo)
+
+    logging.info('Creating review ...')
+    resp = srequest(
+        session, 'POST', 'https://civitai.com/api/trpc/resourceReview.create',
+        json={
+            "json": {
+                "modelVersionId": resource.version_id,
+                "modelId": resource.model_id,
+                "rating": rating,
+                "authed": True,
+            }
+        },
+        headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=4'}
+    )
+    resp.raise_for_status()
+    review_id = resp.json()['result']['data']['json']['id']
+
+    logging.info(f'Updating review {review_id} ...')
+    resp = srequest(
+        session, 'POST', 'https://civitai.com/api/trpc/resourceReview.update',
+        json={
+            "json": {
+                "id": review_id,
+                "rating": rating,
+                "details": markdown.markdown(textwrap.dedent(description_md)) if description_md else None,
+                "authed": True,
+            },
+            "meta": {"values": {"rating": ["undefined"], "details": ["undefined"]}}
+        },
+        headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=4'}
     )
     resp.raise_for_status()
