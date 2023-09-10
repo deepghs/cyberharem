@@ -113,7 +113,7 @@ def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version
     session = get_civitai_session(session_repo)
     post_id = civitai_upload_images(
         model_version_id, images,
-        tags=['arknights surtr'],
+        tags=resource.tags,
         model_id=resource.model_id,
         pc_func=_custom_pc_func,
         session=session,
