@@ -213,13 +213,13 @@ def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
 
 
 _BASE_MODEL_LIST = [
-    'AIARTCHAN/anidosmixV2',
-    'stablediffusionapi/anything-v5',
-    'Lykon/DreamShaper',
-    'digiplay/majicMIX_realistic_v6',
-    'stablediffusionapi/abyssorangemix2nsfw',
-    'AIARTCHAN/expmixLine_v2',
-    'Yntec/CuteYuki2',
+    # 'AIARTCHAN/anidosmixV2',
+    # 'stablediffusionapi/anything-v5',
+    # 'Lykon/DreamShaper',
+    # 'digiplay/majicMIX_realistic_v6',
+    # 'stablediffusionapi/abyssorangemix2nsfw',
+    # 'AIARTCHAN/expmixLine_v2',
+    # 'Yntec/CuteYuki2',
     'stablediffusionapi/counterfeit-v30',
 ]
 
