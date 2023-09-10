@@ -36,7 +36,7 @@ KNOWN_MODEL_HASHES = {
     'digiplay/majicMIX_realistic_v6': 'EBDB94D4',
     'stablediffusionapi/abyssorangemix2nsfw': 'D6992792',
     'AIARTCHAN/expmixLine_v2': 'D91B18D1',
-    'swl-models/CuteYukiMix-v4.0': 'BA0D6B48',
+    'Yntec/CuteYuki2': 'FBE372BA',
 }
 
 EXPORT_MARK = 'v1.4'
