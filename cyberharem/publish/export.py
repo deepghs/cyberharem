@@ -32,6 +32,9 @@ KNOWN_MODEL_HASHES = {
     'stablediffusionapi/cetusmix': 'B42B09FF12',
     'Meina/MeinaMix_V10': 'D967BCAE4A',
     'Meina/MeinaMix_V11': '54EF3E3610',
+    'Lykon/DreamShaper': 'C33104F6',
+    'digiplay/majicMIX_realistic_v6': 'EBDB94D4',
+    'stablediffusionapi/abyssorangemix2nsfw': 'D6992792',
 }
 
 EXPORT_MARK = 'v1.4'
