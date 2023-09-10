@@ -37,6 +37,7 @@ KNOWN_MODEL_HASHES = {
     'stablediffusionapi/abyssorangemix2nsfw': 'D6992792',
     'AIARTCHAN/expmixLine_v2': 'D91B18D1',
     'Yntec/CuteYuki2': 'FBE372BA',
+    'stablediffusionapi/counterfeit-v30': '12047227',
 }
 
 EXPORT_MARK = 'v1.4'

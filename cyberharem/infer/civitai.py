@@ -220,6 +220,7 @@ _BASE_MODEL_LIST = [
     'stablediffusionapi/abyssorangemix2nsfw',
     'AIARTCHAN/expmixLine_v2',
     'Yntec/CuteYuki2',
+    'stablediffusionapi/counterfeit-v30',
 ]
 
 
