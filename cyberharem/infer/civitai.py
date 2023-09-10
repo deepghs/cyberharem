@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import re
 from typing import Union, Optional
@@ -8,6 +9,8 @@ from imgutils.data import load_image
 from imgutils.detect import detect_faces
 from imgutils.validate import anime_rating_score
 from pycivitai import civitai_find_online
+
+from cyberharem.utils import srequest
 
 
 def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version: Optional[str] = None,
@@ -77,7 +80,7 @@ def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version
             face_ratio = face_area * 1.0 / (width * height)
             face_ratio = int(round(face_ratio * 50))
         else:
-            face_ratio = 0
+            continue
 
         images.append((
             (-safe_v, -safe_r15, -safe_r18) if safe_only else (0,),
@@ -90,7 +93,7 @@ def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version
 
     images = [item[-1] for item in sorted(images)]
 
-    from ..publish.civitai import civitai_upload_images, get_civitai_session
+    from ..publish.civitai import civitai_upload_images, get_civitai_session, parse_publish_at
 
     def _custom_pc_func(mvid):
         return {
@@ -108,10 +111,29 @@ def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version
         }
 
     session = get_civitai_session(session_repo)
-    civitai_upload_images(
+    post_id = civitai_upload_images(
         model_version_id, images,
         tags=['arknights surtr'],
         model_id=resource.model_id,
         pc_func=_custom_pc_func,
         session=session,
     )
+
+    logging.info(f'Publishing post {post_id!r} ...')
+    resp = srequest(
+        session, 'POST', 'https://civitai.com/api/trpc/post.update',
+        json={
+            "json": {
+                "id": post_id,
+                "publishedAt": parse_publish_at('now'),
+                "authed": True,
+            },
+            "meta": {
+                "values": {
+                    "publishedAt": ["Date"]
+                }
+            }
+        },
+        headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=4'},
+    )
+    resp.raise_for_status()

@@ -433,6 +433,8 @@ def civitai_upload_images(
     )
     resp.raise_for_status()
 
+    return post_id
+
 
 def civiti_publish(model_id: int, model_version_id: int, publish_at=None, session=None):
     session = session or get_civitai_session()
