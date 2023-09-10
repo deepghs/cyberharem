@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import textwrap
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 import markdown
 from PIL import Image
@@ -217,6 +217,7 @@ _BASE_MODEL_LIST = [
     # 'stablediffusionapi/anything-v5',
     'Lykon/DreamShaper',
     'digiplay/majicMIX_realistic_v6',
+    'jzli/XXMix_9realistic-v4',
     'stablediffusionapi/abyssorangemix2nsfw',
     'AIARTCHAN/expmixLine_v2',
     # 'Yntec/CuteYuki2',
@@ -226,9 +227,10 @@ _BASE_MODEL_LIST = [
 
 def civitai_auto_review(repository: str, model: Union[int, str], model_version: Optional[str] = None,
                         model_creator='narugo1992', step: Optional[int] = None,
+                        base_models: Optional[List[str]] = None,
                         rating: Optional[int] = 5, description_md: Optional[str] = None,
                         session_repo: str = 'narugo/civitai_session_p1'):
-    for base_model in _BASE_MODEL_LIST:
+    for base_model in (base_models or _BASE_MODEL_LIST):
         logging.info(f'Reviewing with {base_model!r} ...')
         with TemporaryDirectory() as td:
             draw_with_repo(repository, td, step=step, pretrained_model=base_model)

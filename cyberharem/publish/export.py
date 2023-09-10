@@ -38,6 +38,7 @@ KNOWN_MODEL_HASHES = {
     'AIARTCHAN/expmixLine_v2': 'D91B18D1',
     'Yntec/CuteYuki2': 'FBE372BA',
     'stablediffusionapi/counterfeit-v30': '12047227',
+    'jzli/XXMix_9realistic-v4': '5D22F204',
 }
 
 EXPORT_MARK = 'v1.4'
