@@ -216,12 +216,14 @@ _BASE_MODEL_LIST = [
     'AIARTCHAN/anidosmixV2',
     # 'stablediffusionapi/anything-v5',
     'Lykon/DreamShaper',
-    'digiplay/majicMIX_realistic_v6',
+    # 'digiplay/majicMIX_realistic_v6',
     'jzli/XXMix_9realistic-v4',
     'stablediffusionapi/abyssorangemix2nsfw',
     'AIARTCHAN/expmixLine_v2',
     # 'Yntec/CuteYuki2',
     'stablediffusionapi/counterfeit-v30',
+    'stablediffusionapi/flat-2d-animerge',
+    'redstonehero/cetusmix_v4',
 ]
 
 

@@ -39,6 +39,8 @@ KNOWN_MODEL_HASHES = {
     'Yntec/CuteYuki2': 'FBE372BA',
     'stablediffusionapi/counterfeit-v30': '12047227',
     'jzli/XXMix_9realistic-v4': '5D22F204',
+    'stablediffusionapi/flat-2d-animerge': 'F279CF76',
+    'redstonehero/cetusmix_v4': '838408E0',
 }
 
 EXPORT_MARK = 'v1.4'
