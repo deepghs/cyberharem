@@ -1,0 +1,117 @@
+import glob
+import os
+import re
+from typing import Union, Optional
+
+from PIL import Image
+from imgutils.data import load_image
+from imgutils.detect import detect_faces
+from imgutils.validate import anime_rating_score
+from pycivitai import civitai_find_online
+
+
+def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version: Optional[str] = None,
+                               model_creator='narugo1992', safe_only: bool = False,
+                               session_repo: str = 'narugo/civitai_session_p1'):
+    resource = civitai_find_online(model, model_version, creator=model_creator)
+    model_version_id = resource.version_id
+    post_title = f"{resource.model_name} - {resource.version_name} Review"
+
+    images = []
+    for img_file in glob.glob(os.path.join(images_dir, '*.png')):
+        img_filename = os.path.basename(img_file)
+        img_name = os.path.splitext(img_filename)[0]
+        img_info_filename = f'{img_name}_info.txt'
+
+        local_img_file = os.path.join(images_dir, img_filename)
+        local_info_file = os.path.join(images_dir, img_info_filename)
+
+        info = {}
+        with open(local_info_file, 'r', encoding='utf-8') as iif:
+            for line in iif:
+                line = line.strip()
+                if line:
+                    info_name, info_text = line.split(':', maxsplit=1)
+                    info[info_name.strip()] = info_text.strip()
+
+        meta = {
+            'cfgScale': int(round(float(info.get('Guidance Scale')))),
+            'negativePrompt': info.get('Neg Prompt'),
+            'prompt': info.get('Prompt'),
+            'sampler': info.get('Sample Method', "Euler a"),
+            'seed': int(info.get('Seed')),
+            'steps': int(info.get('Infer Steps')),
+            'Size': f"{info['Width']}x{info['Height']}",
+        }
+        if info.get('Clip Skip'):
+            meta['clipSkip'] = int(info['Clip Skip'])
+        if info.get('Model'):
+            meta['Model'] = info['Model']
+            pil_img_file = Image.open(local_img_file)
+            if pil_img_file.info.get('parameters'):
+                png_info_text = pil_img_file.info['parameters']
+                find_hash = re.findall(r'Model hash:\s*([a-zA-Z\d]+)', png_info_text, re.IGNORECASE)
+                if find_hash:
+                    model_hash = find_hash[0].lower()
+                    meta['hashes'] = {"model": model_hash}
+                    meta["resources"] = [
+                        {
+                            "hash": model_hash,
+                            "name": info['Model'],
+                            "type": "model"
+                        }
+                    ]
+                    meta["Model hash"] = model_hash
+
+        nsfw = (info.get('Safe For Word', info.get('Safe For Work')) or '').lower() != 'yes'
+
+        rating_score = anime_rating_score(local_img_file)
+        safe_v = int(round(rating_score['safe'] * 10))
+        safe_r15 = int(round(rating_score['r15'] * 10))
+        safe_r18 = int(round(rating_score['r18'] * 10))
+        faces = detect_faces(local_img_file)
+        if faces:
+            (x0, y0, x1, y1), _, _ = faces[0]
+            width, height = load_image(local_img_file).size
+            face_area = abs((x1 - x0) * (y1 - y0))
+            face_ratio = face_area * 1.0 / (width * height)
+            face_ratio = int(round(face_ratio * 50))
+        else:
+            face_ratio = 0
+
+        images.append((
+            (-safe_v, -safe_r15, -safe_r18) if safe_only else (0,),
+            -face_ratio,
+            1 if nsfw else 0,
+            0 if img_name.startswith('pattern_') else 1,
+            img_name,
+            (local_img_file, img_filename, meta)
+        ))
+
+    images = [item[-1] for item in sorted(images)]
+
+    from ..publish.civitai import civitai_upload_images, get_civitai_session
+
+    def _custom_pc_func(mvid):
+        return {
+            "json": {
+                "modelVersionId": mvid,
+                "title": post_title,
+                "tag": None,
+                "authed": True,
+            },
+            "meta": {
+                "values": {
+                    "tag": ["undefined"]
+                }
+            }
+        }
+
+    session = get_civitai_session(session_repo)
+    civitai_upload_images(
+        model_version_id, images,
+        tags=['arknights surtr'],
+        model_id=resource.model_id,
+        pc_func=_custom_pc_func,
+        session=session,
+    )

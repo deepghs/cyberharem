@@ -307,9 +307,18 @@ def parse_publish_at(publish_at: Optional[str] = None, keep_none: bool = True) -
     return publish_at
 
 
+def _post_create_func(model_version_id):
+    return {
+        "json": {
+            "modelVersionId": model_version_id,
+            "authed": True,
+        }
+    }
+
+
 def civitai_upload_images(
         model_version_id: int, image_files: List[Union[str, Tuple[str, str], Tuple[str, str, dict]]],
-        tags: List[str], nsfw: bool = False, model_id: int = None, session=None
+        tags: List[str], nsfw: bool = False, model_id: int = None, pc_func=_post_create_func, session=None
 ):
     session = session or get_civitai_session()
 
@@ -331,12 +340,7 @@ def civitai_upload_images(
     logging.info(f'Creating post for model version {model_version_id} ...')
     resp = srequest(
         session, 'POST', 'https://civitai.com/api/trpc/post.create',
-        json={
-            "json": {
-                "modelVersionId": model_version_id,
-                "authed": True,
-            }
-        },
+        json=pc_func(model_version_id),
         headers={'Referer': f'https://civitai.com/models/{model_id or 0}/wizard?step=4'},
     )
     post_id = resp.json()['result']['data']['json']['id']
