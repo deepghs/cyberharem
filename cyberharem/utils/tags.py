@@ -16,7 +16,8 @@ _CORE_WORDS = [
     'breast', 'breasts', 'scar', 'scars', 'face', 'faces', 'blood', 'bleed', 'teeth', 'tooth',
 ]
 _BLACKLISTED_WORDS = [
-    'solo', '1girl', '1boy', 'background', 'quality', 'chibi', 'monochrome', 'comic',
+    'solo', '1girl', '1boy', '2girls', '2boys', '3girls', '3boys', 'girls', 'boys',
+    'body', 'background', 'quality', 'chibi', 'monochrome', 'comic',
     'dress', 'dresses', 'minidress', 'skirt', 'skirts', 'shoulder', 'shoulders',
     'slit', 'gown', 'sundress', 'sweater', 'wedding', 'socks', 'kneehighs',
     'thighhighs', 'pantyhose', 'legwear', 'trousers', 'shorts',
