@@ -35,6 +35,7 @@ KNOWN_MODEL_HASHES = {
     'Lykon/DreamShaper': 'C33104F6',
     'digiplay/majicMIX_realistic_v6': 'EBDB94D4',
     'stablediffusionapi/abyssorangemix2nsfw': 'D6992792',
+    'AIARTCHAN/expmixLine_v2': 'D91B18D1',
 }
 
 EXPORT_MARK = 'v1.4'

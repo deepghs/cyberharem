@@ -184,8 +184,8 @@ EXTRAS = [
 ]
 
 
-def save_recommended_tags(source, name: str = None, workdir: str = None):
-    with load_dataset_for_character(source) as (ch, ds_dir):
+def save_recommended_tags(source, name: str = None, workdir: str = None, ds_size: str = '512x704'):
+    with load_dataset_for_character(source, ds_size) as (ch, ds_dir):
         if ch is None:
             if name is None:
                 raise ValueError(f'Name should be specified when using custom source - {source!r}.')
