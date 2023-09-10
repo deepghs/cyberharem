@@ -1,4 +1,5 @@
 import glob
+import json
 import logging
 import os
 import re
@@ -7,12 +8,14 @@ from typing import Union, Optional
 
 import markdown
 from PIL import Image
+from hbutils.system import TemporaryDirectory
 from imgutils.data import load_image
 from imgutils.detect import detect_faces
 from imgutils.validate import anime_rating_score
 from pycivitai import civitai_find_online
 
 from cyberharem.utils import srequest
+from .export import draw_with_repo
 
 
 def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version: Optional[str] = None,
@@ -149,34 +152,88 @@ def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
     from ..publish.civitai import get_civitai_session
     session = get_civitai_session(session_repo)
 
-    logging.info('Creating review ...')
+    logging.info('Try find exist review ...')
     resp = srequest(
-        session, 'POST', 'https://civitai.com/api/trpc/resourceReview.create',
-        json={
-            "json": {
-                "modelVersionId": resource.version_id,
-                "modelId": resource.model_id,
-                "rating": rating,
-                "authed": True,
-            }
-        },
-        headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=4'}
+        session, 'GET', 'https://civitai.com/api/trpc/resourceReview.getUserResourceReview',
+        params={'input': json.dumps({"json": {"modelVersionId": resource.version_id, "authed": True}})},
+        headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=2'},
+        raise_for_status=False
     )
-    resp.raise_for_status()
+    if resp.status_code == 404:
+        logging.info('Creating review ...')
+        resp = srequest(
+            session, 'POST', 'https://civitai.com/api/trpc/resourceReview.create',
+            json={
+                "json": {
+                    "modelVersionId": resource.version_id,
+                    "modelId": resource.model_id,
+                    "rating": rating,
+                    "authed": True,
+                }
+            },
+            headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=4'}
+        )
+        resp.raise_for_status()
+    else:
+        resp.raise_for_status()
     review_id = resp.json()['result']['data']['json']['id']
 
-    logging.info(f'Updating review {review_id} ...')
+    logging.info(f'Updating review {review_id}\'s rating ...')
     resp = srequest(
         session, 'POST', 'https://civitai.com/api/trpc/resourceReview.update',
         json={
             "json": {
                 "id": review_id,
                 "rating": rating,
-                "details": markdown.markdown(textwrap.dedent(description_md)) if description_md else None,
+                "details": None,
                 "authed": True,
             },
-            "meta": {"values": {"rating": ["undefined"], "details": ["undefined"]}}
+            "meta": {"values": {"details": ["undefined"]}}
         },
         headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=4'}
     )
     resp.raise_for_status()
+
+    if description_md:
+        logging.info(f'Updating review {review_id}\'s description ...')
+        resp = srequest(
+            session, 'POST', 'https://civitai.com/api/trpc/resourceReview.update',
+            json={
+                "json": {
+                    "id": review_id,
+                    "details": markdown.markdown(textwrap.dedent(description_md)),
+                    'rating': None,
+                    "authed": True,
+                },
+                "meta": {"values": {"rating": ["undefined"]}}
+            },
+            headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=4'}
+        )
+        resp.raise_for_status()
+
+
+_BASE_MODEL_LIST = [
+    'AIARTCHAN/anidosmixV2',
+    'stablediffusionapi/anything-v5',
+    'Lykon/DreamShaper',
+    'digiplay/majicMIX_realistic_v6',
+    'stablediffusionapi/abyssorangemix2nsfw',
+    'AIARTCHAN/expmixLine_v2',
+    'Yntec/CuteYuki2',
+]
+
+
+def civitai_auto_review(repository: str, model: Union[int, str], model_version: Optional[str] = None,
+                        model_creator='narugo1992', step: Optional[int] = None,
+                        rating: Optional[int] = 5, description_md: Optional[str] = None,
+                        session_repo: str = 'narugo/civitai_session_p1'):
+    for base_model in _BASE_MODEL_LIST:
+        logging.info(f'Reviewing with {base_model!r} ...')
+        with TemporaryDirectory() as td:
+            draw_with_repo(repository, td, step=step, pretrained_model=base_model)
+            publish_samples_to_civitai(td, model, model_version,
+                                       model_creator=model_creator, session_repo=session_repo)
+
+    if rating is not None:
+        logging.info('Making review ...')
+        civitai_review(model, model_version, model_creator, rating, description_md, session_repo)
