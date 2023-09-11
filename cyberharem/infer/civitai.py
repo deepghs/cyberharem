@@ -8,6 +8,7 @@ import textwrap
 from typing import Union, Optional, List
 
 import markdown2
+import numpy as np
 from PIL import Image
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
@@ -289,19 +290,19 @@ def civitai_auto_review(repository: str, model: Union[int, str], model_version: 
                     'model_homepage': m_url,
                     'images': images_count,
                     'mean_score': scores.mean().item(),
-                    'median_score': scores.median().item(),
+                    'median_score': np.median(scores).item(),
                     'mean_loss': losses.mean().item(),
-                    'median_loss': losses.median().item(),
+                    'median_loss': np.median(losses).item(),
                 })
 
         all_diffs = ccip_batch_differences([*all_feats, *ds_feats])[:len(all_feats), len(all_feats):]
         all_batch = all_diffs <= ccip_default_threshold()
         all_scores = all_batch.mean(axis=1)
         all_losses = all_diffs.mean(axis=1)
-        all_mean_score = all_scores.mean()
-        all_median_score = all_scores.median()
-        all_mean_loss = all_losses.mean()
-        all_median_loss = all_losses.median()
+        all_mean_score = all_scores.mean().item()
+        all_median_score = np.median(all_scores).item()
+        all_mean_loss = all_losses.mean().item()
+        all_median_loss = np.median(all_losses).item()
 
         if rating is not None:
             logging.info('Making review ...')
