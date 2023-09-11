@@ -13,7 +13,7 @@ hbutils>=0.9.1
 di-toolkit
 tensorboard
 tabulate
-markdown
+markdown2
 urlobject
 blurhash
 dateparser

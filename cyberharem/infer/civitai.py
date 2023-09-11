@@ -1,4 +1,5 @@
 import glob
+import io
 import json
 import logging
 import os
@@ -6,16 +7,21 @@ import re
 import textwrap
 from typing import Union, Optional, List
 
-import markdown
+import markdown2
 from PIL import Image
+from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from imgutils.data import load_image
 from imgutils.detect import detect_faces
+from imgutils.metrics import ccip_extract_feature, ccip_batch_differences, ccip_default_threshold
 from imgutils.validate import anime_rating_score
 from pycivitai import civitai_find_online
+from tqdm.auto import tqdm
+from waifuc.source import LocalSource
 
-from cyberharem.utils import srequest
 from .export import draw_with_repo
+from ..dataset import load_dataset_for_character
+from ..utils import srequest, get_hf_fs
 
 
 def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version: Optional[str] = None,
@@ -143,6 +149,8 @@ def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version
     )
     resp.raise_for_status()
 
+    return images
+
 
 def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
                    model_creator='narugo1992', rating: int = 5, description_md: Optional[str] = None,
@@ -201,7 +209,7 @@ def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
             json={
                 "json": {
                     "id": review_id,
-                    "details": markdown.markdown(textwrap.dedent(description_md)),
+                    "details": markdown2.markdown(textwrap.dedent(description_md)),
                     'rating': None,
                     "authed": True,
                 },
@@ -232,13 +240,99 @@ def civitai_auto_review(repository: str, model: Union[int, str], model_version: 
                         base_models: Optional[List[str]] = None,
                         rating: Optional[int] = 5, description_md: Optional[str] = None,
                         session_repo: str = 'narugo/civitai_session_p1'):
-    for base_model in (base_models or _BASE_MODEL_LIST):
-        logging.info(f'Reviewing with {base_model!r} ...')
-        with TemporaryDirectory() as td:
-            draw_with_repo(repository, td, step=step, pretrained_model=base_model)
-            publish_samples_to_civitai(td, model, model_version,
-                                       model_creator=model_creator, session_repo=session_repo)
+    from ..publish.export import KNOWN_MODEL_HASHES
 
-    if rating is not None:
-        logging.info('Making review ...')
-        civitai_review(model, model_version, model_creator, rating, description_md, session_repo)
+    hf_fs = get_hf_fs()
+    model_info = json.loads(hf_fs.read_text(f'{repository}/meta.json'))
+    dataset_info = model_info['dataset']
+
+    # load dataset
+    ds_size = (384, 512) if not dataset_info or not dataset_info['type'] else dataset_info['type']
+    with load_dataset_for_character(repository, size=ds_size) as (_, ds_dir):
+        ds_source = LocalSource(ds_dir)
+        ds_feats = []
+        for item in tqdm(list(ds_source), desc='Extract Dataset Feature'):
+            ds_feats.append(ccip_extract_feature(item.image))
+
+        all_feats = []
+        model_results = []
+        for base_model in (base_models or _BASE_MODEL_LIST):
+            logging.info(f'Reviewing with {base_model!r} ...')
+            with TemporaryDirectory() as td:
+                draw_with_repo(repository, td, step=step, pretrained_model=base_model)
+                images = publish_samples_to_civitai(
+                    td, model, model_version,
+                    model_creator=model_creator, session_repo=session_repo
+                )
+
+                images_count = len(images)
+                gp_feats = []
+                for local_imgfile, _, _ in tqdm(images, desc='Extract Images Feature'):
+                    gp_feats.append(ccip_extract_feature(local_imgfile))
+                all_feats.extend(gp_feats)
+
+                gp_diffs = ccip_batch_differences([*gp_feats, *ds_feats])[:len(gp_feats), len(gp_feats):]
+                gp_batch = gp_diffs <= ccip_default_threshold()
+                scores = gp_batch.mean(axis=1)
+                losses = gp_diffs.mean(axis=1)
+
+                if KNOWN_MODEL_HASHES.get(base_model):
+                    resource = civitai_find_online(KNOWN_MODEL_HASHES[base_model])
+                    m_name = f'{resource.model_name} - {resource.version_name}'
+                    m_url = f'https://civitai.com/models/{resource.model_id}?modelVersionId={resource.version_id}'
+                else:
+                    m_name = base_model
+                    m_url = None
+
+                model_results.append({
+                    'model_name': m_name,
+                    'model_homepage': m_url,
+                    'images': images_count,
+                    'mean_score': scores.mean().item(),
+                    'median_score': scores.median().item(),
+                    'mean_loss': losses.mean().item(),
+                    'median_loss': losses.median().item(),
+                })
+
+        all_diffs = ccip_batch_differences([*all_feats, *ds_feats])[:len(all_feats), len(all_feats):]
+        all_batch = all_diffs <= ccip_default_threshold()
+        all_scores = all_batch.mean(axis=1)
+        all_losses = all_diffs.mean(axis=1)
+        all_mean_score = all_scores.mean()
+        all_median_score = all_scores.median()
+        all_mean_loss = all_losses.mean()
+        all_median_loss = all_losses.median()
+
+        if rating is not None:
+            logging.info('Making review ...')
+            with io.StringIO() as ds:
+                print('Tested on the following models:', file=ds)
+                print('', file=ds)
+
+                all_total_images = 0
+                for mr in model_results:
+                    if mr['home_homepage']:
+                        mx = f'[{mr["model_name"]}]({mr["model_homepage"]})'
+                    else:
+                        mx = mr['model_name']
+
+                    all_total_images += mr['images']
+                    print(
+                        f'When using model {mx}, {plural_word(mr["images"], "image")} in total, '
+                        f'recognition score (mean/median): {mr["mean_score"]:.3f}/{mr["median_score"]:.3f}, '
+                        f'character image loss (mean/median): {mr["mean_loss"]:.4f}/{mr["median_loss"]:.4f}.',
+                        file=ds
+                    )
+                    print('', file=ds)
+
+                print(
+                    f'Overall, {plural_word(all_total_images, "image")} in total, '
+                    f'recognition score (mean/median): {all_mean_score:.3f}/{all_median_score:.3f}, '
+                    f'character image loss (mean/median): {all_mean_loss:.4f}/{all_median_loss:.4f}.',
+                    file=ds
+                )
+                print('', file=ds)
+
+                description_md = description_md or ds.getvalue()
+
+            civitai_review(model, model_version, model_creator, rating, description_md, session_repo)

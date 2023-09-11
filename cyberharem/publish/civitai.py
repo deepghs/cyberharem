@@ -31,7 +31,7 @@ try:
 except (ModuleNotFoundError, ImportError):
     from typing_extensions import Literal
 
-import markdown
+import markdown2
 
 from ..dataset import load_dataset_for_character
 from ..utils import get_civitai_session, srequest, get_ch_name, get_hf_fs, download_file, parse_time, \
@@ -97,7 +97,7 @@ def civitai_create_model(
         json={
             "json": {
                 "name": name,
-                "description": markdown.markdown(textwrap.dedent(description_md)),
+                "description": markdown2.markdown(textwrap.dedent(description_md)),
                 "type": "LORA",
 
                 "allowCommercialUse": commercial_use.lower().capitalize(),  # None, Image, Rent, Sell
@@ -165,7 +165,7 @@ def civitai_create_version(
                 "modelId": model_id,
                 "name": version_name,
                 "baseModel": base_model,
-                "description": markdown.markdown(textwrap.dedent(description_md)),
+                "description": markdown2.markdown(textwrap.dedent(description_md)),
                 "steps": steps,
                 "epochs": epochs,
                 "clipSkip": clip_skip,
