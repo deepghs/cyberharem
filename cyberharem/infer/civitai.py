@@ -285,7 +285,7 @@ def civitai_auto_review(repository: str, model: Union[int, str], model_version: 
                     m_name = base_model
                     m_url = None
 
-                model_results.append({
+                ret = {
                     'model_name': m_name,
                     'model_homepage': m_url,
                     'images': images_count,
@@ -293,7 +293,9 @@ def civitai_auto_review(repository: str, model: Union[int, str], model_version: 
                     'median_score': np.median(scores).item(),
                     'mean_loss': losses.mean().item(),
                     'median_loss': np.median(losses).item(),
-                })
+                }
+                logging.info(f'Result of model: {ret!r}')
+                model_results.append(ret)
 
         all_diffs = ccip_batch_differences([*all_feats, *ds_feats])[:len(all_feats), len(all_feats):]
         all_batch = all_diffs <= ccip_default_threshold()
@@ -312,7 +314,7 @@ def civitai_auto_review(repository: str, model: Union[int, str], model_version: 
 
                 all_total_images = 0
                 for mr in model_results:
-                    if mr['home_homepage']:
+                    if mr['model_homepage']:
                         mx = f'[{mr["model_name"]}]({mr["model_homepage"]})'
                     else:
                         mx = mr['model_name']
