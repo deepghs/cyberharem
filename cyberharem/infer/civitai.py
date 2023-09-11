@@ -17,6 +17,7 @@ from imgutils.detect import detect_faces
 from imgutils.metrics import ccip_extract_feature, ccip_batch_differences, ccip_default_threshold
 from imgutils.validate import anime_rating_score
 from pycivitai import civitai_find_online
+from pycivitai.client import find_version_id_by_hash
 from tqdm.auto import tqdm
 from waifuc.source import LocalSource
 
@@ -278,7 +279,8 @@ def civitai_auto_review(repository: str, model: Union[int, str], model_version: 
                 losses = gp_diffs.mean(axis=1)
 
                 if KNOWN_MODEL_HASHES.get(base_model):
-                    resource = civitai_find_online(KNOWN_MODEL_HASHES[base_model])
+                    model_id, model_version_id, _ = find_version_id_by_hash(KNOWN_MODEL_HASHES[base_model])
+                    resource = civitai_find_online(model_id, model_version_id)
                     m_name = f'{resource.model_name} - {resource.version_name}'
                     m_url = f'https://civitai.com/models/{resource.model_id}?modelVersionId={resource.version_id}'
                 else:
