@@ -23,12 +23,13 @@ from waifuc.source import LocalSource
 
 from .export import draw_with_repo
 from ..dataset import load_dataset_for_character
-from ..utils import srequest, get_hf_fs
+from ..publish.civitai import _tag_decode, try_find_title, try_get_title_from_repo
+from ..utils import srequest, get_hf_fs, load_tags_from_directory
 
 
 def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version: Optional[str] = None,
                                model_creator='narugo1992', safe_only: bool = False,
-                               session_repo: str = 'narugo/civitai_session_p1'):
+                               extra_tags: Optional[List[str]] = None, session_repo: str = 'narugo/civitai_session_p1'):
     resource = civitai_find_online(model, model_version, creator=model_creator)
     model_version_id = resource.version_id
     post_title = f"{resource.model_name} - {resource.version_name} Review"
@@ -126,7 +127,7 @@ def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version
     session = get_civitai_session(session_repo)
     post_id = civitai_upload_images(
         model_version_id, images,
-        tags=resource.tags,
+        tags=[*resource.tags, *extra_tags],
         model_id=resource.model_id,
         pc_func=_custom_pc_func,
         session=session,
@@ -237,11 +238,17 @@ _BASE_MODEL_LIST = [
 ]
 
 
-def civitai_auto_review(repository: str, model: Union[int, str], model_version: Optional[str] = None,
+def civitai_auto_review(repository: str, model: Optional[Union[int, str]] = None,
+                        model_version: Optional[str] = None,
                         model_creator='narugo1992', step: Optional[int] = None,
                         base_models: Optional[List[str]] = None,
                         rating: Optional[int] = 5, description_md: Optional[str] = None,
                         session_repo: str = 'narugo/civitai_session_p1'):
+    game_name = repository.split('/')[-1].split('_')[-1]
+    char_name = ' '.join(repository.split('/')[-1].split('_')[:-1])
+    model = model or try_find_title(char_name, game_name) or \
+            try_get_title_from_repo(repository) or repository.split('/')[-1]
+
     from ..publish.export import KNOWN_MODEL_HASHES
 
     hf_fs = get_hf_fs()
@@ -251,6 +258,13 @@ def civitai_auto_review(repository: str, model: Union[int, str], model_version: 
     # load dataset
     ds_size = (384, 512) if not dataset_info or not dataset_info['type'] else dataset_info['type']
     with load_dataset_for_character(repository, size=ds_size) as (_, ds_dir):
+        core_tags, _ = load_tags_from_directory(ds_dir)
+
+        all_tags = [
+            game_name, f"{game_name} {char_name}", char_name,
+            'female', 'girl', 'character', 'fully-automated', 'random prompt', 'random seed',
+            *map(_tag_decode, core_tags.keys()),
+        ]
         ds_source = LocalSource(ds_dir)
         ds_feats = []
         for item in tqdm(list(ds_source), desc='Extract Dataset Feature'):
@@ -264,7 +278,9 @@ def civitai_auto_review(repository: str, model: Union[int, str], model_version: 
                 draw_with_repo(repository, td, step=step, pretrained_model=base_model)
                 images = publish_samples_to_civitai(
                     td, model, model_version,
-                    model_creator=model_creator, session_repo=session_repo
+                    model_creator=model_creator,
+                    extra_tags=all_tags,
+                    session_repo=session_repo
                 )
 
                 images_count = len(images)

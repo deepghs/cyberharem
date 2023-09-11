@@ -415,9 +415,27 @@ def civitai_upload_images(
                 },
                 headers={'Referer': f'https://civitai.com/models/{model_id or 0}/wizard?step=4'},
             )
-            resp.raise_for_status()
         else:
-            logging.warning(f'Tag {tag_name} not found, skipped.')
+            logging.info(f'Creating and adding new tag {tag_name!r} for post {post_id!r} ...')
+            resp = srequest(
+                session, 'POST', 'https://civitai.com/api/trpc/post.addTag',
+                json={
+                    "json": {
+                        "id": post_id,
+                        "tagId": None,
+                        "name": tag_name,
+                        "authed": True,
+                    },
+                    "meta": {
+                        "values": {
+                            "tagId": ["undefined"]
+                        }
+                    }
+                },
+                headers={'Referer': f'https://civitai.com/models/{model_id or 0}/wizard?step=4'},
+            )
+
+        resp.raise_for_status()
 
     logging.info(f'Marking for nsfw ({nsfw!r}) ...')
     resp = srequest(
