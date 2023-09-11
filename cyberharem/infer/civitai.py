@@ -248,6 +248,7 @@ def civitai_auto_review(repository: str, model: Optional[Union[int, str]] = None
     char_name = ' '.join(repository.split('/')[-1].split('_')[:-1])
     model = model or try_find_title(char_name, game_name) or \
             try_get_title_from_repo(repository) or repository.split('/')[-1]
+    logging.info(f'Model name on civitai: {model!r}')
 
     from ..publish.export import KNOWN_MODEL_HASHES
 
