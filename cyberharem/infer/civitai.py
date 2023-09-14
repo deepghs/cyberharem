@@ -228,7 +228,7 @@ _BASE_MODEL_LIST = [
     # 'stablediffusionapi/anything-v5',
     # 'Lykon/DreamShaper',
     'Meina/Unreal_V4.1',
-    # 'digiplay/majicMIX_realistic_v6',
+    'digiplay/majicMIX_realistic_v6',
     'jzli/XXMix_9realistic-v4',
     'stablediffusionapi/abyssorangemix2nsfw',
     'AIARTCHAN/expmixLine_v2',
@@ -237,7 +237,7 @@ _BASE_MODEL_LIST = [
     'stablediffusionapi/flat-2d-animerge',
     'redstonehero/cetusmix_v4',
     'Meina/MeinaHentai_V4',
-    'Meina/MeinaPastel_V6',
+    # 'Meina/MeinaPastel_V6',
 ]
 
 
