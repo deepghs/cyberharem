@@ -357,4 +357,9 @@ def civitai_auto_review(repository: str, model: Optional[Union[int, str]] = None
 
                 description_md = description_md or ds.getvalue()
 
-            civitai_review(model, model_version, model_creator, rating, description_md, session_repo)
+            try:
+                civitai_review(model, model_version, model_creator, rating, description_md, session_repo)
+            except:
+                print('This is the description md:')
+                print(description_md)
+                raise
