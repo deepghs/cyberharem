@@ -236,6 +236,8 @@ _BASE_MODEL_LIST = [
     'stablediffusionapi/counterfeit-v30',
     'stablediffusionapi/flat-2d-animerge',
     'redstonehero/cetusmix_v4',
+    'Meina/MeinaHentai_V4',
+    'Meina/MeinaPastel_V6',
 ]
 
 

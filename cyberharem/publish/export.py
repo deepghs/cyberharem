@@ -42,6 +42,8 @@ KNOWN_MODEL_HASHES = {
     'stablediffusionapi/flat-2d-animerge': 'F279CF76',
     'redstonehero/cetusmix_v4': '838408E0',
     'Meina/Unreal_V4.1': '0503BFAD',
+    'Meina/MeinaHentai_V4': '39C0C3B6',
+    'Meina/MeinaPastel_V6': 'DA1D535E',
 }
 
 EXPORT_MARK = 'v1.4'
