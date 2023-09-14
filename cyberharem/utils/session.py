@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import random
 import time
@@ -134,7 +135,8 @@ def srequest(session: requests.Session, method, url, *, max_retries: int = 5,
     for _ in range(max_retries):
         try:
             resp = session.request(method, url, **kwargs)
-        except RequestException:
+        except RequestException as err:
+            logging.error(f'Request error - {err!r}')
             time.sleep(sleep_time)
         else:
             break
