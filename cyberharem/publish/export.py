@@ -44,6 +44,7 @@ KNOWN_MODEL_HASHES = {
     'Meina/Unreal_V4.1': '0503BFAD',
     'Meina/MeinaHentai_V4': '39C0C3B6',
     'Meina/MeinaPastel_V6': 'DA1D535E',
+    'KBlueLeaf/kohaku-v4-rev1.2': '87F9E45D',
 }
 
 EXPORT_MARK = 'v1.4'
