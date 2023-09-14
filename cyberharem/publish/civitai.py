@@ -13,6 +13,7 @@ import numpy as np
 from PIL import Image
 from gchar.games.base import Character
 from gchar.games.dispatch.access import GAME_CHARS
+from gchar.generic import import_generic
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
@@ -36,6 +37,8 @@ import markdown2
 from ..dataset import load_dataset_for_character
 from ..utils import get_civitai_session, srequest, get_ch_name, get_hf_fs, download_file, parse_time, \
     load_tags_from_directory, repr_tags
+
+import_generic()
 
 
 def _norm(x, keep_space: bool = True):

@@ -164,18 +164,24 @@ def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
     session = get_civitai_session(session_repo)
 
     logging.info(f'Try find exist review of model version #{resource.version_id} ...')
-    resp = srequest(
-        session, 'GET', 'https://civitai.com/api/trpc/resourceReview.getUserResourceReview',
-        params={'input': json.dumps({"json": {"modelVersionId": resource.version_id, "authed": True}})},
-        headers={
-            'Referer': f'https://civitai.com/posts/create?modelId={resource.model_id}&'
-                       f'modelVersionId={resource.version_id}&'
-                       f'returnUrl=/models/{resource.model_id}?'
-                       f'modelVersionId={resource.version_id}reviewing=true'
-        },
-        raise_for_status=False
-    )
-    if resp.status_code == 404:
+    _err = None
+    try:  # Add this shit for the 500 of this API (2023-09-14)
+        resp = srequest(
+            session, 'GET', 'https://civitai.com/api/trpc/resourceReview.getUserResourceReview',
+            params={'input': json.dumps({"json": {"modelVersionId": resource.version_id, "authed": True}})},
+            headers={
+                'Referer': f'https://civitai.com/posts/create?modelId={resource.model_id}&'
+                           f'modelVersionId={resource.version_id}&'
+                           f'returnUrl=/models/{resource.model_id}?'
+                           f'modelVersionId={resource.version_id}reviewing=true'
+            },
+            raise_for_status=False
+        )
+    except AssertionError:
+        _err = True
+        resp = None
+
+    if _err or resp.status_code == 404:
         logging.info(f'Creating review for #{resource.version_id} ...')
         resp = srequest(
             session, 'POST', 'https://civitai.com/api/trpc/resourceReview.create',
@@ -191,7 +197,8 @@ def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
         )
         resp.raise_for_status()
     else:
-        resp.raise_for_status()
+        if resp is not None:
+            resp.raise_for_status()
     review_id = resp.json()['result']['data']['json']['id']
 
     logging.info(f'Updating review #{review_id}\'s rating ...')
