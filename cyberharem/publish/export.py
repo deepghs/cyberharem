@@ -41,6 +41,7 @@ KNOWN_MODEL_HASHES = {
     'jzli/XXMix_9realistic-v4': '5D22F204',
     'stablediffusionapi/flat-2d-animerge': 'F279CF76',
     'redstonehero/cetusmix_v4': '838408E0',
+    'Meina/Unreal_V4.1': '0503BFAD',
 }
 
 EXPORT_MARK = 'v1.4'
