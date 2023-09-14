@@ -163,15 +163,20 @@ def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
     from ..publish.civitai import get_civitai_session
     session = get_civitai_session(session_repo)
 
-    logging.info('Try find exist review ...')
+    logging.info(f'Try find exist review of model version #{resource.version_id} ...')
     resp = srequest(
         session, 'GET', 'https://civitai.com/api/trpc/resourceReview.getUserResourceReview',
         params={'input': json.dumps({"json": {"modelVersionId": resource.version_id, "authed": True}})},
-        headers={'Referer': f'https://civitai.com/models/{resource.model_id}/wizard?step=2'},
+        headers={
+            'Referer': f'https://civitai.com/posts/create?modelId={resource.model_id}&'
+                       f'modelVersionId={resource.version_id}&'
+                       f'returnUrl=/models/{resource.model_id}?'
+                       f'modelVersionId={resource.version_id}reviewing=true'
+        },
         raise_for_status=False
     )
     if resp.status_code == 404:
-        logging.info('Creating review ...')
+        logging.info(f'Creating review for #{resource.version_id} ...')
         resp = srequest(
             session, 'POST', 'https://civitai.com/api/trpc/resourceReview.create',
             json={
@@ -189,7 +194,7 @@ def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
         resp.raise_for_status()
     review_id = resp.json()['result']['data']['json']['id']
 
-    logging.info(f'Updating review {review_id}\'s rating ...')
+    logging.info(f'Updating review #{review_id}\'s rating ...')
     resp = srequest(
         session, 'POST', 'https://civitai.com/api/trpc/resourceReview.update',
         json={
@@ -206,7 +211,7 @@ def civitai_review(model: Union[int, str], model_version: Optional[str] = None,
     resp.raise_for_status()
 
     if description_md:
-        logging.info(f'Updating review {review_id}\'s description ...')
+        logging.info(f'Updating review #{review_id}\'s description ...')
         resp = srequest(
             session, 'POST', 'https://civitai.com/api/trpc/resourceReview.update',
             json={
