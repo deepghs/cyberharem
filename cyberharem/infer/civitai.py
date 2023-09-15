@@ -250,7 +250,8 @@ _BASE_MODEL_LIST = [
     'stablediffusionapi/flat-2d-animerge',
     'redstonehero/cetusmix_v4',
     # 'KBlueLeaf/kohaku-v4-rev1.2',
-    'Meina/MeinaHentai_V4',
+    'stablediffusionapi/night-sky-yozora-sty',
+    # 'Meina/MeinaHentai_V4',
     # 'Meina/MeinaPastel_V6',
 ]
 

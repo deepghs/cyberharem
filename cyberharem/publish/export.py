@@ -45,6 +45,7 @@ KNOWN_MODEL_HASHES = {
     'Meina/MeinaHentai_V4': '39C0C3B6',
     'Meina/MeinaPastel_V6': 'DA1D535E',
     'KBlueLeaf/kohaku-v4-rev1.2': '87F9E45D',
+    'stablediffusionapi/night-sky-yozora-sty': 'D31F707A',
 }
 
 EXPORT_MARK = 'v1.4'
