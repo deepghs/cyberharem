@@ -29,7 +29,7 @@ def number_to_tag(v):
     raise ValueError(f'No tags found for {v!r}')
 
 
-configure_http_backend(partial(get_requests_session, timeout=120))
+configure_http_backend(partial(get_requests_session, timeout=120, verify=False))
 
 
 def get_hf_client() -> HfApi:

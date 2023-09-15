@@ -58,7 +58,7 @@ class TimeoutHTTPAdapter(HTTPAdapter):
         return super().send(request, **kwargs)
 
 
-def get_requests_session(max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT,
+def get_requests_session(max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT, verify: bool = True,
                          headers: Optional[Dict[str, str]] = None, session: Optional[requests.Session] = None) \
         -> requests.Session:
     """
@@ -89,7 +89,8 @@ def get_requests_session(max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT,
                       "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
         **dict(headers or {}),
     })
-    session.verify = False
+    if not verify:
+        session.verify = False
 
     return session
 
