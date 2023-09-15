@@ -293,14 +293,21 @@ def civitai_auto_review(repository: str, model: Optional[Union[int, str]] = None
         for base_model in (base_models or _BASE_MODEL_LIST):
             logging.info(f'Reviewing with {base_model!r} ...')
             with TemporaryDirectory() as td:
+                if KNOWN_MODEL_HASHES.get(base_model):
+                    bm_id, bm_version_id, _ = find_version_id_by_hash(KNOWN_MODEL_HASHES[base_model])
+                    resource = civitai_find_online(bm_id, bm_version_id)
+                    m_name = f'{resource.model_name} - {resource.version_name}'
+                    m_url = f'https://civitai.com/models/{resource.model_id}?modelVersionId={resource.version_id}'
+                else:
+                    m_name = base_model
+                    m_url = None
+
                 draw_with_repo(repository, td, step=step, pretrained_model=base_model)
-                bm_resource = civitai_find_online(model, model_version, creator=model_creator)
                 images = publish_samples_to_civitai(
                     td, model, model_version,
                     model_creator=model_creator,
                     extra_tags=all_tags,
-                    post_title=f"AI Review (Base Model: "
-                               f"{bm_resource.model_name} - {bm_resource.version_name})",
+                    post_title=f"AI Review (Base Model: {resource.model_name} - {resource.version_name})",
                     session_repo=session_repo
                 )
 
@@ -314,15 +321,6 @@ def civitai_auto_review(repository: str, model: Optional[Union[int, str]] = None
                 gp_batch = gp_diffs <= ccip_default_threshold()
                 scores = gp_batch.mean(axis=1)
                 losses = gp_diffs.mean(axis=1)
-
-                if KNOWN_MODEL_HASHES.get(base_model):
-                    model_id, model_version_id, _ = find_version_id_by_hash(KNOWN_MODEL_HASHES[base_model])
-                    resource = civitai_find_online(model_id, model_version_id)
-                    m_name = f'{resource.model_name} - {resource.version_name}'
-                    m_url = f'https://civitai.com/models/{resource.model_id}?modelVersionId={resource.version_id}'
-                else:
-                    m_name = base_model
-                    m_url = None
 
                 ret = {
                     'model_name': m_name,
