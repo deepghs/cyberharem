@@ -29,10 +29,11 @@ from ..utils import srequest, get_hf_fs, load_tags_from_directory
 
 def publish_samples_to_civitai(images_dir, model: Union[int, str], model_version: Optional[str] = None,
                                model_creator='narugo1992', safe_only: bool = False,
-                               extra_tags: Optional[List[str]] = None, session_repo: str = 'narugo/civitai_session_p1'):
+                               extra_tags: Optional[List[str]] = None, post_title: str = None,
+                               session_repo: str = 'narugo/civitai_session_p1'):
     resource = civitai_find_online(model, model_version, creator=model_creator)
     model_version_id = resource.version_id
-    post_title = f"{resource.model_name} - {resource.version_name} Review"
+    post_title = post_title or f"{resource.model_name} - {resource.version_name} Review"
 
     images = []
     for img_file in glob.glob(os.path.join(images_dir, '*.png')):
@@ -293,10 +294,13 @@ def civitai_auto_review(repository: str, model: Optional[Union[int, str]] = None
             logging.info(f'Reviewing with {base_model!r} ...')
             with TemporaryDirectory() as td:
                 draw_with_repo(repository, td, step=step, pretrained_model=base_model)
+                bm_resource = civitai_find_online(model, model_version, creator=model_creator)
                 images = publish_samples_to_civitai(
                     td, model, model_version,
                     model_creator=model_creator,
                     extra_tags=all_tags,
+                    post_title=f"AI Review (Base Model: "
+                               f"{bm_resource.model_name} - {bm_resource.version_name})",
                     session_repo=session_repo
                 )
 
