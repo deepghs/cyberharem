@@ -134,7 +134,7 @@ def srequest(session: requests.Session, method, url, *, max_retries: int = 5,
     resp = None
     for _ in range(max_retries):
         try:
-            resp = session.request(method, url, **kwargs)
+            resp = session.request(method, url, **kwargs, verify=False)
         except RequestException as err:
             logging.error(f'Request error - {err!r}')
             time.sleep(sleep_time)
