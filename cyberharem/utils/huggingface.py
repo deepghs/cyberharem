@@ -2,8 +2,9 @@ import math
 import os
 from functools import partial
 
-from gchar.utils import get_requests_session
 from huggingface_hub import configure_http_backend, HfApi, HfFileSystem
+
+from .session import get_requests_session
 
 _NUM_TAGS = [
     ('n<1K', 0, 1_000),
