@@ -307,7 +307,7 @@ def civitai_auto_review(repository: str, model: Optional[Union[int, str]] = None
                     td, model, model_version,
                     model_creator=model_creator,
                     extra_tags=all_tags,
-                    post_title=f"AI Review (Base Model: {resource.model_name} - {resource.version_name})",
+                    post_title=f"AI Review (Base Model: {m_name})",
                     session_repo=session_repo
                 )
 
