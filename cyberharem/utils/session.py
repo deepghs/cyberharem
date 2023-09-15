@@ -89,6 +89,7 @@ def get_requests_session(max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT,
                       "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
         **dict(headers or {}),
     })
+    session.verify = False
 
     return session
 
@@ -134,7 +135,7 @@ def srequest(session: requests.Session, method, url, *, max_retries: int = 5,
     resp = None
     for _ in range(max_retries):
         try:
-            resp = session.request(method, url, **kwargs, verify=False)
+            resp = session.request(method, url, **kwargs)
         except RequestException as err:
             logging.error(f'Request error - {err!r}')
             time.sleep(sleep_time)
