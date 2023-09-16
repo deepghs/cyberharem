@@ -77,7 +77,7 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.85, clu_
                 for i in range(0, max_clu_id + 1)
             ])
             best_id = np.argmin(avg_dists)
-            if r_sames[best_id] >= 0.85:
+            if r_sames[best_id] >= 0.90:
                 mask_labels[nid] = best_id
         labels = mask_labels
         logging.info('Noise extracting complete.')
