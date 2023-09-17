@@ -74,14 +74,14 @@ def civitai_query_model_tags(tag: str, session=None) -> Tuple[Optional[int], str
         return None, _norm(tag)
 
 
-CommercialUseTyping = Literal['none', 'image', 'rent', 'sell']
+CommercialUseTyping = Literal['none', 'image', 'rentCivit', 'rent', 'sell']
 
 
-def civitai_create_model(
+def civitai_upsert_model(
         name, description_md: str, tags: List[str],
-        commercial_use: CommercialUseTyping = 'sell',
+        commercial_use: CommercialUseTyping = 'rent',
         allow_no_credit: bool = True, allow_derivatives: bool = True, allow_different_licence: bool = True,
-        nsfw: bool = False, poi: bool = False,
+        nsfw: bool = False, poi: bool = False, exist_model_id: Optional[int] = None,
         session=None
 ) -> Tuple[int, bool]:
     session = session or get_civitai_session()
@@ -94,29 +94,38 @@ def civitai_create_model(
             _meta_values[f"tagsOnModels.{_tag_id}.id"] = ["undefined"]
             _tag_id += 1
 
-    logging.info(f'Creating model {name!r}, tags: {[item["name"] for item in tag_list]!r} ...')
+    post_json = {
+        "name": name,
+        "description": markdown2.markdown(textwrap.dedent(description_md)),
+        "type": "LORA",
+
+        "allowCommercialUse": commercial_use.lower().capitalize(),  # None, Image, Rent, Sell
+        "allowNoCredit": allow_no_credit,
+        "allowDerivatives": allow_derivatives,
+        "allowDifferentLicense": allow_different_licence,
+
+        "nsfw": nsfw,
+        "poi": poi,
+        "tagsOnModels": tag_list,
+
+        "authed": True,
+        "status": "Draft",
+        "checkpointType": None,
+        "uploadType": "Created",
+    }
+    if exist_model_id:
+        post_json['id'] = exist_model_id
+        post_json["locked"] = False
+        post_json["status"] = "Published"
+        logging.info(f'Model {name!r}({exist_model_id}) already exist, updating its new information. '
+                     f'Tags: {[item["name"] for item in tag_list]!r} ...')
+    else:
+        logging.info(f'Creating model {name!r}, tags: {[item["name"] for item in tag_list]!r} ...')
+
     resp = session.post(
         'https://civitai.com/api/trpc/model.upsert',
         json={
-            "json": {
-                "name": name,
-                "description": markdown2.markdown(textwrap.dedent(description_md)),
-                "type": "LORA",
-
-                "allowCommercialUse": commercial_use.lower().capitalize(),  # None, Image, Rent, Sell
-                "allowNoCredit": allow_no_credit,
-                "allowDerivatives": allow_derivatives,
-                "allowDifferentLicense": allow_different_licence,
-
-                "nsfw": nsfw,
-                "poi": poi,
-                "tagsOnModels": tag_list,
-
-                "authed": True,
-                "status": "Draft",
-                "checkpointType": None,
-                "uploadType": "Created",
-            },
+            "json": post_json,
             "meta": {
                 "values": _meta_values,
             }
@@ -813,18 +822,18 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 model_id = exist_model.model_id
         else:
             model_id = None
-        if model_id is None:
-            logging.info('No existing model found, creating model ...')
-            model_id, _ = civitai_create_model(
-                name=model_name,
-                description_md=model_desc_md or model_desc_default,
-                tags=[
-                    game_name, f"{game_name} {char_name}", char_name,
-                    'female', 'girl', 'character', 'fully-automated',
-                    *map(_tag_decode, core_tags.keys()),
-                ],
-                session=session,
-            )
+
+        model_id, _ = civitai_upsert_model(
+            name=model_name,
+            description_md=model_desc_md or model_desc_default,
+            tags=[
+                game_name, f"{game_name} {char_name}", char_name,
+                'female', 'girl', 'character', 'fully-automated',
+                *map(_tag_decode, core_tags.keys()),
+            ],
+            exist_model_id=model_id,
+            session=session,
+        )
 
         version_data = civitai_create_version(
             model_id=model_id,
