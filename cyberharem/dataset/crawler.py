@@ -206,6 +206,7 @@ def crawl_dataset_to_huggingface(
             print(f'- text-to-image', file=rf)
             print(f'tags:', file=rf)
             print(f'- art', file=rf)
+            print(f'- not-for-all-audiences', file=rf)
             print(f'size_categories:', file=rf)
             print(f'- {number_to_tag(img_count)}', file=rf)
             print(f'---', file=rf)
