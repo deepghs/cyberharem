@@ -733,6 +733,8 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         * **The associated trigger words are only for reference, it may need to be adjusted at some times**.
         * The recommended weight for the embedding model is 1, which provides higher fidelity; if greater generalization is required, it can be lowered to 0.5. 
         * The recommended weight for the LoRA model is 0.85; if there's evidence of contamination, consider lowering it to 0.5.
+        * The preview images were generated using a few fixed test prompts and several prompts derived from clustering dataset features. Random seeds were used, ruling out cherry-picking. **What you see is what you get.**
+        * No specialized training was done for outfits. You can check our provided preview post to get the prompts corresponding to the outfits.
 
         ## How to Use This Model
 
