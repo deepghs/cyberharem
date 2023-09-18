@@ -1,3 +1,4 @@
+import glob
 import logging
 import os.path
 import re
@@ -20,7 +21,8 @@ def crawl_base_to_huggingface(
         limit: Optional[int] = 200, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
-        skip_preprocess: bool = True, parallel: bool = True, standalone_ccip: bool = True
+        skip_preprocess: bool = True, parallel: bool = True, standalone_ccip: bool = True,
+        keep_cnt_ratio: bool = True,
 ):
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
@@ -29,6 +31,7 @@ def crawl_base_to_huggingface(
                      '_' + source_repository.split('/')[-1]
     logging.info(f'Target repository name {repository!r} will be used.')
     with TemporaryDirectory() as td:
+        img_cnts = []
         for cid in ch_ids:
             url = hf_hub_url(source_repository, filename=f'{cid}/dataset.zip', repo_type='dataset')
             os.makedirs(os.path.join(td, str(cid)), exist_ok=True)
@@ -39,10 +42,17 @@ def crawl_base_to_huggingface(
             os.makedirs(source_dir, exist_ok=True)
             with zipfile.ZipFile(zip_file, 'r') as zf:
                 zf.extractall(source_dir)
+            img_cnts.append(len(glob.glob(os.path.join(source_dir, '*.png'))))
 
+        total = sum(img_cnts)
+        for cid, c_cnt in zip(ch_ids, img_cnts):
+            source_dir = os.path.join(td, str(cid), 'source')
             new_source = LocalSource(source_dir, shuffle=True)
             if standalone_ccip:
                 new_source = new_source.attach(CCIPAction())
+            if keep_cnt_ratio:
+                new_source = new_source[:int(round(c_cnt * 1.0 / total * limit))]
+
             if parallel:
                 source = source | new_source
             else:
