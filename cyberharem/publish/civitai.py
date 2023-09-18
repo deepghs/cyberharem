@@ -697,13 +697,18 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 safe_r18 = int(round(rating_score['r18'] * 10))
                 faces = detect_faces(local_img_file)
                 if faces:
+                    if len(faces) > 1:
+                        logging.warning('Multiple face detected, skipped!')
+                        continue
+
                     (x0, y0, x1, y1), _, _ = faces[0]
                     width, height = load_image(local_img_file).size
                     face_area = abs((x1 - x0) * (y1 - y0))
                     face_ratio = face_area * 1.0 / (width * height)
                     face_ratio = int(round(face_ratio * 50))
                 else:
-                    face_ratio = 0
+                    logging.warning('No face detected, skipped!')
+                    continue
 
                 images.append((
                     (-safe_v, -safe_r15, -safe_r18) if safe_only else (0,),
