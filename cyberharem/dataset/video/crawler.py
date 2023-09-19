@@ -27,7 +27,7 @@ def crawl_base_to_huggingface(
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
     if not repository:
-        repository = 'CyberHarem/' + re.sub(r'[\W_]+', '_', unidecode(name.lower())).strip('_') + \
+        repository = 'CyberHarem/' + re.sub(r'[\W_]+', '_', unidecode(name.lower())).strip('_').lower() + \
                      '_' + source_repository.split('/')[-1]
     logging.info(f'Target repository name {repository!r} will be used.')
     with TemporaryDirectory() as td:
