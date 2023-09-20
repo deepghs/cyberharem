@@ -97,9 +97,9 @@ def get_requests_session(max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT, v
 
 def get_civitai_session(
         civitai_repository: str = 'narugo/civitai_session',
-        max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT,
+        max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT, verify: bool = True,
         headers: Optional[Dict[str, str]] = None, session: Optional[requests.Session] = None) -> requests.Session:
-    session = get_requests_session(max_retries, timeout, headers, session)
+    session = get_requests_session(max_retries, timeout, verify, headers, session)
     session_file = hf_hub_download(repo_id=civitai_repository, repo_type='dataset',
                                    filename='session.json', token=os.environ['HF_TOKEN'])
     with open(session_file, 'r', encoding='utf-8') as f:
