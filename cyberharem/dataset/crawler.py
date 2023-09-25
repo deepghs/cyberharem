@@ -109,7 +109,7 @@ def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
         name: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True, skip_preprocess: bool = False,
-        repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
+        repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.', private: bool = False,
 ):
     if isinstance(source, (str, Character)):
         if isinstance(source, str):
@@ -234,7 +234,7 @@ def crawl_dataset_to_huggingface(
         hf_fs = get_hf_fs()
         logging.info(f'Initialize repository {repository!r}')
         if not hf_fs.exists(f'datasets/{repository}/.gitattributes'):
-            hf_client.create_repo(repo_id=repository, repo_type=repo_type, exist_ok=True)
+            hf_client.create_repo(repo_id=repository, repo_type=repo_type, exist_ok=True, private=private)
 
         current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
         commit_message = f"Publish character {name}, on {current_time}"

@@ -58,7 +58,7 @@ def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main',
         export_workdir(
             workdir, td, n_repeats, pretrained_model,
             clip_skip, image_width, image_height, infer_steps,
-            lora_alpha, sample_method, model_hash,
+            lora_alpha, sample_method, model_hash, repository,
         )
 
         try:

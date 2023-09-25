@@ -94,7 +94,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
                    pretrained_model: str = _DEFAULT_INFER_MODEL, clip_skip: int = 2,
                    image_width: int = 512, image_height: int = 768, infer_steps: int = 30,
                    lora_alpha: float = 0.85, sample_method: str = 'DPM++ 2M Karras',
-                   model_hash: Optional[str] = None):
+                   model_hash: Optional[str] = None, ds_repo: Optional[str] = None):
     name, steps = find_steps_in_workdir(workdir)
     logging.info(f'Starting export trained artifacts of {name!r}, with steps: {steps!r}')
     model_hash = model_hash or KNOWN_MODEL_HASHES.get(pretrained_model, None)
@@ -107,7 +107,7 @@ def export_workdir(workdir: str, export_dir: str, n_repeats: int = 2,
     else:
         dataset_info = None
 
-    ds_repo = f'CyberHarem/{name}'
+    ds_repo = ds_repo or f'CyberHarem/{name}'
     ds_size = (384, 512) if not dataset_info or not dataset_info['type'] else dataset_info['type']
     logging.info(f'Loading dataset {ds_repo!r}, {ds_size!r} ...')
     with load_dataset_for_character(ds_repo, ds_size) as (ch, ds_dir):
