@@ -68,6 +68,7 @@ jobs:
         uses: nick-fields/retry@v2
         env:
           CI: 'true'
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         with:
           shell: bash
           timeout_minutes: 180
