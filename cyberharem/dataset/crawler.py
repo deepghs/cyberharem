@@ -98,6 +98,7 @@ _SOURCES = {
 _DEFAULT_RESOLUTIONS = {
     'raw': ('native', [], 'Raw data with meta information.'),
     'raw-stage3': ('stage3', [], '3-stage cropped raw data with meta information.'),
+    'raw-stage3-eyes': ('stage3-eyes', [], '3-stage cropped (with eye-focus) raw data with meta information.'),
     '384x512': ('native', (384, 512), '384x512 aligned dataset.'),
     # '512x512': ('native', (512, 512), '512x512 aligned dataset.'),
     '512x704': ('native', (512, 704), '512x704 aligned dataset.'),
