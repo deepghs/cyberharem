@@ -16,6 +16,7 @@ from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
     AlignMinSizeAction, MinSizeFilterAction, FilterAction
+from waifuc.action.filter import MinAreaFilterAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.model import ImageItem
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
@@ -120,6 +121,8 @@ _DEFAULT_RESOLUTIONS = {
     '640x880': ('native', (640, 880), '640x880 aligned dataset.'),
     'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
     'stage3-800': ('stage3', 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
+    'stage3-p512-640': ('stage3', [MinAreaFilterAction(512), AlignMinSizeAction(640)],
+                        '3-stage cropped dataset with the area not exceeding 512x512 pixels.'),
     # 'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 1200 pixels.'),
     'stage3-eyes-640': ('stage3-eyes', 640, '3-stage cropped (with eye-focus) dataset '
                                             'with the shorter side not exceeding 640 pixels.'),
