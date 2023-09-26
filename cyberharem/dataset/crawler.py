@@ -86,11 +86,9 @@ class CustomMinSizeAction(FilterAction):
     def check(self, item: ImageItem) -> bool:
         min_size = min(item.image.width, item.image.height)
         if 'crop' in item.meta and item.meta['crop']['type'] == 'eye':
-            if min_size >= self.min_eye_size:
-                yield item
+            return min_size >= self.min_eye_size
         else:
-            if min_size >= self.main_size:
-                yield item
+            return min_size >= self.main_size
 
 
 _SOURCES = {
