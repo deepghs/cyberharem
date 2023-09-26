@@ -122,7 +122,7 @@ _DEFAULT_RESOLUTIONS = {
     'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
     'stage3-800': ('stage3', 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
     'stage3-p512-640': ('stage3', [MinAreaFilterAction(512), AlignMinSizeAction(640)],
-                        '3-stage cropped dataset with the area not exceeding 512x512 pixels.'),
+                        '3-stage cropped dataset with the area not less than 512x512 pixels.'),
     # 'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 1200 pixels.'),
     'stage3-eyes-640': ('stage3-eyes', 640, '3-stage cropped (with eye-focus) dataset '
                                             'with the shorter side not exceeding 640 pixels.'),
