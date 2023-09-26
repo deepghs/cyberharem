@@ -15,8 +15,9 @@ from huggingface_hub import CommitOperationAdd, hf_hub_url
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
-    AlignMinSizeAction, MinSizeFilterAction
+    AlignMinSizeAction, MinSizeFilterAction, FilterAction
 from waifuc.export import SaveExporter, TextualInversionExporter
+from waifuc.model import ImageItem
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
 from waifuc.utils import task_ctx
 
@@ -77,6 +78,21 @@ def actions_parse(actions: Union[int, Tuple[int, int], List[BaseAction]], bg_col
         raise TypeError(f'Unknown post action type - {actions!r}.')
 
 
+class CustomMinSizeAction(FilterAction):
+    def __init__(self, main_size: int = 280, min_eye_size: int = 180):
+        self.main_size = main_size
+        self.min_eye_size = min_eye_size
+
+    def check(self, item: ImageItem) -> bool:
+        min_size = min(item.image.width, item.image.height)
+        if 'crop' in item.meta and item.meta['crop']['type'] == 'eye':
+            if min_size >= self.min_eye_size:
+                yield item
+        else:
+            if min_size >= self.main_size:
+                yield item
+
+
 _SOURCES = {
     'native': [
         TaggingAction(force=False, character_threshold=1.01),
@@ -90,7 +106,7 @@ _SOURCES = {
     'stage3-eyes': [
         ThreeStageSplitAction(split_person=False, split_eyes=True),
         FilterSimilarAction(),
-        MinSizeFilterAction(280),
+        CustomMinSizeAction(280, 180),
         TaggingAction(force=False, character_threshold=1.01),
     ]
 }
