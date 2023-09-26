@@ -86,6 +86,12 @@ _SOURCES = {
         FilterSimilarAction(),
         MinSizeFilterAction(280),
         TaggingAction(force=False, character_threshold=1.01),
+    ],
+    'stage3-eyes': [
+        ThreeStageSplitAction(split_person=False, split_eyes=True),
+        FilterSimilarAction(),
+        MinSizeFilterAction(280),
+        TaggingAction(force=False, character_threshold=1.01),
     ]
 }
 
@@ -93,13 +99,17 @@ _DEFAULT_RESOLUTIONS = {
     'raw': ('native', [], 'Raw data with meta information.'),
     'raw-stage3': ('stage3', [], '3-stage cropped raw data with meta information.'),
     '384x512': ('native', (384, 512), '384x512 aligned dataset.'),
-    '512x512': ('native', (512, 512), '512x512 aligned dataset.'),
+    # '512x512': ('native', (512, 512), '512x512 aligned dataset.'),
     '512x704': ('native', (512, 704), '512x704 aligned dataset.'),
-    '640x640': ('native', (640, 640), '640x640 aligned dataset.'),
+    # '640x640': ('native', (640, 640), '640x640 aligned dataset.'),
     '640x880': ('native', (640, 880), '640x880 aligned dataset.'),
     'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
     'stage3-800': ('stage3', 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
-    'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 1200 pixels.'),
+    # 'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 1200 pixels.'),
+    'stage3-eyes-640': ('stage3-eyes', 640, '3-stage cropped (with eye-focus) dataset '
+                                            'with the shorter side not exceeding 640 pixels.'),
+    'stage3-eyes-800': ('stage3-eyes', 800, '3-stage cropped (with eye-focus) dataset '
+                                            'with the shorter side not exceeding 800 pixels.'),
 }
 
 DATASET_PVERSION = 'v1.4'

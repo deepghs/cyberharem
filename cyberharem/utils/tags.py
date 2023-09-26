@@ -28,6 +28,7 @@ _BLACKLISTED_WORDS = [
     'costume', 'costumes', 'pant', 'pants', 'clothing', 'clothes', 'cutout',
     'collar', 'collars', 'uniform', 'uniforms', 'trim', 'trims', 'neckerchief', 'choker',
     'kimono', 'holding', 'bunny', 'leotard', 'helmet', 'knee', 'pads', 'axe', 'boots',
+    'peeking', 'focus',
 ]
 
 
