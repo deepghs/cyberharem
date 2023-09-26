@@ -48,7 +48,7 @@ KNOWN_MODEL_HASHES = {
     'stablediffusionapi/night-sky-yozora-sty': 'D31F707A',
 }
 
-EXPORT_MARK = 'v1.4'
+EXPORT_MARK = 'v1.4.1'
 
 _GITLFS = dedent("""
 *.7z filter=lfs diff=lfs merge=lfs -text
