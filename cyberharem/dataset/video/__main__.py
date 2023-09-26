@@ -8,6 +8,7 @@ from gchar.utils import GLOBAL_CONTEXT_SETTINGS
 from gchar.utils import print_version as _origin_print_version
 from unidecode import unidecode
 
+from .bangumibase import sync_bangumi_base
 from .extract import extract_to_huggingface
 
 import_generic()
@@ -43,6 +44,14 @@ def huggingface(video_or_directory: str, bangumi_name: str,
         video_or_directory, bangumi_name, repository, revision,
         no_extract=no_extract, min_size=min_size
     )
+
+
+@cli.command('bgsync', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Sync index on BangumiBase')
+@click.option('--repository', '-r', 'repository', type=str, default='BangumiBase/README',
+              help='Repository to publish to.', show_default=True)
+def bgsync(repository: str):
+    logging.try_init_root(logging.INFO)
+    sync_bangumi_base(repository)
 
 
 if __name__ == '__main__':
