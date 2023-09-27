@@ -22,7 +22,7 @@ from natsort import natsorted
 from sklearn.cluster import OPTICS
 from tqdm.auto import tqdm
 from waifuc.action import PaddingAlignAction, PersonSplitAction, FaceCountAction, MinSizeFilterAction, \
-    NoMonochromeAction, FilterSimilarAction, HeadCountAction, FileOrderAction, TaggingAction
+    NoMonochromeAction, FilterSimilarAction, HeadCountAction, FileOrderAction, TaggingAction, RandomFilenameAction
 from waifuc.action.filter import MinAreaFilterAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.model import ImageItem
@@ -130,7 +130,7 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.85, clu_
     return ids
 
 
-def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_count: int = 8, regsize: int = 2000):
+def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_count: int = 8, regsize: int = 1000):
     total_image_cnt = 0
     columns = ['#', 'Images', 'Download', *(f'Preview {i}' for i in range(1, preview_count + 1))]
     rows = []
@@ -139,7 +139,7 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
         logging.info(f'Packing for #{id_} ...')
         person_dir = os.path.join(dst_dir, str(id_))
         new_reg_source = LocalSource(os.path.join(clu_dir, str(id_)), shuffle=True).attach(
-            MinAreaFilterAction(450)
+            MinAreaFilterAction(400)
         )
         reg_source = reg_source | new_reg_source
         os.makedirs(person_dir, exist_ok=True)
@@ -168,6 +168,7 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
     with TemporaryDirectory() as td:
         reg_source.attach(
             TaggingAction(force=False, character_threshold=1.01),
+            RandomFilenameAction(),
         )[:regsize].export(TextualInversionExporter(td))
         reg_zip = os.path.join(dst_dir, 'regular.zip')
         with zipfile.ZipFile(reg_zip, 'w') as zf:
