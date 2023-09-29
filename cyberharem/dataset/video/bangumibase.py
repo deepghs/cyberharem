@@ -95,13 +95,13 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
                 else:
                     post_file = None
 
+                dataset_url = f'https://huggingface.co/datasets/{item.id}'
                 post_md = f'![{suffix}]({os.path.relpath(post_file, td)})' if post_file else '(no post)'
                 if page_url:
                     post_md = f'[{post_md}]({page_url})'
                 rows.append({
                     'Post': post_md,
-                    'Bangumi': f'[{safe_bangumi_name}]({page_url})' if page_url else bangumi_name,
-                    'Repository': f'[repository](https://huggingface.co/datasets/{item.id})',
+                    'Bangumi': f'[{safe_bangumi_name}]({dataset_url})',
                     'Last Modified': dateparser.parse(item.lastModified).strftime('%Y-%m-%d %H:%M'),
                     'Images': meta['total'],
                     'Clusters': len([x for x in meta['ids'] if x != -1]),
