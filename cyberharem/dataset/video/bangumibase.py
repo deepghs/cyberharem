@@ -80,6 +80,10 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
 
             rows = []
             for item in tqdm(list(hf_client.list_datasets(author='BangumiBase'))):
+                if not hf_fs.exists(f'datasets/{item.id}/meta.json'):
+                    logging.info(f'No meta information found for {item.id!r}, skipped')
+                    continue
+
                 meta = json.loads(hf_fs.read_text(f'datasets/{item.id}/meta.json'))
                 bangumi_name = meta['name']
                 safe_bangumi_name = bangumi_name.replace('`', ' ').replace('[', '(').replace(']', ')')
