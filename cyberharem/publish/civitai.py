@@ -20,7 +20,7 @@ from huggingface_hub import hf_hub_url
 from imgutils.data import load_image
 from imgutils.detect import detect_faces
 from imgutils.metrics import ccip_extract_feature, ccip_batch_same
-from imgutils.validate import anime_rating_score
+from imgutils.validate import anime_rating_score, nsfw_pred
 from pycivitai import civitai_find_online
 from pycivitai.client import ModelNotFound
 from tqdm.auto import tqdm
@@ -548,7 +548,7 @@ def _tag_decode(text):
 def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str = None,
                             version_name: Optional[str] = None, version_desc_md: str = None,
                             step: Optional[int] = None, epoch: Optional[int] = None, upload_min_epoch: int = 6,
-                            draft: bool = False, publish_at=None, safe_only: bool = False,
+                            draft: bool = False, publish_at=None, allow_nsfw_images: bool = True,
                             force_create_model: bool = False, no_ccip_check: bool = False, session=None):
     if isinstance(source, Character):
         repo = f'CyberHarem/{get_ch_name(source)}'
@@ -682,6 +682,16 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                         meta["Model hash"] = model_hash
 
             nsfw = (info.get('Safe For Word', info.get('Safe For Work')) or '').lower() != 'yes'
+            if not nsfw:
+                cls_, score_ = nsfw_pred(local_img_file)
+                if cls_ not in {'hentai', 'porn', 'sexy'} and score_ >= 0.65:
+                    pass
+                else:
+                    nsfw = True
+
+            if nsfw and not allow_nsfw_images:
+                logging.info(f'Image {local_img_file!r} skipped due to its nsfw.')
+                continue
 
             current_feat = ccip_extract_feature(local_img_file)
             similarity = ccip_batch_same([current_feat, *ccip_feats])[0, 1:].mean()
@@ -690,7 +700,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                 logging.info(f'Similarity of {local_img_file!r}({similarity!r}) is too low, skipped.')
                 continue
 
-            if not nsfw or not safe_only:
+            if not nsfw or allow_nsfw_images:
                 rating_score = anime_rating_score(local_img_file)
                 safe_v = int(round(rating_score['safe'] * 10))
                 safe_r15 = int(round(rating_score['r15'] * 10))
@@ -711,7 +721,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                     continue
 
                 images.append((
-                    (-safe_v, -safe_r15, -safe_r18) if safe_only else (0,),
+                    (-safe_v, -safe_r15, -safe_r18),
                     -face_ratio,
                     1 if nsfw else 0,
                     0 if img_name.startswith('pattern_') else 1,
@@ -734,13 +744,13 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
         session = session or get_civitai_session(timeout=30)
 
         model_desc_default = f"""
-        * Thanks to Civitai's bewildering and frustrating TOS, some images may be hidden. **THE FULL PREVIEW IMAGES CAN BE FOUND ON [HUGGINGFACE](https://huggingface.co/{repo})**.
+        * Thanks to Civitai's TOS, some images cannot be uploaded. **THE FULL PREVIEW IMAGES CAN BE FOUND ON [HUGGINGFACE](https://huggingface.co/{repo})**.
         * **<span style="color:#fa5252">THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER!!!</span>**
         * **The associated trigger words are only for reference, it may need to be adjusted at some times**.
-        * The recommended weight for the embedding model is 1, which provides higher fidelity; if greater generalization is required, it can be lowered to 0.5. 
-        * The recommended weight for the LoRA model is 0.85; if there's evidence of contamination, consider lowering it to 0.5.
-        * The preview images were generated using a few fixed test prompts and several prompts derived from clustering dataset features. Random seeds were used, ruling out cherry-picking. **What you see is what you get.**
+        * Recommended weight of pt file is 0.5-1.0, weight of LoRA is 0.5-0.85. 
+        * Images were generated using a few fixed prompts and dataset-based clustered prompts. Random seeds were used, ruling out cherry-picking. **What you see here is what you can get.**
         * No specialized training was done for outfits. You can check our provided preview post to get the prompts corresponding to the outfits.
+        * This model is trained with **{plural_word(dataset_size, "image")}**.
 
         ## How to Use This Model
 

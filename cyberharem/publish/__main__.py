@@ -129,21 +129,21 @@ def rehf(repository, revision, n_repeats, pretrained_model,
               help='Only create draft without publishing.', show_default=True)
 @click.option('--time', '-T', 'publish_time', type=str, default=None,
               help='Publish time, publish immediately when not given.', show_default=True)
-@click.option('--safe_only', '-S', 'safe_only', is_flag=True, type=bool, default=False,
-              help='Upload safe images only.', show_default=True)
+@click.option('--allow_nsfw', '-N', 'allow_nsfw', is_flag=True, type=bool, default=False,
+              help='Allow uploading nsfw images.', show_default=True)
 @click.option('--version_name', '-v', 'version_name', type=str, default=None,
               help='Name of the version.', show_default=True)
 @click.option('--force_create', '-F', 'force_create', is_flag=True, type=bool, default=False,
               help='Force create new model.', show_default=True)
 @click.option('--no_ccip', 'no_ccip_check', is_flag=True, type=bool, default=False,
               help='No CCIP check.', show_default=True)
-def civitai(repository, title, steps, epochs, draft, publish_time, safe_only,
+def civitai(repository, title, steps, epochs, draft, publish_time, allow_nsfw,
             version_name, force_create, no_ccip_check):
     logging.try_init_root(logging.INFO)
     model_id = civitai_publish_from_hf(
         repository, title,
         step=steps, epoch=epochs, draft=draft,
-        publish_at=publish_time, safe_only=safe_only,
+        publish_at=publish_time, allow_nsfw_images=allow_nsfw,
         version_name=version_name, force_create_model=force_create,
         no_ccip_check=no_ccip_check,
     )
