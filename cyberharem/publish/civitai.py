@@ -721,7 +721,7 @@ def civitai_publish_from_hf(source, model_name: str = None, model_desc_md: str =
                     continue
 
                 images.append((
-                    (-safe_v, -safe_r15, -safe_r18),
+                    (-safe_v, -safe_r15, -safe_r18) if False else 0,
                     -face_ratio,
                     1 if nsfw else 0,
                     0 if img_name.startswith('pattern_') else 1,
