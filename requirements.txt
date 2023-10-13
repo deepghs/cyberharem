@@ -25,3 +25,4 @@ natsort
 pyquery
 pandas
 tqdm
+torch<2.1.0
