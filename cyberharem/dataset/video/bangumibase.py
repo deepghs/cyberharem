@@ -8,6 +8,7 @@ from typing import Tuple, Optional
 
 import dateparser
 import pandas as pd
+from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import CommitOperationAdd
 from pyquery import PyQuery as pq
@@ -50,35 +51,7 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
     with TemporaryDirectory() as td:
         readme_file = os.path.join(td, 'README.md')
         with open(readme_file, 'w') as f:
-            print(textwrap.dedent(f"""
-            ---
-            title: README
-            emoji: 🌖
-            colorFrom: green
-            colorTo: red
-            sdk: static
-            pinned: false
-            ---
-
-            ## What is this?
-
-            This is a data hub utilized by the [DeepGHS team](https://huggingface.co/deepghs) for processing 
-            anime series (in video format, including TV, OVA, movies, etc.).
-
-            After downloading anime videos to our GPU cluster, we employ various computer vision algorithms to 
-            extract frames, crop, and **cluster them based on character features**. These processed frames are 
-            then uploaded here to reduce the manual sorting effort required for character images.
-
-            The data in this repository will undergo automated secondary processing to remove noise, 
-            after which it will be packaged and uploaded to [CyberHarem](https://huggingface.co/CyberHarem). 
-            It will then be integrated into an automated pipeline for training character LoRA.
-
-            ## Current Anime Database (constantly updated)
-
-            Last updated on: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}
-            """).strip(), file=f)
-
-            rows = []
+            rows, total_images, total_clusters = [], 0, 0
             for item in tqdm(list(hf_client.list_datasets(author='BangumiBase'))):
                 if not hf_fs.exists(f'datasets/{item.id}/meta.json'):
                     logging.info(f'No meta information found for {item.id!r}, skipped')
@@ -103,10 +76,12 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
                 post_md = f'![{suffix}]({os.path.relpath(post_file, td)})' if post_file else '(no post)'
                 if page_url:
                     post_md = f'[{post_md}]({page_url})'
+                last_modified = dateparser.parse(item.lastModified) \
+                    if isinstance(item.lastModified, str) else item.lastModified
                 rows.append({
                     'Post': post_md,
                     'Bangumi': f'[{safe_bangumi_name}]({dataset_url})',
-                    'Last Modified': dateparser.parse(item.lastModified).strftime('%Y-%m-%d %H:%M'),
+                    'Last Modified': last_modified.strftime('%Y-%m-%d %H:%M'),
                     'Images': meta['total'],
                     'Clusters': len([x for x in meta['ids'] if x != -1]),
                     'Datasets': f'[{datasets_cnt}](https://huggingface.co/CyberHarem?'
@@ -114,6 +89,38 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
                     'Models': f'[{models_cnt}](https://huggingface.co/CyberHarem?'
                               f'search_models=_{suffix}&search_datasets=_{suffix})',
                 })
+                total_images += meta['total']
+                total_clusters += len([x for x in meta['ids'] if x != -1])
+
+            print(textwrap.dedent(f"""
+                ---
+                title: README
+                emoji: 🌖
+                colorFrom: green
+                colorTo: red
+                sdk: static
+                pinned: false
+                ---
+
+                ## What is this?
+
+                This is a data hub utilized by the [DeepGHS team](https://huggingface.co/deepghs) for processing 
+                anime series (in video format, including TV, OVA, movies, etc.).
+
+                After downloading anime videos to our GPU cluster, we employ various computer vision algorithms to 
+                extract frames, crop, and **cluster them based on character features**. These processed frames are 
+                then uploaded here to reduce the manual sorting effort required for character images.
+
+                The data in this repository will undergo automated secondary processing to remove noise, 
+                after which it will be packaged and uploaded to [CyberHarem](https://huggingface.co/CyberHarem). 
+                It will then be integrated into an automated pipeline for training character LoRA.
+
+                ## Current Anime Database (constantly updated)
+
+                Last updated on: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")},
+                contains {plural_word(total_images, "image")} and {plural_word(total_clusters, "cluster")} 
+                in total.
+            """).strip(), file=f)
 
             rows = sorted(rows, key=lambda x: dateparser.parse(x['Last Modified']), reverse=True)
             df = pd.DataFrame(rows)

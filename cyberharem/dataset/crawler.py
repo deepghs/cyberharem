@@ -37,14 +37,14 @@ def get_source(source) -> BaseDataSource:
 
 
 def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
+                    no_monochrome_check: bool = False,
                     drop_multi: bool = True, skip: bool = False) -> BaseDataSource:
     source: BaseDataSource = get_source(source)
     if not skip:
-        actions = [
-            ModeConvertAction('RGB', bg_color),
-            NoMonochromeAction(),  # no monochrome, greyscale or sketch
-            ClassFilterAction(['illustration', 'bangumi']),  # no comic or 3d
-        ]
+        actions = [ModeConvertAction('RGB', bg_color)]
+        if not no_monochrome_check:
+            actions.append(NoMonochromeAction())  # no monochrome, greyscale or sketch
+        actions.append(ClassFilterAction(['illustration', 'bangumi']))  # no comic or 3d
         if no_r18:
             actions.append(RatingFilterAction(['safe', 'r15']))
 
@@ -137,6 +137,7 @@ def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
         name: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True, skip_preprocess: bool = False,
+        no_monochrome_check: bool = False,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.', private: bool = False,
 ):
     if isinstance(source, (str, Character)):
@@ -154,7 +155,7 @@ def crawl_dataset_to_huggingface(
         if not repository:
             repository = f'CyberHarem/{get_alphabet_name(name)}'
 
-    origin_source = get_main_source(source, no_r18, bg_color, drop_multi, skip_preprocess)
+    origin_source = get_main_source(source, no_r18, bg_color, no_monochrome_check, drop_multi, skip_preprocess)
     with TemporaryDirectory() as td:
         # save origin directory
         origin_dir = os.path.join(td, 'origin')
