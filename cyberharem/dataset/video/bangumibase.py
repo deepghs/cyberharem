@@ -51,7 +51,7 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
     with TemporaryDirectory() as td:
         readme_file = os.path.join(td, 'README.md')
         with open(readme_file, 'w') as f:
-            rows, total_images, total_clusters = [], 0, 0
+            rows, total_images, total_clusters, total_animes = [], 0, 0, 0
             for item in tqdm(list(hf_client.list_datasets(author='BangumiBase'))):
                 if not hf_fs.exists(f'datasets/{item.id}/meta.json'):
                     logging.info(f'No meta information found for {item.id!r}, skipped')
@@ -91,6 +91,7 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
                 })
                 total_images += meta['total']
                 total_clusters += len([x for x in meta['ids'] if x != -1])
+                total_animes += 1
 
             print(textwrap.dedent(f"""
                 ---
@@ -118,8 +119,8 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
                 ## Current Anime Database (constantly updated)
 
                 Last updated on: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")},
-                contains {plural_word(total_images, "image")} and {plural_word(total_clusters, "cluster")} 
-                in total.
+                contains {plural_word(total_animes, "anime")}, {plural_word(total_images, "image")} 
+                and {plural_word(total_clusters, "cluster")} in total.
             """).strip(), file=f)
 
             rows = sorted(rows, key=lambda x: dateparser.parse(x['Last Modified']), reverse=True)
