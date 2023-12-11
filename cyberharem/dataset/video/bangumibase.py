@@ -8,6 +8,7 @@ from typing import Tuple, Optional
 
 import dateparser
 import pandas as pd
+import requests.exceptions
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import CommitOperationAdd
@@ -64,11 +65,19 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
                 datasets_cnt = len([x for x in cb_datasets if fnmatch.fnmatch(x, f'CyberHarem/*_{suffix}')])
                 models_cnt = len([x for x in cb_models if fnmatch.fnmatch(x, f'CyberHarem/*_{suffix}')])
 
+                logging.info(f'Getting post url for {bangumi_name!r} ...')
                 page_url, post_url = get_animelist_info(bangumi_name)
                 if post_url:
                     post_file = os.path.join(td, 'posts', f'{suffix}.jpg')
                     os.makedirs(os.path.dirname(post_file), exist_ok=True)
-                    download_file(post_url, post_file)
+                    try:
+                        download_file(post_url, post_file)
+                    except requests.exceptions.HTTPError as err:
+                        if err.response.status_code == 404:
+                            logging.warning(f'Post file 404 for bangumi {bangumi_name!r} ...')
+                            post_file = None
+                        else:
+                            raise err
                 else:
                     post_file = None
 
