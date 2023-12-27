@@ -309,5 +309,5 @@ def remake_dataset_to_huggingface(
         return crawl_dataset_to_huggingface(
             source, repository, name,
             limit, min_images, no_r18, bg_color, drop_multi, True,
-            repo_type, revision, path_in_repo
+            False, repo_type, revision, path_in_repo
         )
