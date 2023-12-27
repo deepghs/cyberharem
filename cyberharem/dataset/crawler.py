@@ -263,6 +263,7 @@ def crawl_dataset_to_huggingface(
         hf_fs = get_hf_fs()
         logging.info(f'Initialize repository {repository!r}')
         if not hf_fs.exists(f'datasets/{repository}/.gitattributes'):
+            print(repository, repo_type)
             hf_client.create_repo(repo_id=repository, repo_type=repo_type, exist_ok=True, private=private)
 
         current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
