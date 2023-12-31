@@ -44,11 +44,17 @@ def _get_image_url(image_dict: dict):
 
 
 def get_animelist_info(bangumi_name) -> Tuple[Optional[str], Optional[str]]:
-    items = client.search_anime(bangumi_name)
+    items = client.search_anime(bangumi_name, order_by='popularity', sort_='desc')
     if not items:
         return None, None
 
-    item = items[0]
+    for item_ in items:
+        if item_['type'] and item_['type'].lower() in {"tv", "movie", "ova", "special"}:
+            item = item_
+            break
+    else:
+        return None, None
+
     bangumi_url = item['url']
     image_url = _get_image_url(item['images'])
 
