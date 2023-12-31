@@ -4,6 +4,7 @@ import json
 import logging
 import os.path
 import textwrap
+import time
 from typing import Tuple, Optional
 
 import dateparser
@@ -13,6 +14,7 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import CommitOperationAdd
 from pyanimeinfo.myanimelist import JikanV4Client
+from requests.exceptions import HTTPError
 from tqdm.auto import tqdm
 
 from ...utils import get_hf_client, get_hf_fs, download_file
@@ -44,7 +46,18 @@ def _get_image_url(image_dict: dict):
 
 
 def get_animelist_info(bangumi_name) -> Tuple[Optional[str], Optional[str]]:
-    items = client.search_anime(bangumi_name, order_by='popularity', sort_='desc')
+    while True:
+        try:
+            items = client.search_anime(bangumi_name)
+        except HTTPError as err:
+            if err.response.status_code == 429:
+                time.sleep(5.0)
+            else:
+                raise
+        else:
+            break
+
+    # noinspection DuplicatedCode
     if not items:
         return None, None
 
