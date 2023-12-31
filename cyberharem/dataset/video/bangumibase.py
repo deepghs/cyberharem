@@ -5,6 +5,7 @@ import logging
 import os.path
 import textwrap
 import time
+import warnings
 from typing import Tuple, Optional
 
 import dateparser
@@ -51,6 +52,7 @@ def get_animelist_info(bangumi_name) -> Tuple[Optional[str], Optional[str]]:
             items = client.search_anime(bangumi_name)
         except HTTPError as err:
             if err.response.status_code == 429:
+                warnings.warn(f'429 error detected: {err!r}, wait for some seconds ...')
                 time.sleep(5.0)
             else:
                 raise
