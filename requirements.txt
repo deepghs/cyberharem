@@ -26,3 +26,4 @@ pyquery
 pandas
 tqdm
 torch<2.1.0
+pyanimeinfo>=0.0.2

@@ -12,37 +12,47 @@ import requests.exceptions
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import CommitOperationAdd
-from pyquery import PyQuery as pq
+from pyanimeinfo.myanimelist import JikanV4Client
 from tqdm.auto import tqdm
 
-from ...utils import get_hf_client, get_hf_fs, get_requests_session, srequest, download_file
+from ...utils import get_hf_client, get_hf_fs, download_file
 
 hf_client = get_hf_client()
 hf_fs = get_hf_fs()
 
+client = JikanV4Client()
+
+
+def _get_url_from_small_dict(dict_: dict):
+    if 'maximum_image_url' in dict_:
+        return dict_['maximum_image_url']
+    elif 'large_image_url' in dict_:
+        return dict_['large_image_url']
+    elif 'small_image_url' in dict_:
+        return dict_['small_image_url']
+    else:
+        return dict_['image_url']
+
+
+def _get_image_url(image_dict: dict):
+    if 'jpg' in image_dict:
+        return _get_url_from_small_dict(image_dict['jpg'])
+    elif 'webp' in image_dict:
+        return _get_url_from_small_dict(image_dict['webp'])
+    else:
+        return None
+
 
 def get_animelist_info(bangumi_name) -> Tuple[Optional[str], Optional[str]]:
-    session = get_requests_session()
-    resp = srequest(
-        session, 'GET', 'https://myanimelist.net/anime.php',
-        params={
-            'cat': 'anime',
-            'q': bangumi_name,
-        }
-    )
-    table = pq(resp.text)('.js-block-list.list table')
-    for row in table('tr').items():
-        bangumi_url = row('td:nth-child(1) a').attr('href')
-        if not bangumi_url:
-            continue
-
-        r = srequest(session, 'GET', bangumi_url)
-        p = pq(r.text)
-        post_url = p("img[itemprop=image]").attr('data-src')
-        if bangumi_url and post_url:
-            return bangumi_url, post_url
-    else:
+    items = client.search_anime(bangumi_name)
+    if not items:
         return None, None
+
+    item = items[0]
+    bangumi_url = item['url']
+    image_url = _get_image_url(item['images'])
+
+    return bangumi_url, image_url
 
 
 def sync_bangumi_base(repository: str = 'BangumiBase/README'):
