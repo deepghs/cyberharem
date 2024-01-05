@@ -28,7 +28,12 @@ from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client
 
 def get_source(source) -> BaseDataSource:
     if isinstance(source, (str, Character)):
-        source = GcharAutoSource(source, main_sources_count=5)
+        source = GcharAutoSource(
+            source,
+            main_sources_count=5,
+            preset_sites=('zerochan', 'yande'),
+            blacklist_sites=('anime_pictures',),
+        )
     elif isinstance(source, BaseDataSource):
         pass
     else:
@@ -120,7 +125,7 @@ _DEFAULT_RESOLUTIONS = {
     'raw': ('raw', True, [], 'Raw data with meta information.'),
     'pruned': ('native', True, [], 'Raw data with meta information, core character tags pruned.'),
     'pruned-stage3': (
-    'stage3', True, [], '3-stage cropped raw data with meta information, core character tags pruned.'),
+        'stage3', True, [], '3-stage cropped raw data with meta information, core character tags pruned.'),
     # 'raw-stage3-eyes': ('stage3-eyes', [], '3-stage cropped (with eye-focus) raw data with meta information.'),
 
     # '384x512': ('native', (384, 512), '384x512 aligned dataset.'),
