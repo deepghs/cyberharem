@@ -19,6 +19,7 @@ generic_neg_words = [
     ('full body', 1.1), 'lowres', 'bad anatomy', 'bad hands', 'text', 'error', 'missing fingers', 'extra digit',
     'fewer digits', 'cropped', 'worst quality', 'low quality', 'normal quality', 'jpeg artifacts', 'signature',
     'watermark', 'username', 'blurry', 'white border', ('english text, chinese text', 1.05),
+    ('censored, mosaic censoring, bar censor', 1.2),
 ]
 
 

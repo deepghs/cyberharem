@@ -1,6 +1,6 @@
 git+https://github.com/deepghs/waifuc.git@main#egg=waifuc[video]
 git+https://github.com/narugo1992/HCP-Diffusion.git@main
-dghs-imgutils>=0.2.1
+dghs-imgutils>=0.3.3
 git+https://github.com/narugo1992/gchar.git@main
 pillow
 numpy
@@ -18,7 +18,7 @@ urlobject
 blurhash
 dateparser
 backports.zoneinfo; python_version < '3.9'
-git+https://github.com/narugo1992/pycivitai.git@main
+pycivitai>=0.1.2
 diffusers>=0.19.0
 torchsde
 natsort
@@ -27,3 +27,4 @@ pandas
 tqdm
 torch<2.1.0
 pyanimeinfo>=0.0.2
+hfutils>=0.0.5

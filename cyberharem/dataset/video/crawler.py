@@ -18,11 +18,11 @@ from ...utils import download_file
 def crawl_base_to_huggingface(
         source_repository: str, ch_id: Union[int, List[int]],
         name: str, repository: Optional[str] = None,
-        limit: Optional[int] = 200, min_images: int = 10,
+        limit: Optional[int] = 1000, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
         skip_preprocess: bool = True, parallel: bool = True, standalone_ccip: bool = True,
-        keep_cnt_ratio: bool = True,
+        keep_cnt_ratio: bool = True, private: bool = False,
 ):
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
@@ -64,7 +64,18 @@ def crawl_base_to_huggingface(
                 )
 
         return crawl_dataset_to_huggingface(
-            source, repository, name,
-            limit, min_images, no_r18, bg_color, drop_multi, skip_preprocess,
-            False, repo_type, revision, path_in_repo
+            source=source,
+            repository=repository,
+            name=name,
+            limit=limit,
+            min_images=min_images,
+            no_r18=no_r18,
+            bg_color=bg_color,
+            drop_multi=drop_multi,
+            skip_preprocess=skip_preprocess,
+            no_monochrome_check=False,
+            repo_type=repo_type,
+            revision=revision,
+            path_in_repo=path_in_repo,
+            private=private,
         )

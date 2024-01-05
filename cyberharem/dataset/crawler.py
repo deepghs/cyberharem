@@ -1,8 +1,7 @@
-import datetime
 import glob
 import json
 import os.path
-import zipfile
+import random
 from typing import Union, Tuple, List, Optional
 
 import pandas as pd
@@ -11,18 +10,20 @@ from gchar.games import get_character
 from gchar.games.base import Character
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
-from huggingface_hub import CommitOperationAdd, hf_hub_url
+from hfutils.archive import archive_pack
+from hfutils.operate import upload_directory_as_directory, download_archive_as_directory
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
-    AlignMinSizeAction, MinSizeFilterAction, FilterAction
-from waifuc.action.filter import MinAreaFilterAction
+    AlignMinSizeAction, MinSizeFilterAction, FilterAction, MinAreaFilterAction, SafetyAction, TagDropAction, \
+    TagOverlapDropAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.model import ImageItem
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
 from waifuc.utils import task_ctx
 
-from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, download_file, get_hf_fs
+from .analysis import get_character_tags_info
+from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, get_hf_fs
 
 
 def get_source(source) -> BaseDataSource:
@@ -37,27 +38,28 @@ def get_source(source) -> BaseDataSource:
 
 
 def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
-                    no_monochrome_check: bool = False,
-                    drop_multi: bool = True, skip: bool = False) -> BaseDataSource:
+                    no_monochrome_check: bool = False, drop_multi: bool = False, skip: bool = False) -> BaseDataSource:
     source: BaseDataSource = get_source(source)
     if not skip:
         actions = [ModeConvertAction('RGB', bg_color)]
         if not no_monochrome_check:
             actions.append(NoMonochromeAction())  # no monochrome, greyscale or sketch
+        actions.append(SafetyAction())
         actions.append(ClassFilterAction(['illustration', 'bangumi']))  # no comic or 3d
         if no_r18:
             actions.append(RatingFilterAction(['safe', 'r15']))
 
         actions.append(FilterSimilarAction('all'))  # filter duplicated images
         if drop_multi:
-            actions.append(FaceCountAction(count=1, level='n'))  # drop images with 0 or >1 faces
+            actions.append(FaceCountAction(1, level='n'))  # drop images with 0 or >1 faces
         actions.extend([
             PersonSplitAction(level='n'),  # crop for each person
-            FaceCountAction(count=1, level='n'),
+            FaceCountAction(1, level='n'),
             FileOrderAction(),  # Rename files in order
             CCIPAction(min_val_count=15),  # CCIP, filter the character you may not want to see in dataset
-            FilterSimilarAction('all'),  # filter duplicated images
-            MinSizeFilterAction(320),
+            FilterSimilarAction('all', capacity=2000),  # filter duplicated images
+            MinSizeFilterAction(180),
+            MinAreaFilterAction(360),
             TaggingAction(force=True, character_threshold=1.01),
         ])
         actions.append(RandomFilenameAction(ext='.png'))
@@ -93,41 +95,49 @@ class CustomMinSizeAction(FilterAction):
 
 
 _SOURCES = {
-    'native': [
-        TaggingAction(force=False, character_threshold=1.01),
-    ],
-    'stage3': [
-        ThreeStageSplitAction(split_person=False),
-        FilterSimilarAction(),
-        MinSizeFilterAction(280),
-        TaggingAction(force=False, character_threshold=1.01),
-    ],
-    'stage3-eyes': [
-        ThreeStageSplitAction(split_person=False, split_eyes=True),
-        FilterSimilarAction(),
-        CustomMinSizeAction(280, 180),
-        TaggingAction(force=False, character_threshold=1.01),
-    ]
+    'raw': ([
+                TaggingAction(force=False, character_threshold=1.01),
+            ], False),
+    'native': ([
+                   TaggingAction(force=False, character_threshold=1.01),
+               ], True),
+    'stage3': ([
+                   ThreeStageSplitAction(split_person=False),
+                   FilterSimilarAction(),
+                   MinSizeFilterAction(180),
+                   MinAreaFilterAction(360),
+                   TaggingAction(force=False, character_threshold=1.01),
+               ], True),
+    # 'stage3-eyes': [
+    #     ThreeStageSplitAction(split_person=False, split_eyes=True),
+    #     FilterSimilarAction(),
+    #     CustomMinSizeAction(280, 180),
+    #     TaggingAction(force=False, character_threshold=1.01),
+    # ]
 }
 
 _DEFAULT_RESOLUTIONS = {
-    'raw': ('native', [], 'Raw data with meta information.'),
-    'raw-stage3': ('stage3', [], '3-stage cropped raw data with meta information.'),
-    'raw-stage3-eyes': ('stage3-eyes', [], '3-stage cropped (with eye-focus) raw data with meta information.'),
-    '384x512': ('native', (384, 512), '384x512 aligned dataset.'),
+    'raw': ('raw', [], 'Raw data with meta information.'),
+    'pruned': ('native', [], 'Raw data with meta information, core character tags pruned.'),
+    'pruned-stage3': ('stage3', [], '3-stage cropped raw data with meta information, core character tags pruned.'),
+    # 'raw-stage3-eyes': ('stage3-eyes', [], '3-stage cropped (with eye-focus) raw data with meta information.'),
+
+    # '384x512': ('native', (384, 512), '384x512 aligned dataset.'),
     # '512x512': ('native', (512, 512), '512x512 aligned dataset.'),
-    '512x704': ('native', (512, 704), '512x704 aligned dataset.'),
+    # '512x704': ('native', (512, 704), '512x704 aligned dataset.'),
     # '640x640': ('native', (640, 640), '640x640 aligned dataset.'),
-    '640x880': ('native', (640, 880), '640x880 aligned dataset.'),
-    'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
+    # '640x880': ('native', (640, 880), '640x880 aligned dataset.'),
+
+    # 'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
     'stage3-800': ('stage3', 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
-    'stage3-p512-640': ('stage3', [MinAreaFilterAction(512), AlignMinSizeAction(640)],
-                        '3-stage cropped dataset with the area not less than 512x512 pixels.'),
+    'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
+    'stage3-p480-1200': ('stage3', [MinAreaFilterAction(480), AlignMinSizeAction(1200)],
+                         '3-stage cropped dataset with the area not less than 480x480 pixels.'),
     # 'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 1200 pixels.'),
-    'stage3-eyes-640': ('stage3-eyes', 640, '3-stage cropped (with eye-focus) dataset '
-                                            'with the shorter side not exceeding 640 pixels.'),
-    'stage3-eyes-800': ('stage3-eyes', 800, '3-stage cropped (with eye-focus) dataset '
-                                            'with the shorter side not exceeding 800 pixels.'),
+    # 'stage3-eyes-640': ('stage3-eyes', 640, '3-stage cropped (with eye-focus) dataset '
+    #                                         'with the shorter side not exceeding 640 pixels.'),
+    # 'stage3-eyes-800': ('stage3-eyes', 800, '3-stage cropped (with eye-focus) dataset '
+    #                                         'with the shorter side not exceeding 800 pixels.'),
 }
 
 DATASET_PVERSION = 'v1.4'
@@ -135,10 +145,10 @@ DATASET_PVERSION = 'v1.4'
 
 def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
-        name: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
-        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True, skip_preprocess: bool = False,
-        no_monochrome_check: bool = False,
-        repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.', private: bool = False,
+        name: Optional[str] = None, limit: Optional[int] = 500, min_images: int = 10,
+        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = False, skip_preprocess: bool = False,
+        no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
+        path_in_repo: str = '.', private: bool = False, n_img_samples: int = 3,
 ):
     if isinstance(source, (str, Character)):
         if isinstance(source, str):
@@ -156,7 +166,7 @@ def crawl_dataset_to_huggingface(
             repository = f'CyberHarem/{get_alphabet_name(name)}'
 
     origin_source = get_main_source(source, no_r18, bg_color, no_monochrome_check, drop_multi, skip_preprocess)
-    with TemporaryDirectory() as td:
+    with TemporaryDirectory() as td, TemporaryDirectory() as upload_td:
         # save origin directory
         origin_dir = os.path.join(td, 'origin')
         os.makedirs(origin_dir, exist_ok=True)
@@ -165,16 +175,64 @@ def crawl_dataset_to_huggingface(
         with task_ctx('origin'):
             origin_source.export(SaveExporter(origin_dir))
 
+        # count for images
         img_count = len(glob.glob(os.path.join(origin_dir, '*.png')))
         if img_count < min_images:
             logging.warn(f'Only {plural_word(img_count, "image")} found for {name} which is too few, '
                          f'skip post-processing and uploading.')
             return
 
+        ch_core_tags, clu_samples = get_character_tags_info(LocalSource(origin_dir))
+        all_tags, all_tags_set = [], set()
+        for i, (images, tags) in enumerate(clu_samples):
+            for tag in tags:
+                if tag not in all_tags_set:
+                    all_tags_set.add(tag)
+                    all_tags.append(tag)
+        samples_dir = os.path.join(upload_td, 'samples')
+        os.makedirs(samples_dir, exist_ok=True)
+        tgs_columns = ['#', 'Samples', *(f'Img-{i}' for i in range(1, n_img_samples + 1)), 'Tags']
+        tgs_rows = []
+        tg_tb_columns = ['#', 'Samples', *(f'Img-{i}' for i in range(1, n_img_samples + 1)), *all_tags]
+        tg_tb_rows = []
+        info_clus = []
+        for i, (images, tags) in enumerate(clu_samples):
+            clu_size = len(images)
+            if len(images) > n_img_samples:
+                images = random.sample(images, k=n_img_samples)
+            img_files = []
+            for j, image in enumerate(images):
+                dst_file = os.path.join(samples_dir, f'{i}', f'clu{i}-sample{j}.png')
+                os.makedirs(os.path.dirname(dst_file), exist_ok=True)
+                image = PaddingAlignAction((512, 704)).process(ImageItem(image)).image
+                image.save(dst_file)
+                img_files.append(os.path.relpath(dst_file, upload_td))
+            tgs_rows.append([
+                i, clu_size,
+                *[f'![]({img_files[i_]})' for i_ in range(n_img_samples)],
+                ', '.join(tags)
+            ])
+            tg_tb_rows.append([
+                i, clu_size,
+                *[f'![]({img_files[i_]})' for i_ in range(n_img_samples)],
+                *['X' if tag in tags else '' for tag in all_tags],
+            ])
+            info_clus.append({
+                'id': i,
+                'size': clu_size,
+                'tags': tags,
+            })
+
         source_dir = os.path.join(td, 'source')
         os.makedirs(source_dir, exist_ok=True)
-        for sname, actions in _SOURCES.items():
+        for sname, (actions, need_prune) in _SOURCES.items():
             with task_ctx(f'source/{sname}'):
+                if need_prune:
+                    actions = [
+                        *actions,
+                        TagDropAction(ch_core_tags),
+                        TagOverlapDropAction(),
+                    ]
                 LocalSource(origin_dir).attach(*actions).export(SaveExporter(os.path.join(source_dir, sname)))
 
         processed_dir = os.path.join(td, 'processed')
@@ -182,11 +240,11 @@ def crawl_dataset_to_huggingface(
         archive_dir = os.path.join(td, 'archives')
         os.makedirs(archive_dir, exist_ok=True)
 
-        files_to_upload: List[Tuple[str, str]] = []
         resolutions = _DEFAULT_RESOLUTIONS
 
-        columns = ['Name', 'Images', 'Download', 'Description']
-        rows = []
+        ds_columns = ['Name', 'Images', 'Download', 'Description']
+        ds_rows = []
+        info_packages = {}
         for rname, (sname, actions, description) in resolutions.items():
             actions = actions_parse(actions, bg_color)
 
@@ -198,37 +256,32 @@ def crawl_dataset_to_huggingface(
                 else:
                     ox.attach(*actions).export(SaveExporter(current_processed_dir))
             current_img_cnt = len(glob.glob(os.path.join(current_processed_dir, '*.png')))
+            zip_file = os.path.join(upload_td, f'dataset-{rname}.zip')
+            archive_pack('zip', directory=current_processed_dir, archive_file=zip_file)
+            info_packages[rname] = {
+                'filename': os.path.relpath(zip_file, upload_td),
+                'size': current_img_cnt,
+                'description': description,
+            }
 
-            zip_file = os.path.join(archive_dir, f'dataset-{rname}.zip')
-            with zipfile.ZipFile(zip_file, mode='w') as zf:
-                for directory, _, files in os.walk(current_processed_dir):
-                    for file in files:
-                        file_path = os.path.join(directory, file)
-                        rel_file_path = os.path.relpath(file_path, current_processed_dir)
-                        zf.write(
-                            file_path,
-                            '/'.join(rel_file_path.split(os.sep))
-                        )
-
-            rows.append((
+            ds_rows.append((
                 rname,
                 current_img_cnt,
                 f'[Download]({os.path.basename(zip_file)})',
                 description,
             ))
 
-            files_to_upload.append((zip_file, os.path.basename(zip_file)))
-
-        meta_file = os.path.join(td, 'meta.json')
-        with open(meta_file, 'w', encoding='utf-8') as mf:
+        with open(os.path.join(upload_td, 'meta.json'), 'w', encoding='utf-8') as mf:
             json.dump({
                 'name': name,
                 'version': DATASET_PVERSION,
+                'base_size': img_count,
+                'packages': info_packages,
+                'core_tags': ch_core_tags,
+                'clusters': info_clus,
             }, mf, indent=4, sort_keys=True, ensure_ascii=False)
-        files_to_upload.append((meta_file, 'meta.json'))
 
-        readme_file = os.path.join(td, 'README.md')
-        with open(readme_file, 'w', encoding='utf-8') as rf:
+        with open(os.path.join(upload_td, 'README.md'), 'w', encoding='utf-8') as rf:
             print(f'---', file=rf)
             print(f'license: mit', file=rf)
             print(f'task_categories:', file=rf)
@@ -248,56 +301,65 @@ def crawl_dataset_to_huggingface(
                   f'containing {plural_word(img_count, "images")} and their tags.', file=rf)
             print(f'', file=rf)
 
+            print(f'The core tags of this character are `{", ".join(ch_core_tags)}`, '
+                  f'which are pruned in this dataset.', file=rf)
+            print(f'', file=rf)
+
             print(f'Images are crawled from many sites (e.g. danbooru, pixiv, zerochan ...), '
                   f'the auto-crawling system is powered by [DeepGHS Team](https://github.com/deepghs)'
                   f'([huggingface organization](https://huggingface.co/deepghs)).', file=rf)
             print(f'', file=rf)
 
-            df = pd.DataFrame(columns=columns, data=rows)
-            print(df.to_markdown(index=False), file=rf)
+            print('## List of Packages', file=rf)
+            print(f'', file=rf)
+            ds_df = pd.DataFrame(columns=ds_columns, data=ds_rows)
+            print(ds_df.to_markdown(index=False), file=rf)
             print('', file=rf)
 
-        files_to_upload.append((readme_file, 'README.md'))
+            print('## List of Clusters', file=rf)
+            print(f'', file=rf)
+            print('### Raw Text Version', file=rf)
+            print(f'', file=rf)
+            tgs_df = pd.DataFrame(columns=tgs_columns, data=tgs_rows)
+            print(tgs_df.to_markdown(index=False), file=rf)
+            print('', file=rf)
+            print('### Table Version', file=rf)
+            print(f'', file=rf)
+            tg_tb_df = pd.DataFrame(columns=tg_tb_columns, data=tg_tb_rows)
+            print(tg_tb_df.to_markdown(index=False), file=rf)
+            print('', file=rf)
 
         hf_client = get_hf_client()
-        hf_fs = get_hf_fs()
-        logging.info(f'Initialize repository {repository!r}')
-        if not hf_fs.exists(f'datasets/{repository}/.gitattributes'):
-            print(repository, repo_type)
-            hf_client.create_repo(repo_id=repository, repo_type=repo_type, exist_ok=True, private=private)
+        if not hf_client.repo_exists(repo_id=repository, repo_type='dataset'):
+            hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True, private=private)
 
-        current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
-        commit_message = f"Publish character {name}, on {current_time}"
-        logging.info(f'Publishing character {name!r} to repository {repository!r} ...')
-        hf_client.create_commit(
-            repository,
-            [
-                CommitOperationAdd(
-                    path_in_repo=f'{path_in_repo}/{filename}',
-                    path_or_fileobj=local_file,
-                ) for local_file, filename in files_to_upload
-            ],
-            commit_message=commit_message,
+        # noinspection PyTypeChecker
+        upload_directory_as_directory(
+            repo_id=repository,
             repo_type=repo_type,
+            local_directory=upload_td,
+            path_in_repo=path_in_repo,
+            message=f'Publish character {name!r} to repository',
             revision=revision,
-            run_as_future=False,
+            clear=True,
         )
 
 
 def remake_dataset_to_huggingface(
-        repository: Optional[str] = None, limit: Optional[int] = 200, min_images: int = 10,
+        repository: Optional[str] = None, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
 ):
     hf_fs = get_hf_fs()
     with TemporaryDirectory() as td:
-        zip_file = os.path.join(td, 'dataset-raw.zip')
-        download_file(hf_hub_url(repository, 'dataset-raw.zip', repo_type='dataset'), zip_file)
-
         source_dir = os.path.join(td, 'source')
         os.makedirs(source_dir, exist_ok=True)
-        with zipfile.ZipFile(zip_file, 'r') as zf:
-            zf.extractall(source_dir)
+        download_archive_as_directory(
+            repo_id=repository,
+            repo_type=repo_type,
+            file_in_repo='dataset-raw.zip',
+            local_directory=source_dir,
+        )
 
         source = LocalSource(source_dir)
         name = None
@@ -308,6 +370,6 @@ def remake_dataset_to_huggingface(
         name = name or repository.split('/')[-1]
         return crawl_dataset_to_huggingface(
             source, repository, name,
-            limit, min_images, no_r18, bg_color, drop_multi, True,
+            None, min_images, no_r18, bg_color, drop_multi, True,
             False, repo_type, revision, path_in_repo
         )
