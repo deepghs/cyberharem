@@ -23,7 +23,7 @@ from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
 from waifuc.utils import task_ctx
 
 from .analysis import get_character_tags_info
-from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, get_hf_fs
+from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, get_hf_fs, get_formal_title
 
 
 def get_source(source) -> BaseDataSource:
@@ -117,9 +117,10 @@ _SOURCES = {
 }
 
 _DEFAULT_RESOLUTIONS = {
-    'raw': ('raw', [], 'Raw data with meta information.'),
-    'pruned': ('native', [], 'Raw data with meta information, core character tags pruned.'),
-    'pruned-stage3': ('stage3', [], '3-stage cropped raw data with meta information, core character tags pruned.'),
+    'raw': ('raw', True, [], 'Raw data with meta information.'),
+    'pruned': ('native', True, [], 'Raw data with meta information, core character tags pruned.'),
+    'pruned-stage3': (
+    'stage3', True, [], '3-stage cropped raw data with meta information, core character tags pruned.'),
     # 'raw-stage3-eyes': ('stage3-eyes', [], '3-stage cropped (with eye-focus) raw data with meta information.'),
 
     # '384x512': ('native', (384, 512), '384x512 aligned dataset.'),
@@ -129,9 +130,9 @@ _DEFAULT_RESOLUTIONS = {
     # '640x880': ('native', (640, 880), '640x880 aligned dataset.'),
 
     # 'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
-    'stage3-800': ('stage3', 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
-    'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
-    'stage3-p480-1200': ('stage3', [MinAreaFilterAction(480), AlignMinSizeAction(1200)],
+    'stage3-800': ('stage3', False, 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
+    'stage3-1200': ('stage3', False, 1200, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
+    'stage3-p480-1200': ('stage3', False, [MinAreaFilterAction(480), AlignMinSizeAction(1200)],
                          '3-stage cropped dataset with the area not less than 480x480 pixels.'),
     # 'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 1200 pixels.'),
     # 'stage3-eyes-640': ('stage3-eyes', 640, '3-stage cropped (with eye-focus) dataset '
@@ -145,15 +146,20 @@ DATASET_PVERSION = 'v1.4'
 
 def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
-        name: Optional[str] = None, limit: Optional[int] = 500, min_images: int = 10,
+        name: Optional[str] = None, display_name: Optional[str] = None,
+        limit: Optional[int] = 500, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = False, skip_preprocess: bool = False,
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 3,
 ):
     if isinstance(source, (str, Character)):
         if isinstance(source, str):
-            source = get_character(source)
-        name = f'{source.enname} ({source.__official_name__})'
+            source, origin_source = get_character(source), source
+            if not source:
+                raise ValueError(f'Character {origin_source!r} not found.')
+
+        name = name or f'{source.enname} ({source.__official_name__})'
+        display_name = display_name or get_formal_title(source)
 
         if not repository:
             repository = f'CyberHarem/{get_ch_name(source)}'
@@ -162,6 +168,7 @@ def crawl_dataset_to_huggingface(
         if name is None:
             raise ValueError('Name must be specified when source is not str or character.')
 
+        display_name = display_name or name
         if not repository:
             repository = f'CyberHarem/{get_alphabet_name(name)}'
 
@@ -245,13 +252,13 @@ def crawl_dataset_to_huggingface(
         ds_columns = ['Name', 'Images', 'Download', 'Description']
         ds_rows = []
         info_packages = {}
-        for rname, (sname, actions, description) in resolutions.items():
+        for rname, (sname, is_raw, actions, description) in resolutions.items():
             actions = actions_parse(actions, bg_color)
 
             ox = LocalSource(os.path.join(source_dir, sname))
             current_processed_dir = os.path.join(processed_dir, rname)
             with task_ctx(f'archive/{rname}'):
-                if not rname.startswith('raw'):  # raw is preserved for exporting json data
+                if not is_raw:  # raw is preserved for exporting json data
                     ox.attach(*actions).export(TextualInversionExporter(current_processed_dir))
                 else:
                     ox.attach(*actions).export(SaveExporter(current_processed_dir))
@@ -274,6 +281,7 @@ def crawl_dataset_to_huggingface(
         with open(os.path.join(upload_td, 'meta.json'), 'w', encoding='utf-8') as mf:
             json.dump({
                 'name': name,
+                'display_name': display_name,
                 'version': DATASET_PVERSION,
                 'base_size': img_count,
                 'packages': info_packages,

@@ -1,4 +1,4 @@
-from .character import get_ch_name, get_alphabet_name, get_pure_name
+from .character import get_ch_name, get_alphabet_name, get_pure_name, get_formal_title
 from .config import data_to_cli_args
 from .download import download_file
 from .huggingface import number_to_tag, get_hf_fs, get_hf_client

@@ -1,7 +1,10 @@
 import re
 
 from gchar.games.base import Character
+from gchar.generic import import_generic
 from thefuzz import fuzz
+
+import_generic()
 
 
 def get_pure_name(name: str) -> str:
@@ -34,3 +37,17 @@ def get_ch_name(ch: Character):
         raise ValueError(f'No suitable alphabet-based name for {ch!r}.')
 
     return f'{short_name}_{ch.__game_name__}'
+
+
+def get_formal_title(ch: Character):
+    names = []
+    if ch.enname:
+        names.append(str(ch.enname))
+    if ch.jpname:
+        names.append(str(ch.jpname))
+    if ch.cnname:
+        names.append(str(ch.cnname))
+    if hasattr(ch, 'krname') and ch.krname:
+        names.append(str(ch.krname))
+
+    return f"{'/'.join(names)} ({ch.__class__.__official_name__})"
