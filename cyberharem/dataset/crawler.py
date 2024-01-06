@@ -156,6 +156,7 @@ def crawl_dataset_to_huggingface(
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = False, skip_preprocess: bool = False,
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 3,
+        bangumi_source_repository: Optional[str] = None,
 ):
     if isinstance(source, (str, Character)):
         if isinstance(source, str):
@@ -287,6 +288,7 @@ def crawl_dataset_to_huggingface(
             json.dump({
                 'name': name,
                 'display_name': display_name,
+                'bangumi': bangumi_source_repository,
                 'version': DATASET_PVERSION,
                 'base_size': img_count,
                 'packages': info_packages,
@@ -307,10 +309,10 @@ def crawl_dataset_to_huggingface(
             print(f'---', file=rf)
             print(f'', file=rf)
 
-            print(f'# Dataset of {name}', file=rf)
+            print(f'# Dataset of {display_name}', file=rf)
             print(f'', file=rf)
 
-            print(f'This is the dataset of {name}, '
+            print(f'This is the dataset of {display_name}, '
                   f'containing {plural_word(img_count, "images")} and their tags.', file=rf)
             print(f'', file=rf)
 

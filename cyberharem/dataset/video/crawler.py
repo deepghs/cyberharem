@@ -1,4 +1,5 @@
 import glob
+import json
 import logging
 import os.path
 import re
@@ -12,7 +13,7 @@ from waifuc.action import CCIPAction, FilterSimilarAction, RandomFilenameAction
 from waifuc.source import EmptySource, LocalSource
 
 from ..crawler import crawl_dataset_to_huggingface
-from ...utils import download_file
+from ...utils import download_file, get_hf_fs
 
 
 def crawl_base_to_huggingface(
@@ -26,10 +27,16 @@ def crawl_base_to_huggingface(
 ):
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
+    alphabet_name = re.sub(r'[\W_]+', '_', unidecode(name.lower())).strip('_').lower() + '_' + \
+                    source_repository.split('/')[-1]
     if not repository:
-        repository = 'CyberHarem/' + re.sub(r'[\W_]+', '_', unidecode(name.lower())).strip('_').lower() + \
-                     '_' + source_repository.split('/')[-1]
+        repository = f'CyberHarem/{alphabet_name}'
     logging.info(f'Target repository name {repository!r} will be used.')
+
+    hf_fs = get_hf_fs()
+    source_meta_info = json.loads(hf_fs.read_text(f'datasets/{source_repository}/meta.json'))
+    bangumi_name = source_meta_info['name']
+    display_name = f'{name} ({bangumi_name})'
     with TemporaryDirectory() as td:
         img_cnts = []
         for cid in ch_ids:
@@ -66,7 +73,8 @@ def crawl_base_to_huggingface(
         return crawl_dataset_to_huggingface(
             source=source,
             repository=repository,
-            name=name,
+            name=alphabet_name,
+            display_name=display_name,
             limit=limit,
             min_images=min_images,
             no_r18=no_r18,
