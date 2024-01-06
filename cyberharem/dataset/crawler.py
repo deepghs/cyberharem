@@ -146,7 +146,7 @@ _DEFAULT_RESOLUTIONS = {
     #                                         'with the shorter side not exceeding 800 pixels.'),
 }
 
-DATASET_PVERSION = 'v1.4'
+DATASET_PVERSION = 'v1.5'
 
 
 def crawl_dataset_to_huggingface(
@@ -364,6 +364,7 @@ def remake_dataset_to_huggingface(
         repository: Optional[str] = None, min_images: int = 10,
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
+        private: bool = False, n_img_samples: int = 3,
 ):
     hf_fs = get_hf_fs()
     with TemporaryDirectory() as td:
@@ -382,9 +383,26 @@ def remake_dataset_to_huggingface(
             meta_json = json.loads(hf_fs.read_text(f'datasets/{repository}/meta.json'))
             if 'name' in meta_json:
                 name = meta_json['name']
+            display_name = meta_json.get('display_name')
+            bangumi_source_repo = meta_json.get('bangumi')
+
         name = name or repository.split('/')[-1]
         return crawl_dataset_to_huggingface(
-            source, repository, name,
-            None, min_images, no_r18, bg_color, drop_multi, True,
-            False, repo_type, revision, path_in_repo
+            source=source,
+            repository=repository,
+            name=name,
+            display_name=display_name or name,
+            limit=None,
+            min_images=min_images,
+            no_r18=no_r18,
+            bg_color=bg_color,
+            drop_multi=drop_multi,
+            skip_preprocess=True,
+            no_monochrome_check=False,
+            repo_type=repo_type,
+            revision=revision,
+            path_in_repo=path_in_repo,
+            private=private,
+            n_img_samples=n_img_samples,
+            bangumi_source_repository=bangumi_source_repo,
         )

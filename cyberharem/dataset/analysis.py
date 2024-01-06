@@ -32,6 +32,7 @@ def get_character_tags_info(source: BaseDataSource, threshold: float = 0.35) \
             samples_raw.append((item.image, sample_tags))
     samples_raw = np.array(samples_raw, dtype=object)
 
+    print({tag: cnt * 1.0 / total_cnt for tag, cnt in sorted(tags_dict.items(), key=lambda x: (-x[1], x[0]))})
     ch_core_tags = []
     for tag, cnt in sorted(tags_dict.items(), key=lambda x: (-x[1], x[0])):
         ratio = cnt * 1.0 / total_cnt
