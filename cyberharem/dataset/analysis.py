@@ -42,6 +42,7 @@ def get_character_tags_info(source: BaseDataSource, threshold: float = 0.35) \
         if ratio >= threshold:
             ch_core_tags.append(tag)
     ch_core_tags_set = set(ch_core_tags)
+    logging.info(f'Selected core tags: {ch_core_tags!r}')
 
     samples = []
     for _, tags in samples_raw:
