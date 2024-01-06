@@ -26,14 +26,14 @@ from .analysis import get_character_tags_info
 from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, get_hf_fs, get_formal_title
 
 
-def get_source(source, drop_multi: bool = True) -> BaseDataSource:
+def get_source(source, drop_multi: bool = False) -> BaseDataSource:
     if isinstance(source, (str, Character)):
         source = GcharAutoSource(
             source,
             main_sources_count=5,
             strict_for_main=drop_multi,
             max_preset_limit=None if drop_multi else 30,
-            preset_sites=('zerochan', 'yande', 'danbooru'),
+            preset_sites=('zerochan', 'danbooru'),
             blacklist_sites=('anime_pictures',),
         )
     elif isinstance(source, BaseDataSource):
@@ -45,7 +45,7 @@ def get_source(source, drop_multi: bool = True) -> BaseDataSource:
 
 
 def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
-                    no_monochrome_check: bool = False, drop_multi: bool = True, skip: bool = False) -> BaseDataSource:
+                    no_monochrome_check: bool = False, drop_multi: bool = False, skip: bool = False) -> BaseDataSource:
     source: BaseDataSource = get_source(source, drop_multi)
     if not skip:
         actions = [ModeConvertAction('RGB', bg_color)]
