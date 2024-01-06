@@ -157,7 +157,7 @@ def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
         name: Optional[str] = None, display_name: Optional[str] = None,
         limit: Optional[int] = 500, min_images: int = 10,
-        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True, skip_preprocess: bool = False,
+        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = False, skip_preprocess: bool = False,
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 3,
         bangumi_source_repository: Optional[str] = None,
