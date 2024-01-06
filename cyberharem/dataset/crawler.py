@@ -35,6 +35,7 @@ def get_source(source, drop_multi: bool = False) -> BaseDataSource:
             max_preset_limit=None if drop_multi else 30,
             preset_sites=('zerochan', 'danbooru'),
             blacklist_sites=('anime_pictures',),
+            min_size=1200,
         )
     elif isinstance(source, BaseDataSource):
         pass
@@ -61,6 +62,7 @@ def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
             actions.append(FaceCountAction(1, level='n'))  # drop images with 0 or >1 faces
         actions.extend([
             PersonSplitAction(level='n'),  # crop for each person
+            AlignMinSizeAction(1400),
             FaceCountAction(1, level='n'),
             FileOrderAction(),  # Rename files in order
             CCIPAction(min_val_count=15),  # CCIP, filter the character you may not want to see in dataset
@@ -68,8 +70,8 @@ def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
             MinSizeFilterAction(180),
             MinAreaFilterAction(360),
             TaggingAction(force=True, character_threshold=1.01),
+            RandomFilenameAction(ext='.png')
         ])
-        actions.append(RandomFilenameAction(ext='.png'))
     else:
         actions = []
 
@@ -124,7 +126,7 @@ _SOURCES = {
 }
 
 _DEFAULT_RESOLUTIONS = {
-    'raw': ('raw', True, [], 'Raw data with meta information.'),
+    'raw': ('raw', True, [], 'Raw data with meta information (min edge aligned to 1400 if larger).'),
     'pruned': ('native', True, [], 'Raw data with meta information, core character tags pruned.'),
     'pruned-stage3': (
         'stage3', True, [], '3-stage cropped raw data with meta information, core character tags pruned.'),
