@@ -33,7 +33,7 @@ def get_source(source, drop_multi: bool = True) -> BaseDataSource:
             main_sources_count=5,
             strict_for_main=drop_multi,
             max_preset_limit=None if drop_multi else 30,
-            preset_sites=('zerochan', 'yande'),
+            preset_sites=('zerochan', 'yande', 'danbooru'),
             blacklist_sites=('anime_pictures',),
         )
     elif isinstance(source, BaseDataSource):
