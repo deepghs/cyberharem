@@ -26,11 +26,13 @@ from .analysis import get_character_tags_info
 from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, get_hf_fs, get_formal_title
 
 
-def get_source(source) -> BaseDataSource:
+def get_source(source, drop_multi: bool = True) -> BaseDataSource:
     if isinstance(source, (str, Character)):
         source = GcharAutoSource(
             source,
             main_sources_count=5,
+            strict_for_main=drop_multi,
+            max_preset_limit=None if drop_multi else 30,
             preset_sites=('zerochan', 'yande'),
             blacklist_sites=('anime_pictures',),
         )
@@ -43,8 +45,8 @@ def get_source(source) -> BaseDataSource:
 
 
 def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
-                    no_monochrome_check: bool = False, drop_multi: bool = False, skip: bool = False) -> BaseDataSource:
-    source: BaseDataSource = get_source(source)
+                    no_monochrome_check: bool = False, drop_multi: bool = True, skip: bool = False) -> BaseDataSource:
+    source: BaseDataSource = get_source(source, drop_multi)
     if not skip:
         actions = [ModeConvertAction('RGB', bg_color)]
         if not no_monochrome_check:
@@ -153,7 +155,7 @@ def crawl_dataset_to_huggingface(
         source: Union[str, Character, BaseDataSource], repository: Optional[str] = None,
         name: Optional[str] = None, display_name: Optional[str] = None,
         limit: Optional[int] = 500, min_images: int = 10,
-        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = False, skip_preprocess: bool = False,
+        no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True, skip_preprocess: bool = False,
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 3,
         bangumi_source_repository: Optional[str] = None,
