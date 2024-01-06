@@ -1,7 +1,9 @@
+import logging
 from typing import List, Tuple
 
 import numpy as np
 from PIL import Image
+from hbutils.string import plural_word
 from imgutils.tagging import is_basic_character_tag
 from sklearn.cluster import OPTICS
 from waifuc.source import BaseDataSource
@@ -32,7 +34,8 @@ def get_character_tags_info(source: BaseDataSource, threshold: float = 0.35) \
             samples_raw.append((item.image, sample_tags))
     samples_raw = np.array(samples_raw, dtype=object)
 
-    print({tag: cnt * 1.0 / total_cnt for tag, cnt in sorted(tags_dict.items(), key=lambda x: (-x[1], x[0]))})
+    tags_analysis = {tag: cnt * 1.0 / total_cnt for tag, cnt in sorted(tags_dict.items(), key=lambda x: (-x[1], x[0]))}
+    logging.info(f'Analysis of tags: {tags_analysis!r}')
     ch_core_tags = []
     for tag, cnt in sorted(tags_dict.items(), key=lambda x: (-x[1], x[0])):
         ratio = cnt * 1.0 / total_cnt
@@ -63,5 +66,6 @@ def get_character_tags_info(source: BaseDataSource, threshold: float = 0.35) \
         ]
         clu_images: List[Image.Image] = [img for img, _ in samples_raw[cluster.labels_ == i]]
         clu_samples.append((clu_images, clu_tags))
+        logging.info(f'Cluster {i}, {plural_word(len(clu_images), "image")}, tags: {clu_tags!r}')
 
     return ch_core_tags, clu_samples

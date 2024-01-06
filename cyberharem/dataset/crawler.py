@@ -178,6 +178,7 @@ def crawl_dataset_to_huggingface(
         if not repository:
             repository = f'CyberHarem/{get_alphabet_name(name)}'
 
+    logging.info(f'Repository: {repository!r}, name: {name!r}, display_name: {display_name!r}')
     origin_source = get_main_source(source, no_r18, bg_color, no_monochrome_check, drop_multi, skip_preprocess)
     with TemporaryDirectory() as td, TemporaryDirectory() as upload_td:
         # save origin directory
