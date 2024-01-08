@@ -86,4 +86,5 @@ def crawl_base_to_huggingface(
             revision=revision,
             path_in_repo=path_in_repo,
             private=private,
+            bangumi_source_repository=source_repository,
         )
