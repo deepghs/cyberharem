@@ -80,7 +80,7 @@ def _dict_prune(d):
 def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
                  steps_batch_size: int = 10):
     eval_dir = os.path.join(workdir, 'eval')
-    if os.path.join(os.path.join(eval_dir, 'metrics_selected.csv')):
+    if os.path.exists(os.path.join(eval_dir, 'metrics_selected.csv')):
         logging.info(f'Completed evaluation detected on {eval_dir!r}.')
     else:
         logging.info('Starting evaluation before deployment ...')
