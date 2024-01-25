@@ -1,0 +1,139 @@
+name: Custom Make
+
+permissions:
+  contents: write
+
+on:
+  #  push:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Character Name (As Tag)'
+        type: string
+        required: true
+      display_name:
+        description: 'Display Name'
+        type: string
+        required: true
+      ap_tag:
+        description: 'Anime-Pictures Tag'
+        type: string
+        default: ''
+      zc_tag:
+        description: 'Zerochan Tag'
+        type: string
+        default: ''
+      db_tag:
+        description: 'Danbooru Tag'
+        type: string
+        default: ''
+      limit:
+        description: 'Limit of Dataset'
+        type: number
+        default: 500
+      drop_multi:
+        description: 'Drop Multi-Person Images'
+        type: boolean
+        default: false
+      repo_id:
+        description: 'Repository ID'
+        type: string
+        default: ''
+      private:
+        description: 'Use Private Repository'
+        type: boolean
+        default: false
+#  schedule:
+#    - cron: '30 16 * * *'
+#    - cron: '30 8 * * *'
+#    - cron: '30 0 * * *'
+
+jobs:
+  bangumibase_sync:
+    name: Run Script
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - 'ubuntu-latest'
+        python-version:
+          - '3.8'
+
+    steps:
+      - name: Get system version for Linux
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          echo "OS_NAME=Linux" >> $GITHUB_ENV
+          echo "IS_WIN=" >> $GITHUB_ENV
+          echo "IS_MAC=" >> $GITHUB_ENV
+      - name: Set environment for Cpython
+        if: ${{ !contains(matrix.python-version, 'pypy') }}
+        shell: bash
+        run: |
+          echo "IS_PYPY=" >> $GITHUB_ENV
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 20
+          submodules: 'recursive'
+      - name: Set up system dependencies on Linux
+        if: ${{ env.OS_NAME == 'Linux' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tree cloc wget curl make zip
+      - name: Set up python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade flake8 setuptools wheel twine
+          pip install -r requirements.txt
+      - name: Test the basic environment
+        shell: bash
+        run: |
+          python -V
+          pip --version
+          pip list
+          tree .
+      - name: Drop Multi
+        if: ${{ github.event.inputs.drop_multi == 'true' }}
+        shell: bash
+        run: |
+          echo 'CH_DROP_MULTI=1' >> $GITHUB_ENV
+      - name: Not Drop Multi
+        if: ${{ github.event.inputs.drop_multi == 'false' }}
+        shell: bash
+        run: |
+          echo 'CH_DROP_MULTI=' >> $GITHUB_ENV
+      - name: Use Private Repo
+        if: ${{ github.event.inputs.private == 'true' }}
+        shell: bash
+        run: |
+          echo 'CH_PRIVATE=1' >> $GITHUB_ENV
+      - name: Not Use Private Repo
+        if: ${{ github.event.inputs.private == 'false' }}
+        shell: bash
+        run: |
+          echo 'CH_PRIVATE=' >> $GITHUB_ENV
+      - name: Run Crawler
+        shell: bash
+        env:
+          CI: 'true'
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CH_SAFE: '1'
+          CH_NAME: ${{ github.event.inputs.name }}
+          CH_DISPLAY_NAME: ${{ github.event.inputs.display_name }}
+          CH_REPO_ID: ${{ github.event.inputs.repo_id }}
+          CH_AP_TAG: ${{ github.event.inputs.ap_tag }}
+          CH_ZC_TAG: ${{ github.event.inputs.zc_tag }}
+          CH_DB_TAG: ${{ github.event.inputs.db_tag }}
+          CH_LIMIT: ${{ github.event.inputs.limit }}
+        run: |
+          python -m cyberharem.dataset.custom

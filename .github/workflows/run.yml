@@ -1,0 +1,98 @@
+name: Test Script
+
+permissions:
+  contents: write
+
+on:
+  #  push:
+  workflow_dispatch:
+    inputs:
+      character_name:
+        description: 'Character Name'
+        required: true
+      game_name:
+        description: 'Game Name'
+        required: true
+      drop_multi:
+        description: 'Drop Multi-Person Images'
+        type: boolean
+        default: false
+#  schedule:
+#    - cron: '30 16 * * *'
+#    - cron: '30 8 * * *'
+#    - cron: '30 0 * * *'
+
+jobs:
+  bangumibase_sync:
+    name: Run Script
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - 'ubuntu-latest'
+        python-version:
+          - '3.8'
+
+    steps:
+      - name: Get system version for Linux
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          echo "OS_NAME=Linux" >> $GITHUB_ENV
+          echo "IS_WIN=" >> $GITHUB_ENV
+          echo "IS_MAC=" >> $GITHUB_ENV
+      - name: Set environment for Cpython
+        if: ${{ !contains(matrix.python-version, 'pypy') }}
+        shell: bash
+        run: |
+          echo "IS_PYPY=" >> $GITHUB_ENV
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 20
+          submodules: 'recursive'
+      - name: Set up system dependencies on Linux
+        if: ${{ env.OS_NAME == 'Linux' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tree cloc wget curl make zip
+      - name: Set up python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade flake8 setuptools wheel twine
+          pip install -r requirements.txt
+      - name: Test the basic environment
+        shell: bash
+        run: |
+          python -V
+          pip --version
+          pip list
+          tree .
+      - name: Drop Multi
+        if: ${{ github.event.inputs.drop_multi == 'true' }}
+        shell: bash
+        run: |
+          echo 'CH_DROP_MULTI=1' >> $GITHUB_ENV
+      - name: Not Drop Multi
+        if: ${{ github.event.inputs.drop_multi == 'false' }}
+        shell: bash
+        run: |
+          echo 'CH_DROP_MULTI=' >> $GITHUB_ENV
+      - name: Run Crawler
+        shell: bash
+        env:
+          CI: 'true'
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CH_WAIFU_NAME: ${{ github.event.inputs.character_name }}
+          CH_GAME_NAME: ${{ github.event.inputs.game_name }}
+          CH_SAFE: '1'
+        run: |
+          python -m cyberharem.dataset.action
