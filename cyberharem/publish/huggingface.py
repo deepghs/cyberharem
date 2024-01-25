@@ -102,7 +102,7 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
     infos = {item['step']: item for item in
              pd.read_csv(os.path.join(workdir, 'eval', 'metrics.csv')).to_dict('records')}
 
-    def _make_table_for_steps(stps, full: bool = False):
+    def _make_table_for_steps(stps, full: bool = False, cur_path='.'):
         if full:
             columns = ['Step', 'Epoch', 'CCIP', 'AI Corrupt', 'Bikini Plus', 'Score', 'Download', *rtag_names]
         else:
@@ -114,6 +114,11 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                 repo_id=repository, repo_type="model",
                 filename=os.path.join(str(s), f"{name}.zip"),
             )
+            img_values = []
+            for rt in rtag_names:
+                png_path = f'{s}/previews/{rt}.png'
+                png_path = os.path.relpath(png_path, cur_path)
+                img_values.append(f'![{rt}]({png_path})')
             if full:
                 row = [
                     s,
@@ -123,7 +128,7 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                     f'{infos[s]["bp"]:.3f}',
                     f'{infos[s]["integrate"]:.3f}',
                     f'[Download]({download_url})',
-                    *(f'![{rt}]({s}/previews/{rt}.png)' for rt in rtag_names)
+                    *img_values
                 ]
             else:
                 row = [
@@ -131,7 +136,7 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                     infos[s]["epoch"],
                     f'{infos[s]["integrate"]:.3f}',
                     f'[Download]({download_url})',
-                    *(f'![{rt}]({s}/previews/{rt}.png)' for rt in rtag_names)
+                    *img_values
                 ]
             data.append(row)
 
@@ -309,7 +314,7 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
 
                 print(f'Here are the preview of the recommended steps', file=f)
                 print(f'', file=f)
-                print(_make_table_for_steps(selected_steps, full=False).to_markdown(index=False), file=f)
+                print(_make_table_for_steps(selected_steps, full=True).to_markdown(index=False), file=f)
                 print(f'', file=f)
 
                 print(f'## Anything Else?', file=f)
@@ -328,10 +333,10 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                 print(f'## All Steps', file=f)
                 print(f'', file=f)
                 print(f'We list table of all steps, as the following: ', file=f)
-                f_table = _make_table_for_steps(steps[::-1], full=True)
-                batch_count = int(math.ceil(len(f_table) / steps_batch_size))
                 all_index_dir = os.path.join(td, 'all')
                 os.makedirs(all_index_dir, exist_ok=True)
+                f_table = _make_table_for_steps(steps[::-1], full=True, cur_path=os.path.relpath(all_index_dir, td))
+                batch_count = int(math.ceil(len(f_table) / steps_batch_size))
 
                 for i in range(batch_count):
                     s_table = f_table[i * steps_batch_size: (i + 1) * steps_batch_size]
