@@ -1,6 +1,7 @@
 import datetime
 import glob
 import json
+import math
 import os
 import pathlib
 import shutil
@@ -13,6 +14,7 @@ import pandas as pd
 from ditk import logging
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
+from hfutils.operate import upload_directory_as_directory
 from huggingface_hub import CommitOperationAdd, CommitOperationDelete, hf_hub_url
 from huggingface_hub.utils import RepositoryNotFoundError
 from imgutils.sd import get_sdmeta_from_image
@@ -75,7 +77,8 @@ def _dict_prune(d):
         return d
 
 
-def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None):
+def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
+                 steps_batch_size: int = 5):
     eval_dir = os.path.join(workdir, 'eval')
     if os.path.join(os.path.join(eval_dir, 'metrics_selected.csv')):
         logging.info(f'Completed evaluation detected on {eval_dir!r}.')
@@ -108,7 +111,7 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
         data = []
         for s in stps:
             download_url = hf_hub_url(
-                repo_id=repository, repo_type="dataset",
+                repo_id=repository, repo_type="model",
                 filename=os.path.join(str(s), f"{name}.zip"),
             )
             if full:
@@ -216,6 +219,19 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
             with open(os.path.join(td, '.gitattributes'), 'w', encoding='utf-8') as f:
                 print(_GITLFS, file=f)
             with open(os.path.join(td, 'README.md'), 'w', encoding='utf-8') as f:
+                print(f'---', file=f)
+                print(f'license: mit', file=f)
+                print(f'datasets:', file=f)
+                print(f'- {meta_info["dataset"]["repository"]}', file=f)
+                if meta_info['bangumi']:
+                    print(f'- {meta_info["bangumi"]}', file=f)
+                print(f'pipeline_tag: text-to-image', file=f)
+                print(f'tags:', file=f)
+                print(f'- art', file=f)
+                print(f'- not-for-all-audiences', file=f)
+                print(f'---', file=f)
+                print(f'', file=f)
+
                 print(f'# Lora of {meta_info["display_name"]}', file=f)
                 print(f'', file=f)
 
@@ -232,12 +248,12 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
 
                 train_pretrained_model = meta_info['train']['model']["pretrained_model_name_or_path"]
                 print(f'* The base model used for training is '
-                      f'[{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}), ', file=f)
+                      f'[{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).', file=f)
 
                 dataset_info = meta_info['dataset']
                 print(f'* Dataset used for training is the `{dataset_info["name"]}` in '
-                      f'{dataset_info["repository"]}(https://huggingface.co/datasets/{dataset_info["repository"]}), '
-                      f'which contains {plural_word(dataset_info["size"], "images")}.', file=f)
+                      f'[{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), '
+                      f'which contains {plural_word(dataset_info["size"], "image")}.', file=f)
 
                 ds_res = meta_info["train"]["dataset"]["resolution"]
                 print(f'* Batch size is {meta_info["train"]["dataset"]["bs"]}, '
@@ -251,18 +267,28 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                       file=f)
                 print(f'* Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}.', file=f)
                 print(f'* Pruned core tags for this waifu are `{", ".join(meta_info["core_tags"])}`. '
-                      f'You do NOT have to use them in prompts in this version.', file=f)
+                      f'You do NOT have to add them in your prompts.', file=f)
                 print(f'', file=f)
 
                 print(f'## How to Use It?', file=f)
+                print(f'', file=f)
+                print(f'### If You Are Using A1111 WebUI v1.7+', file=f)
+                print(f'', file=f)
+                print(f'**Just use it like the classic LoRA**. '
+                      f'The LoRA we provided are bundled with the embedding file.', file=f)
+                print(f'', file=f)
+                print(f'### If You Are Using A1111 WebUI v1.6 or Lower', file=f)
                 print(f'', file=f)
                 print(f'After downloading the pt and safetensors files for the specified step, '
                       f'you need to use them simultaneously. The pt file will be used as an embedding, '
                       f'while the safetensors file will be loaded for Lora.', file=f)
                 print(f'', file=f)
+
+                pt_url = hf_hub_url(repo_id=repository, repo_type='model', filename=f'{best_step}/{name}.pt')
+                lora_url = hf_hub_url(repo_id=repository, repo_type='model', filename=f'{best_step}/{name}.safetensors')
                 print(f'For example, if you want to use the model from step {best_step}, '
-                      f'you need to download `{best_step}/{name}.pt` as the embedding and '
-                      f'`{best_step}/{name}.safetensors` for loading Lora. '
+                      f'you need to download [`{best_step}/{name}.pt`]({pt_url}) as the embedding and '
+                      f'[`{best_step}/{name}.safetensors`]({lora_url}) for loading Lora. '
                       f'By using both files together, you can generate images for the desired characters.', file=f)
                 print(f'', file=f)
 
@@ -298,8 +324,28 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                 """).strip(), file=f)
                 print(f'', file=f)
 
-        input()
-        quit()
+                print(f'## All Steps', file=f)
+                print(f'', file=f)
+                print(f'We list table of all steps, as the following', file=f)
+                f_table = _make_table_for_steps(steps[::-1], full=True)
+                batch_count = int(math.ceil(len(f_table) / steps_batch_size))
+                for i in range(batch_count):
+                    s_table = f_table[i * steps_batch_size: (i + 1) * steps_batch_size]
+                    print(f'<details>', file=f)
+                    print(f'<summary>Steps From {s_table["Step"].min()} to {s_table["Step"].max()}</summary>', file=f)
+                    print(f'', file=f)
+                    print(s_table.to_markdown(index=False), file=f)
+                    print(f'</details>', file=f)
+
+        logging.info(f'Uploading files to repository {repository!r} ...')
+        upload_directory_as_directory(
+            local_directory=td,
+            path_in_repo='.',
+            repo_id=repository,
+            repo_type='model',
+            message=f'Upload model for {meta_info["display_name"]}.',
+            clear=True,
+        )
 
 
 def deploy_to_huggingface(workdir: str, repository=None, revision: str = 'main', n_repeats: int = 3,
