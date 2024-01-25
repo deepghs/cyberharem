@@ -336,6 +336,7 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                     print(f'', file=f)
                     print(s_table.to_markdown(index=False), file=f)
                     print(f'</details>', file=f)
+                    print(f'', file=f)
 
         logging.info(f'Uploading files to repository {repository!r} ...')
         upload_directory_as_directory(
@@ -343,7 +344,7 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
             path_in_repo='.',
             repo_id=repository,
             repo_type='model',
-            message=f'Upload model for {meta_info["display_name"]}.',
+            message=f'Upload model for {meta_info["display_name"]}',
             clear=True,
         )
 
