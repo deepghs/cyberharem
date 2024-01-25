@@ -71,7 +71,7 @@ def train_plora(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
                 max_epochs: int = 40, min_epochs: int = 10, min_steps: int = 800, max_steps: int = 10000,
                 train_resolution: int = 720, max_reg_bs: int = 16, tag_dropout: float = 0.2,
                 pt_lr: float = 0.03, unet_lr: float = 1e-4, unet_rank: float = 0.01,
-                single_card: bool = True):
+                single_card: bool = True, force: bool = False) -> str:
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
 
@@ -92,6 +92,12 @@ def train_plora(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
         name = ds_repo_id.split('/')[-1]
     workdir = workdir or os.path.join('runs', name)
     os.makedirs(workdir, exist_ok=True)
+
+    ok_file = os.path.join(workdir, '.train-ok')
+    if os.path.exists(ok_file) and not force:
+        logging.info(f'Already trained on {workdir!r}, skipped.')
+        return workdir
+
     save_recommended_tags(name, meta['clusters'], workdir)
 
     with load_dataset_from_repository(ds_repo_id, dataset_name) as dataset_dir, \
@@ -174,4 +180,5 @@ def train_plora(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
 
             trainer.train()
 
-    pathlib.Path(os.path.join(workdir, '.train-ok')).touch()
+    pathlib.Path(ok_file).touch()
+    return workdir
