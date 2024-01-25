@@ -78,7 +78,7 @@ def _dict_prune(d):
 
 
 def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
-                 steps_batch_size: int = 5):
+                 steps_batch_size: int = 10):
     eval_dir = os.path.join(workdir, 'eval')
     if os.path.join(os.path.join(eval_dir, 'metrics_selected.csv')):
         logging.info(f'Completed evaluation detected on {eval_dir!r}.')
@@ -265,7 +265,8 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                       f'resolution is {reg_res}x{reg_res}, '
                       f'clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.',
                       file=f)
-                print(f'* Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}.', file=f)
+                print(f'* Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, '
+                      f'{plural_word(len(steps), "checkpoint")} were saved.', file=f)
                 print(f'* Pruned core tags for this waifu are `{", ".join(meta_info["core_tags"])}`. '
                       f'You do NOT have to add them in your prompts.', file=f)
                 print(f'', file=f)
@@ -326,17 +327,23 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
 
                 print(f'## All Steps', file=f)
                 print(f'', file=f)
-                print(f'We list table of all steps, as the following', file=f)
+                print(f'We list table of all steps, as the following: ', file=f)
                 f_table = _make_table_for_steps(steps[::-1], full=True)
                 batch_count = int(math.ceil(len(f_table) / steps_batch_size))
+                all_index_dir = os.path.join(td, 'all')
+                os.makedirs(all_index_dir, exist_ok=True)
+
                 for i in range(batch_count):
                     s_table = f_table[i * steps_batch_size: (i + 1) * steps_batch_size]
-                    print(f'<details>', file=f)
-                    print(f'<summary>Steps From {s_table["Step"].min()} to {s_table["Step"].max()}</summary>', file=f)
-                    print(f'', file=f)
-                    print(s_table.to_markdown(index=False), file=f)
-                    print(f'</details>', file=f)
-                    print(f'', file=f)
+                    text = f'Steps From {s_table["Step"].min()} to {s_table["Step"].max()}'
+                    index_file = os.path.join(all_index_dir, f'{i}.md')
+                    print(f'* [{text}]({os.path.relpath(index_file, td)})', file=f)
+
+                    with open(index_file, 'w') as md_f:
+                        print(f'# {text}', file=md_f)
+                        print(f'', file=md_f)
+                        print(s_table.to_markdown(index=False), file=md_f)
+                        print(f'', file=md_f)
 
         logging.info(f'Uploading files to repository {repository!r} ...')
         upload_directory_as_directory(
