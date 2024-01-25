@@ -272,6 +272,7 @@ def deploy_to_hf(workdir: str, repository: Optional[str] = None, eval_cfgs: Opti
                       file=f)
                 print(f'* Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, '
                       f'{plural_word(len(steps), "checkpoint")} were saved.', file=f)
+                print(f'* **Trigger word is `{name}`.**', file=f)
                 print(f'* Pruned core tags for this waifu are `{", ".join(meta_info["core_tags"])}`. '
                       f'You do NOT have to add them in your prompts.', file=f)
                 print(f'', file=f)
