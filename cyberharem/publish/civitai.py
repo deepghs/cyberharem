@@ -178,8 +178,9 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
 
         ## I Felt This Model May Be Overfitting or Underfitting, What Shall I Do
 
-        Our model has been published on [huggingface repository - {repository}](https://huggingface.co/{repository}), where
-        models of all the steps are saved. Also, we published the training dataset on 
+        **The step you see here is auto-selected**. We also recommend other good steps for you to try.
+        Our model has been published on [huggingface repository - {repository}](https://huggingface.co/{repository}), 
+        where models of all the steps are saved. Also, we published the training dataset on 
         [huggingface dataset - {repository}](https://huggingface.co/datasets/{repository}), which may be helpful to you.
 
         ## Why Not Just Using The Better-Selected Images
@@ -222,7 +223,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
 
         model_info = client.upsert_model(
             name=meta_info['display_name'],
-            description_md='# description of model',
+            description_md=description_md,
             tags=tags,
             category='character',
             type_='LORA',

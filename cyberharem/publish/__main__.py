@@ -62,8 +62,6 @@ def huggingface(workdir: str, repository, pretrained_model, width, height, clip_
               help='Publish time, publish immediately when not given.', show_default=True)
 @click.option('--allow_nsfw', '-N', 'allow_nsfw', is_flag=True, type=bool, default=False,
               help='Allow uploading nsfw images.', show_default=True)
-@click.option('--force_create', '-F', 'force_create', is_flag=True, type=bool, default=False,
-              help='Force create new model.', show_default=True)
 def civitai(repository, step, draft, publish_time, allow_nsfw):
     logging.try_init_root(logging.INFO)
     civitai_upload_from_hf(
