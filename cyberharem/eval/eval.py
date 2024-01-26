@@ -8,6 +8,7 @@ from typing import Optional, List
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from natsort import natsorted
 from sdeval.controllability import BikiniPlusMetrics
 from sdeval.corrupt import AICorruptMetrics
 from sdeval.fidelity import CCIPMetrics
@@ -192,7 +193,7 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
 
         step_details_file = os.path.join(step_dir, 'details.csv')
         if not os.path.exists(step_details_file):
-            png_files = glob.glob(os.path.join(step_dir, '*.png'))
+            png_files = natsorted(glob.glob(os.path.join(step_dir, '*.png')))
             png_filenames = [os.path.relpath(f, step_dir) for f in png_files]
             ccip_score_seq = ccip_metrics.score(png_files, mode='seq')
             ccip_score = ccip_score_seq.mean().item()
