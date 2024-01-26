@@ -12,6 +12,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from ditk import logging
+from hbutils.scale import size_to_bytes_str
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import upload_directory_as_directory
@@ -312,8 +313,12 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                       f'The best one is step {best_step!r}.', file=f)
                 print(f'', file=f)
 
-                all_images_count = len(os.path.join(td, '*', 'previews', '*.png'))
-                print(f'{plural_word(all_images_count, "image")} were generated for auto-testing.')
+                all_images = glob.glob(os.path.join(td, '*', 'previews', '*.png'))
+                all_images_count = len(all_images)
+                all_images_size = sum(map(os.path.getsize, all_images))
+                print(f'{plural_word(all_images_count, "image")} '
+                      f'({size_to_bytes_str(all_images_size, precision=2)}) '
+                      f'were generated for auto-testing.', file=f)
                 print(f'', file=f)
                 print(f'![Metrics Plot](metrics_plot.png)', file=f)
                 print(f'', file=f)
