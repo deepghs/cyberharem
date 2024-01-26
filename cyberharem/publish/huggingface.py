@@ -133,7 +133,7 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
             bp_value = infos[s]["bp"]
             integrate_value = infos[s]["integrate"]
             ret_data.append([
-                s,
+                f'{s}[{os.path.relpath(f"{s}", cur_path)}]',
                 infos[s]["epoch"],
                 f'**{ccip_value:.3f}**' if np.isclose(ccip_value, ccip_max).item() else f'{ccip_value:.3f}',
                 f'**{aic_value:.3f}**' if np.isclose(aic_value, aic_max).item() else f'{aic_value:.3f}',
@@ -267,6 +267,10 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                 print(f'* Dataset used for training is the `{dataset_info["name"]}` in '
                       f'[{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), '
                       f'which contains {plural_word(dataset_info["size"], "image")}.', file=f)
+                if meta_info['bangumi']:
+                    print(f'* The images in the dataset is cropped from anime videos, '
+                          f'more images for other waifus in the same anime can be found in '
+                          f'[{meta_info["bangumi"]}](https://huggingface.co/datasets/{meta_info["bangumi"]})', file=f)
 
                 ds_res = meta_info["train"]["dataset"]["resolution"]
                 print(f'* Batch size is {meta_info["train"]["dataset"]["bs"]}, '
