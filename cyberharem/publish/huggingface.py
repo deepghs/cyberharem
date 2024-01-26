@@ -360,11 +360,9 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                 batch_count = int(math.ceil(len(steps) / steps_batch_size))
 
                 for i in range(batch_count):
-                    s_table = _make_table_for_steps(
-                        steps[::-1][i * steps_batch_size: (i + 1) * steps_batch_size],
-                        cur_path=os.path.relpath(all_index_dir, td)
-                    )
-                    text = f'Steps From {s_table["Step"].min()} to {s_table["Step"].max()}'
+                    s_steps = steps[::-1][i * steps_batch_size: (i + 1) * steps_batch_size]
+                    s_table = _make_table_for_steps(s_steps, cur_path=os.path.relpath(all_index_dir, td))
+                    text = f'Steps From {min(s_steps)} to {max(s_steps)}'
                     index_file = os.path.join(all_index_dir, f'{i}.md')
                     print(f'* [{text}]({os.path.relpath(index_file, td)})', file=f)
 
