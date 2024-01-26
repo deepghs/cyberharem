@@ -133,7 +133,7 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
             bp_value = infos[s]["bp"]
             integrate_value = infos[s]["integrate"]
             ret_data.append([
-                f'{s}[{os.path.relpath(f"{s}", cur_path)}]',
+                f'[{s}]({os.path.relpath(f"{s}", cur_path)})',
                 infos[s]["epoch"],
                 f'**{ccip_value:.3f}**' if np.isclose(ccip_value, ccip_max).item() else f'{ccip_value:.3f}',
                 f'**{aic_value:.3f}**' if np.isclose(aic_value, aic_max).item() else f'{aic_value:.3f}',
