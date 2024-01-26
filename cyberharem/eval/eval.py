@@ -27,7 +27,8 @@ def list_steps(workdir) -> List[int]:
 
 def plt_metrics(df: pd.DataFrame, model_name: str, dataset_size: int, plot_file: str,
                 bs: int = 4, select: int = 5, fidelity_alpha: float = 3.0,
-                bp_std_min: Optional[float] = 0.015, min_aic: float = 0.8, aic_interval: float = 0.05):
+                bp_std_min: Optional[float] = 0.015, min_aic: float = 0.8, aic_interval: float = 0.05,
+                select_n: int = 3):
     # generate data calculation
     df = df.copy()
     df['epoch'] = np.ceil(df['step'] * bs / dataset_size).astype(np.int32)
@@ -52,7 +53,7 @@ def plt_metrics(df: pd.DataFrame, model_name: str, dataset_size: int, plot_file:
     # select best steps
     d = 1.0
     while True:
-        if len(df[df['aic'] >= d]) >= select * 2:
+        if len(df[df['aic'] >= d]) >= select * select_n:
             break
         d -= aic_interval
         if d < min_aic:
@@ -60,10 +61,10 @@ def plt_metrics(df: pd.DataFrame, model_name: str, dataset_size: int, plot_file:
             break
 
     if d is None:
-        if len(df[df['aic'] >= min_aic]) >= select:
+        if len(df[df['aic'] >= min_aic]) >= select * (select_n - 1):
             df_aic = df[df['aic'] >= min_aic]
         else:
-            df_aic = df.sort_values(by=['aic'], ascending=False)[:select]
+            df_aic = df.sort_values(by=['aic'], ascending=False)[:select * (select_n - 1)]
     else:
         df_aic = df[df['aic'] >= d]
 
