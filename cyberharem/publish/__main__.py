@@ -6,7 +6,7 @@ from gchar.generic import import_generic
 from gchar.utils import GLOBAL_CONTEXT_SETTINGS
 from gchar.utils import print_version as _origin_print_version
 
-from .civitai import civitai_publish_from_hf
+from .civitai import civitai_upload_from_hf
 from .huggingface import deploy_to_huggingface
 from ..infer.draw import _DEFAULT_INFER_MODEL
 
@@ -54,39 +54,25 @@ def huggingface(workdir: str, repository, pretrained_model, width, height, clip_
 @cli.command('civitai', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish to huggingface')
 @click.option('--repository', '-r', 'repository', type=str, required=True,
               help='Repository to publish from.', show_default=True)
-@click.option('--title', '-t', 'title', type=str, default=None,
-              help='Title of the civitai model.', show_default=True)
-@click.option('--steps', '-s', 'steps', type=int, default=None,
-              help='Steps to deploy.', show_default=True)
-@click.option('--epochs', '-e', 'epochs', type=int, default=None,
-              help='Epochs to deploy.', show_default=True)
+@click.option('--step', '-s', 'step', type=int, default=None,
+              help='Step to deploy.', show_default=True)
 @click.option('--draft', '-d', 'draft', is_flag=True, type=bool, default=False,
               help='Only create draft without publishing.', show_default=True)
 @click.option('--time', '-T', 'publish_time', type=str, default=None,
               help='Publish time, publish immediately when not given.', show_default=True)
 @click.option('--allow_nsfw', '-N', 'allow_nsfw', is_flag=True, type=bool, default=False,
               help='Allow uploading nsfw images.', show_default=True)
-@click.option('--version_name', '-v', 'version_name', type=str, default=None,
-              help='Name of the version.', show_default=True)
 @click.option('--force_create', '-F', 'force_create', is_flag=True, type=bool, default=False,
               help='Force create new model.', show_default=True)
-@click.option('--no_ccip', 'no_ccip_check', is_flag=True, type=bool, default=False,
-              help='No CCIP check.', show_default=True)
-def civitai(repository, title, steps, epochs, draft, publish_time, allow_nsfw,
-            version_name, force_create, no_ccip_check):
+def civitai(repository, step, draft, publish_time, allow_nsfw):
     logging.try_init_root(logging.INFO)
-    model_id = civitai_publish_from_hf(
-        repository, title,
-        step=steps, epoch=epochs, draft=draft,
-        publish_at=publish_time, allow_nsfw_images=allow_nsfw,
-        version_name=version_name, force_create_model=force_create,
-        no_ccip_check=no_ccip_check,
+    civitai_upload_from_hf(
+        repository=repository,
+        step=step,
+        allow_nsfw=allow_nsfw,
+        publish_at=publish_time,
+        draft=draft
     )
-    url = f'https://civitai.com/models/{model_id}'
-    if not draft:
-        logging.info(f'Deploy success, model now can be seen at {url} .')
-    else:
-        logging.info(f'Draft created, it can be seed at {url} .')
 
 
 if __name__ == '__main__':
