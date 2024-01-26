@@ -34,7 +34,6 @@ except (ModuleNotFoundError, ImportError):
 
 import markdown2
 
-from ..dataset import load_dataset_for_character
 from ..utils import get_civitai_session, srequest, get_ch_name, get_hf_fs, download_file, parse_time, \
     load_tags_from_directory, repr_tags
 
