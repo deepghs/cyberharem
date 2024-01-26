@@ -353,11 +353,13 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                       f'metrics and download them in the following links: ', file=f)
                 all_index_dir = os.path.join(td, 'all')
                 os.makedirs(all_index_dir, exist_ok=True)
-                f_table = _make_table_for_steps(steps[::-1], cur_path=os.path.relpath(all_index_dir, td))
-                batch_count = int(math.ceil(len(f_table) / steps_batch_size))
+                batch_count = int(math.ceil(len(steps) / steps_batch_size))
 
                 for i in range(batch_count):
-                    s_table = f_table[i * steps_batch_size: (i + 1) * steps_batch_size]
+                    s_table = _make_table_for_steps(
+                        steps[::-1][i * steps_batch_size: (i + 1) * steps_batch_size],
+                        cur_path=os.path.relpath(all_index_dir, td)
+                    )
                     text = f'Steps From {s_table["Step"].min()} to {s_table["Step"].max()}'
                     index_file = os.path.join(all_index_dir, f'{i}.md')
                     print(f'* [{text}]({os.path.relpath(index_file, td)})', file=f)
