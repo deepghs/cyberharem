@@ -245,6 +245,8 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
                                                           creator=client.whoami.name).version_id
             except (ModelVersionNotFound,):
                 existing_version_id = None
+        else:
+            existing_version_id = None
         version_info = client.upsert_version(
             model_id=model_info['id'],
             version_name=meta_info['version'],
