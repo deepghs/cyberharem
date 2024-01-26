@@ -9,6 +9,7 @@ import zipfile
 from textwrap import dedent
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 from ditk import logging
 from hbutils.string import plural_word
@@ -76,12 +77,8 @@ def _dict_prune(d):
 
 def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
                           steps_batch_size: int = 10):
-    eval_dir = os.path.join(workdir, 'eval')
-    if os.path.exists(os.path.join(eval_dir, 'metrics_selected.csv')):
-        logging.info(f'Completed evaluation detected on {eval_dir!r}.')
-    else:
-        logging.info('Starting evaluation before deployment ...')
-        eval_for_workdir(workdir, **(eval_cfgs or {}))
+    logging.info('Starting evaluation before deployment ...')
+    eval_for_workdir(workdir, **(eval_cfgs or {}))
 
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
@@ -99,13 +96,26 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
     infos = {item['step']: item for item in
              pd.read_csv(os.path.join(workdir, 'eval', 'metrics.csv')).to_dict('records')}
 
-    def _make_table_for_steps(stps, full: bool = False, cur_path='.'):
-        if full:
-            columns = ['Step', 'Epoch', 'CCIP', 'AI Corrupt', 'Bikini Plus', 'Score', 'Download', *rtag_names]
-        else:
-            columns = ['Step', 'Epoch', 'Score', 'Download', *rtag_names]
+    def _make_table_for_steps(stps, cur_path='.'):
+        columns = ['Step', 'Epoch', 'CCIP', 'AI Corrupt', 'Bikini Plus', 'Score', 'Download', *rtag_names]
 
-        data = []
+        v_data = []
+        for s in stps:
+            v_data.append({
+                'step': s,
+                'epoch': infos[s]["epoch"],
+                'ccip': infos[s]["ccip"],
+                'aic': infos[s]["aic"],
+                'bp': infos[s]["bp"],
+                'integrate': infos[s]["integrate"]
+            })
+        v_df = pd.DataFrame(v_data)
+        ccip_max = v_df['ccip'].max()
+        aic_max = v_df['aic'].max()
+        bp_max = v_df['bp'].max()
+        integrate_max = v_df['integrate'].max()
+
+        ret_data = []
         for s in stps:
             download_url = hf_hub_url(
                 repo_id=repository, repo_type="model",
@@ -116,28 +126,24 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                 png_path = f'{s}/previews/{rt}.png'
                 png_path = os.path.relpath(png_path, cur_path)
                 img_values.append(f'![{rt}]({png_path})')
-            if full:
-                row = [
-                    s,
-                    infos[s]["epoch"],
-                    f'{infos[s]["ccip"]:.3f}',
-                    f'{infos[s]["aic"]:.3f}',
-                    f'{infos[s]["bp"]:.3f}',
-                    f'{infos[s]["integrate"]:.3f}',
-                    f'[Download]({download_url})',
-                    *img_values
-                ]
-            else:
-                row = [
-                    s,
-                    infos[s]["epoch"],
-                    f'{infos[s]["integrate"]:.3f}',
-                    f'[Download]({download_url})',
-                    *img_values
-                ]
-            data.append(row)
 
-        return pd.DataFrame(data, columns=columns)
+            ccip_value = infos[s]["ccip"]
+            aic_value = infos[s]["aic"]
+            bp_value = infos[s]["bp"]
+            integrate_value = infos[s]["integrate"]
+            ret_data.append([
+                s,
+                infos[s]["epoch"],
+                f'**{ccip_value:.3f}**' if np.isclose(ccip_value, ccip_max).item() else f'{ccip_value:.3f}',
+                f'**{aic_value:.3f}**' if np.isclose(aic_value, aic_max).item() else f'{aic_value:.3f}',
+                f'**{bp_value:.3f}**' if np.isclose(bp_value, bp_max).item() else f'{bp_value:.3f}',
+                f'**{integrate_value:.3f}**' if np.isclose(integrate_value,
+                                                           integrate_max).item() else f'{integrate_value:.3f}',
+                f'[Download]({download_url})',
+                *img_values
+            ])
+
+        return pd.DataFrame(ret_data, columns=columns)
 
     with TemporaryDirectory() as td:
         for step in tqdm(steps, desc='Preparing Steps'):
@@ -151,6 +157,10 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
             shutil.copyfile(
                 os.path.join(workdir, 'eval', str(step), 'metrics.json'),
                 os.path.join(step_dir, 'metrics.json'),
+            )
+            shutil.copyfile(
+                os.path.join(workdir, 'eval', str(step), 'details.csv'),
+                os.path.join(step_dir, 'details.csv'),
             )
 
             step_raw_dir = os.path.join(step_dir, 'raw')
@@ -301,6 +311,10 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                 print(f'We selected {plural_word(len(selected_steps), "good step")} for you to choose. '
                       f'The best one is step {best_step!r}.', file=f)
                 print(f'', file=f)
+
+                all_images_count = len(os.path.join(td, '*', 'previews', '*.png'))
+                print(f'{plural_word(all_images_count, "image")} were generated for auto-testing.')
+                print(f'', file=f)
                 print(f'![Metrics Plot](metrics_plot.png)', file=f)
                 print(f'', file=f)
 
@@ -310,9 +324,9 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                       f'[{infer_pretrained_model}](https://huggingface.co/{infer_pretrained_model}).', file=f)
                 print(f'', file=f)
 
-                print(f'Here are the preview of the recommended steps', file=f)
+                print(f'Here are the preview of the recommended steps:', file=f)
                 print(f'', file=f)
-                print(_make_table_for_steps(selected_steps, full=True).to_markdown(index=False), file=f)
+                print(_make_table_for_steps(selected_steps).to_markdown(index=False), file=f)
                 print(f'', file=f)
 
                 print(f'## Anything Else?', file=f)
@@ -330,10 +344,11 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
 
                 print(f'## All Steps', file=f)
                 print(f'', file=f)
-                print(f'We list table of all steps, as the following: ', file=f)
+                print(f'We uploaded the files in all steps. you can check the images, '
+                      f'metrics and download them in the following links: ', file=f)
                 all_index_dir = os.path.join(td, 'all')
                 os.makedirs(all_index_dir, exist_ok=True)
-                f_table = _make_table_for_steps(steps[::-1], full=True, cur_path=os.path.relpath(all_index_dir, td))
+                f_table = _make_table_for_steps(steps[::-1], cur_path=os.path.relpath(all_index_dir, td))
                 batch_count = int(math.ceil(len(f_table) / steps_batch_size))
 
                 for i in range(batch_count):

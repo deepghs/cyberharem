@@ -29,5 +29,5 @@ torch<2.1.0
 pyanimeinfo>=0.0.2
 hfutils>=0.0.6
 filelock
-sdeval>=0.0.3
+sdeval>=0.0.4
 safetensors

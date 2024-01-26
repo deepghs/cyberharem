@@ -2,6 +2,7 @@ import glob
 import json
 import logging
 import os.path
+import pathlib
 from typing import Optional, List
 
 import numpy as np
@@ -164,12 +165,7 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
         step_dir = os.path.join(eval_dir, str(step))
         os.makedirs(step_dir, exist_ok=True)
         step_metrics_file = os.path.join(step_dir, 'metrics.json')
-        if os.path.exists(step_metrics_file):
-            logging.info(f'Existing selected metrics file found {step_metrics_file!r} ...')
-            with open(step_metrics_file, 'r') as f:
-                row = json.load(f)
-
-        else:
+        if not os.path.exists(step_metrics_file):
             logging.info(f'Drawing images with step {step!r} in workdir {workdir!r} ...')
             drawings = draw_images_for_workdir(
                 workdir=workdir,
@@ -191,15 +187,35 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
             for drawing in tqdm(drawings):
                 drawing.save(os.path.join(step_dir, f'{drawing.name}.png'))
 
-            ccip_score = ccip_metrics.score(step_dir)
-            aic_score = aic_metrics.score(step_dir)
-            bp_score = bp_metrics.score(step_dir)
+            pathlib.Path(step_metrics_file).touch()
+
+        step_details_file = os.path.join(step_dir, 'details.csv')
+        if not os.path.exists(step_details_file):
+            png_files = glob.glob(os.path.join(step_dir, '*.png'))
+            png_filenames = [os.path.relpath(f, step_dir) for f in png_files]
+            ccip_score_seq = ccip_metrics.score(png_files, mode='seq')
+            ccip_score = ccip_score_seq.mean().item()
+            aic_score_seq = aic_metrics.score(png_files, mode='seq')
+            aic_score = aic_score_seq.mean().item()
+            bp_score_seq = bp_metrics.score(png_files, mode='seq')
+            bp_score = bp_score_seq.mean().item()
             logging.info(f'Step {step!r}, CCIP Score: {ccip_score:.4f}, '
                          f'AI-Corrupt Score: {aic_score:.4f}, Bikini Plus Score: {bp_score:.4f}')
+
             row = {'step': step, 'ccip': ccip_score, 'aic': aic_score, 'bp': bp_score}
             with open(step_metrics_file, 'w') as f:
                 json.dump(row, f, indent=4, ensure_ascii=False)
 
+            df = pd.DataFrame({
+                'image': png_filenames,
+                'ccip': ccip_score_seq,
+                'aic': aic_score_seq,
+                'bp': bp_score_seq,
+            })
+            df.to_csv(step_details_file, index=False)
+
+        with open(step_metrics_file, 'r') as f:
+            row = json.load(f)
         tb_data.append(row)
 
     df = pd.DataFrame(tb_data)
