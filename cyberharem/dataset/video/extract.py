@@ -1,4 +1,4 @@
-import datetime
+import glob
 import glob
 import json
 import logging
@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
-from huggingface_hub import CommitOperationAdd, CommitOperationDelete
+from hfutils.operate import upload_directory_as_directory
 from imgutils.data import load_image
 from imgutils.metrics import ccip_extract_feature, ccip_batch_differences, ccip_default_threshold
 from natsort import natsorted
@@ -296,39 +296,11 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
     if not hf_fs.exists(f'datasets/{repository}/.gitattributes'):
         hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)
 
-    _exist_files = [os.path.relpath(file, repository) for file in hf_fs.glob(f'{repository}/**')]
-    _exist_ps = sorted([(file, file.split('/')) for file in _exist_files], key=lambda x: x[1])
-    pre_exist_files = set()
-    for i, (file, segments) in enumerate(_exist_ps):
-        if i < len(_exist_ps) - 1 and segments == _exist_ps[i + 1][1][:len(segments)]:
-            continue
-        if file != '.':
-            pre_exist_files.add(file)
-
     with extract_from_videos(video_or_directory, bangumi_name, no_extract,
                              min_size, merge_threshold, preview_count) as dst_dir:
-        operations = []
-        for directory, _, files in os.walk(dst_dir):
-            for file in files:
-                filename = os.path.abspath(os.path.join(dst_dir, directory, file))
-                file_in_repo = os.path.relpath(filename, dst_dir)
-                operations.append(CommitOperationAdd(
-                    path_in_repo=file_in_repo,
-                    path_or_fileobj=filename,
-                ))
-                if file_in_repo in pre_exist_files:
-                    pre_exist_files.remove(file_in_repo)
-        logging.info(f'Useless files: {sorted(pre_exist_files)} ...')
-        for file in sorted(pre_exist_files):
-            operations.append(CommitOperationDelete(path_in_repo=file))
-
-        current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
-        commit_message = f'Publish {bangumi_name}\'s data, on {current_time}'
-        logging.info(f'Publishing {bangumi_name}\'s data to repository {repository!r} ...')
-        hf_client.create_commit(
-            repository,
-            operations,
-            commit_message=commit_message,
+        upload_directory_as_directory(
+            local_directory=dst_dir,
+            repo_id=repository,
             repo_type='dataset',
             revision=revision,
         )
