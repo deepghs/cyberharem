@@ -301,6 +301,8 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
         upload_directory_as_directory(
             local_directory=dst_dir,
             repo_id=repository,
+            path_in_repo='.',
             repo_type='dataset',
             revision=revision,
+            clear=True,
         )
