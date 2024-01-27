@@ -1,0 +1,119 @@
+name: Civitai Publish
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      hf_repo:
+        description: 'Repository on HuggingFace'
+        type: str
+        required: true
+      step:
+        description: 'Step to Publish (blank means auto select)'
+        type: str
+        default: ''
+      publish_at:
+        description: 'Publish time (blank means immediately)'
+        type: str
+        default: ''
+      draft:
+        description: 'Do not publish, just create a draft'
+        type: boolean
+        default: false
+
+jobs:
+  civitai_publish:
+    name: Run Script
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - 'ubuntu-latest'
+        python-version:
+          - '3.8'
+
+    steps:
+      - name: Get system version for Linux
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          echo "OS_NAME=Linux" >> $GITHUB_ENV
+          echo "IS_WIN=" >> $GITHUB_ENV
+          echo "IS_MAC=" >> $GITHUB_ENV
+      - name: Set environment for Cpython
+        if: ${{ !contains(matrix.python-version, 'pypy') }}
+        shell: bash
+        run: |
+          echo "IS_PYPY=" >> $GITHUB_ENV
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 20
+          submodules: 'recursive'
+      - name: Set up system dependencies on Linux
+        if: ${{ env.OS_NAME == 'Linux' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tree cloc wget curl make zip
+      - name: Set up python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade flake8 setuptools wheel twine
+          pip install -r requirements.txt
+      - name: Test the basic environment
+        shell: bash
+        run: |
+          python -V
+          pip --version
+          pip list
+          tree .
+      - name: Use Draft
+        if: ${{ github.event.inputs.draft == 'true' }}
+        shell: bash
+        run: |
+          echo 'CH_P_DRAFT=--draft' >> $GITHUB_ENV
+      - name: Not Use Draft
+        if: ${{ github.event.inputs.draft == 'false' }}
+        shell: bash
+        run: |
+          echo 'CH_P_DRAFT=' >> $GITHUB_ENV
+      - name: Step Arguments
+        if: ${{ github.event.inputs.step != '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_STEP=-s ${{ github.event.inputs.step }}'  >> $GITHUB_ENV
+      - name: No Step Arguments
+        if: ${{ github.event.inputs.step == '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_STEP='  >> $GITHUB_ENV
+      - name: Publish Time
+        if: ${{ github.event.inputs.publish_at != '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_PTIME=-T "${{ github.event.inputs.publish_at }}"' >> $GITHUB_ENV
+      - name: Publish Immediately
+        if: ${{ github.event.inputs.publish_at == '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_PTIME=' >> $GITHUB_ENV
+      - name: Run Crawler
+        shell: bash
+        env:
+          CI: 'true'
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CIVITAI_SESSION: ${{ secrets.CIVITAI_SESSION }}
+        run: |
+          python -m cyberharem.publish.civitai \
+            -r ${{ github.event.inputs.hf_repo }} \
+            ${{ env.CH_P_STEP }} ${{ env.CH_P_DRAFT }} ${{ env.CH_P_PTIME }}
