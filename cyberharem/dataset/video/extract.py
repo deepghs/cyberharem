@@ -131,7 +131,7 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.85, clu_
     return ids
 
 
-def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_count: int = 8, regsize: int = 1000):
+def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_count: int = 8, regsize: int = 2000):
     total_image_cnt = 0
     columns = ['#', 'Images', 'Download', *(f'Preview {i}' for i in range(1, preview_count + 1))]
     rows = []
