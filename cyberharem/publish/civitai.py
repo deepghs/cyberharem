@@ -5,6 +5,7 @@ import os.path
 import re
 from typing import Optional
 
+import markdown_strings
 import numpy as np
 import pandas as pd
 from civitai.client import CivitAIClient
@@ -38,7 +39,7 @@ def _extract_words_from_display_name(display_name: str):
 
 def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_nsfw: bool = False,
                            civitai_session: Optional[str] = None, publish_at: Optional[str] = None,
-                           draft: bool = False):
+                           draft: bool = False, update_description_only: bool = False):
     hf_fs = get_hf_fs()
     meta_info = json.loads(hf_fs.read_text(f'{repository}/meta.json'))
     step = step or meta_info['best_step']
@@ -128,12 +129,16 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         client = CivitAIClient.load(civitai_session or os.environ.get('CIVITIA_SESSION'))
         logging.info(f'Session check {client.whoami!r} ...')
 
+        dataset_info = meta_info['dataset']
+        train_pretrained_model = meta_info['train']['model']["pretrained_model_name_or_path"]
+        ds_res = meta_info["train"]["dataset"]["resolution"]
+        reg_res = meta_info["train"]["reg_dataset"]["resolution"]
         description_md = f"""
         * Due to Civitai's TOS, some images cannot be uploaded. **THE FULL PREVIEW IMAGES CAN BE FOUND ON [HUGGINGFACE](https://huggingface.co/{repository})**.
-        * THIS MODEL HAS TWO FILES. If you are using a1111's webui v1.6 or lower version, **<span style="color:#fa5252">YOU HAVE TO USE THEM TOGETHER!!!</span>**
-        * **The pruned character tags are {", ".join(meta_info["core_tags"])}, they will be useful when core feature of character trigger word is not so stable**.
+        * **THIS MODEL HAS 2 FILES**. If you are using a1111's webui v1.6 or lower version, **<span style="color:#fa5252">YOU HAVE TO USE THEM TOGETHER!!!</span>**. If you are using webui v1.7+, just use the safetensors file like the common LoRA.
+        * **The pruned character tags are {markdown_strings.esc_format(", ".join(meta_info["core_tags"]))}. You can add them into prompts when core features (e.g. hair color) of character is not so stable**.
         * Recommended weight of pt file is 0.7-1.1, weight of LoRA is 0.5-0.85. 
-        * Images were generated using a few fixed prompts and dataset-based clustered prompts. Random seeds were used, ruling out cherry-picking. **What you see here is what you can get.**
+        * Images were generated using some fixed prompts and dataset-based clustered prompts. Random seeds were used, ruling out cherry-picking. **What you see here is what you can get.**
         * No specialized training was done for outfits. You can check our provided preview post to get the prompts corresponding to the outfits.
         * This model is trained with **{plural_word(dataset_size, "image")}**.
 
@@ -142,29 +147,51 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         **<span style="color:#fa5252">THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER IF YOU ARE USING WEBUI v1.6 OR LOWER VERSION!!!</span>**. 
         In this case, you need to download both `{pt_file}` and `{lora_file}`, 
         then **put `{pt_file}` to the embeddings folder, and use `{lora_file}` as LoRA at the same time**.
+        **If you are using webui v1.7+, just use the safetensors file like the common LoRAs.**
+        This is because the embedding-bundled LoRA/Lycoris model are now officially supported by a1111's webui, 
+        see [here](https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/13568) for more details.
 
         **<span style="color:#fa5252">このモデルには2つのファイルがあります。WebUI v1.6 以下のバージョンを使用している場合は、これらを一緒に使用する必要があります！！！</span>**
         この場合、`{pt_file}` と `{lora_file}` の両方をダウンロードする必要があり、
         **その後、`{pt_file}` を `embeddings` フォルダに入れ、同時に `{lora_file}` をLoRAとして使用します**。
+        **webui v1.7+を使用している場合、一般的なLoRAsのようにsafetensorsファイルを使用してください。**
+        これは、埋め込みバンドルされたLoRA/Lycorisモデルが現在、a1111のwebuiに公式にサポートされているためです。
+        詳細については[こちら](https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/13568)をご覧ください。
 
         **<span style="color:#fa5252">此模型包含两个文件。如果您使用的是 WebUI v1.6 或更低版本，您需要同时使用这两个文件！</span>**
         在这种情况下，您需要下载 `{pt_file}` 和 `{lora_file}` 两个文件，
         然后**将 `{pt_file}` 放入 `embeddings` 文件夹中，并同时使用 `{lora_file}` 作为 LoRA**。
+        **如果您正在使用 webui v1.7 或更高版本，只需像常规 LoRAs 一样使用 safetensors 文件。**
+        这是因为嵌入式 LoRA/Lycoris 模型现在已经得到 a1111's webui 的官方支持，
+        更多详情请参见[这里](https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/13568)。
 
         (Translated with ChatGPT)
 
         The trigger word is `{name}`, and the pruned tags are `{', '.join(meta_info["core_tags"])}`.
         **When some features (e.g. hair color) are not so stable at some times, 
-        you can add these pruned tags into your prompt**.
+        you can add these them into your prompt**.
 
         ## How This Model Is Trained
 
-        This model is trained with [HCP-Diffusion](https://github.com/7eu7d7/HCP-Diffusion). 
-        And the auto-training framework is maintained by [DeepGHS Team](https://huggingface.co/deepghs).
+        * This model is trained with [HCP-Diffusion](https://github.com/7eu7d7/HCP-Diffusion).
+        * The [auto-training framework](https://github.com/deepghs/cyberharem) is maintained by 
+        [DeepGHS Team](https://huggingface.co/deepghs).
+        * The base model used for training is 
+        [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).
+        * Dataset used for training is the `{dataset_info["name"]}` in 
+        [{markdown_strings.esc_format(dataset_info["repository"])}](https://huggingface.co/datasets/{dataset_info["repository"]}),
+        which contains {plural_word(dataset_info["size"], "image")}.
+        * Batch size is {meta_info["train"]["dataset"]["bs"]}, resolution is {ds_res}x{ds_res}, 
+        clustering into {plural_word(meta_info["train"]["dataset"]["num_bucket"], "bucket")}.
+        * Batch size for regularization dataset is {meta_info["train"]["reg_dataset"]["bs"]}, 
+        resolution is {reg_res}x{reg_res}, clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.
+        * Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, 
+        {plural_word(len(meta_info["steps"]), "checkpoint")} were saved and evaluated.
         
-        For more training details, take a look at [huggingface repository - {repository}](https://huggingface.co/{repository}).
+        For more training details, take a look at 
+        [huggingface repository - {markdown_strings.esc_format(repository)}](https://huggingface.co/{repository}).
 
-        ## Why Some Preview Images Not Look Like {name}
+        ## Why Some Preview Images Not Look Like Her
 
         **All the prompt texts** used on the preview images (which can be viewed by clicking on the images) 
         **are automatically generated using clustering algorithms** based on feature information extracted from the 
@@ -179,9 +206,13 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         ## I Felt This Model May Be Overfitting or Underfitting, What Shall I Do
 
         **The step you see here is auto-selected**. We also recommend other good steps for you to try.
-        Our model has been published on [huggingface repository - {repository}](https://huggingface.co/{repository}), 
+        Click [here](https://huggingface.co/{repository}#which-step-should-i-use) to select your favourite step.
+        
+        Our model has been published on 
+        [huggingface repository - {markdown_strings.esc_format(repository)}](https://huggingface.co/{repository}), 
         where models of all the steps are saved. Also, we published the training dataset on 
-        [huggingface dataset - {repository}](https://huggingface.co/datasets/{repository}), which may be helpful to you.
+        [huggingface dataset - {markdown_strings.esc_format(repository)}](https://huggingface.co/datasets/{repository}), 
+        which may be helpful to you.
 
         ## Why Not Just Using The Better-Selected Images
 
@@ -228,7 +259,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             category='character',
             type_='LORA',
             # checkpoint_type='Trained',  # use this line when uploading checkpoint
-            commercial_use='Rent',  # your allowance of commercial use
+            commercial_use='Image',  # your allowance of commercial use
             allow_no_credit=True,
             allow_derivatives=True,
             allow_different_licence=True,
@@ -237,6 +268,10 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             exist_model_id=existing_model_id,
             # if your model has already been uploaded, put its id here to avoid duplicated creation
         )
+
+        if update_description_only:
+            logging.info('Only update description, quit.')
+            return
 
         # create or update version
         if existing_model_id:
@@ -250,7 +285,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         version_info = client.upsert_version(
             model_id=model_info['id'],
             version_name=meta_info['version'],
-            description_md=f'Model {name!r} version {meta_info["version"]}',
+            description_md=f'Model {markdown_strings.esc_format(name)} version {meta_info["version"]}',
             trigger_words=[name],
             base_model='SD 1.5',
             epochs=epoch,

@@ -268,7 +268,7 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                       f'[{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), '
                       f'which contains {plural_word(dataset_info["size"], "image")}.', file=f)
                 if meta_info['bangumi']:
-                    print(f'* The images in the dataset is cropped from anime videos, '
+                    print(f'* The images in the dataset is auto-cropped from anime videos, '
                           f'more images for other waifus in the same anime can be found in '
                           f'[{meta_info["bangumi"]}](https://huggingface.co/datasets/{meta_info["bangumi"]})', file=f)
 
@@ -283,10 +283,11 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                       f'clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.',
                       file=f)
                 print(f'* Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, '
-                      f'{plural_word(len(steps), "checkpoint")} were saved.', file=f)
+                      f'{plural_word(len(steps), "checkpoint")} were saved and evaluated.', file=f)
                 print(f'* **Trigger word is `{name}`.**', file=f)
                 print(f'* Pruned core tags for this waifu are `{", ".join(meta_info["core_tags"])}`. '
-                      f'You do NOT have to add them in your prompts.', file=f)
+                      f'You can add them to the prompt when some features of waifu '
+                      f'(e.g. hair color) are not stable.', file=f)
                 print(f'', file=f)
 
                 print(f'## How to Use It?', file=f)
