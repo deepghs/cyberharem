@@ -114,6 +114,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           CIVITAI_SESSION: ${{ secrets.CIVITAI_SESSION }}
         run: |
-          python -m cyberharem.publish.civitai \
+          python -m cyberharem.publish civitai \
             -r ${{ github.event.inputs.hf_repo }} \
             ${{ env.CH_P_STEP }} ${{ env.CH_P_DRAFT }} ${{ env.CH_P_PTIME }}
