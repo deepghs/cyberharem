@@ -126,7 +126,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         model_ids = sorted(set(model_ids))
         version_ids = sorted(set(version_ids))
 
-        client = CivitAIClient.load(civitai_session or os.environ.get('CIVITIA_SESSION'))
+        client = CivitAIClient.load(civitai_session or os.environ.get('CIVITAI_SESSION'))
         logging.info(f'Session check {client.whoami!r} ...')
 
         dataset_info = meta_info['dataset']
