@@ -126,8 +126,14 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         model_ids = sorted(set(model_ids))
         version_ids = sorted(set(version_ids))
 
-        client = CivitAIClient.load(civitai_session or os.environ.get('CIVITAI_SESSION'))
-        logging.info(f'Session check {client.whoami!r} ...')
+        civitai_session = civitai_session or os.environ.get('CIVITAI_SESSION')
+        logging.info(f'Checking civitai session based on {civitai_session!r} ...')
+        client = CivitAIClient.load(civitai_session)
+        whoami = client.whoami
+        if whoami:
+            logging.info(f'Session confirmed {whoami!r} ...')
+        else:
+            raise RuntimeError(f'Session not found in {civitai_session!r}.')
 
         dataset_info = meta_info['dataset']
         train_pretrained_model = meta_info['train']['model']["pretrained_model_name_or_path"]
