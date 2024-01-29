@@ -10,6 +10,10 @@ on:
         description: 'Repository on HuggingFace'
         type: str
         required: true
+      existing_model_id:
+        description: 'Existing Model ID on CivitAI'
+        type: int
+        default: ''
       step:
         description: 'Step to Publish (blank means auto select)'
         type: str
@@ -106,6 +110,16 @@ jobs:
         shell: bash
         run: |
           echo 'CH_P_PTIME=' >> $GITHUB_ENV
+      - name: Existing Model ID
+        if: ${{ github.event.inputs.existing_model_id != '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_EMID=--existing_model_id "${{ github.event.inputs.existing_model_id }}"' >> $GITHUB_ENV
+      - name: No Existing Model
+        if: ${{ github.event.inputs.existing_model_id == '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_EMID=' >> $GITHUB_ENV
       - name: Run Crawler
         shell: bash
         env:
@@ -116,4 +130,4 @@ jobs:
         run: |
           python -m cyberharem.publish civitai \
             -r ${{ github.event.inputs.hf_repo }} \
-            ${{ env.CH_P_STEP }} ${{ env.CH_P_DRAFT }} ${{ env.CH_P_PTIME }}
+            ${{ env.CH_P_STEP }} ${{ env.CH_P_DRAFT }} ${{ env.CH_P_PTIME }} ${{ env.CH_P_EMID }}
