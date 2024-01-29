@@ -39,7 +39,8 @@ def _extract_words_from_display_name(display_name: str):
 
 def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_nsfw: bool = False,
                            civitai_session: Optional[str] = None, publish_at: Optional[str] = None,
-                           draft: bool = False, update_description_only: bool = False):
+                           draft: bool = False, update_description_only: bool = False,
+                           existing_model_id: Optional[int] = None):
     hf_fs = get_hf_fs()
     meta_info = json.loads(hf_fs.read_text(f'{repository}/meta.json'))
     step = step or meta_info['best_step']
@@ -253,10 +254,11 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
 
         # create or update model
         tags = [*_extract_words_from_display_name(meta_info['display_name']), *meta_info['core_tags']]
-        try:
-            existing_model_id = civitai_find_online(meta_info['display_name'], creator=client.whoami.name).model_id
-        except ModelNotFound:
-            existing_model_id = None
+        if not existing_model_id:
+            try:
+                existing_model_id = civitai_find_online(meta_info['display_name'], creator=client.whoami.name).model_id
+            except ModelNotFound:
+                existing_model_id = None
 
         model_info = client.upsert_model(
             name=meta_info['display_name'],

@@ -64,7 +64,9 @@ def huggingface(workdir: str, repository, pretrained_model, width, height, clip_
               help='Allow uploading nsfw images.', show_default=True)
 @click.option('--update_description_only', '-D', 'update_description_only', is_flag=True, type=bool, default=False,
               help='Update the model description only.', show_default=True)
-def civitai(repository, step, draft, publish_time, allow_nsfw, update_description_only):
+@click.option('--existing_model_id', 'existing_model_id', type=int, default=None,
+              help='Existing model ID', show_default=True)
+def civitai(repository, step, draft, publish_time, allow_nsfw, update_description_only, existing_model_id):
     logging.try_init_root(logging.INFO)
     civitai_upload_from_hf(
         repository=repository,
@@ -73,6 +75,7 @@ def civitai(repository, step, draft, publish_time, allow_nsfw, update_descriptio
         publish_at=publish_time,
         draft=draft,
         update_description_only=update_description_only,
+        existing_model_id=existing_model_id,
     )
 
 
