@@ -320,12 +320,19 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
 
         # publish the model
         if not draft:
-            client.model_publish(
-                model_id=model_info['id'],
-                model_version_id=version_info['id'],
-                publish_at=publish_at,  # publish it at once when None
-                # publish_at='10 days later',  # schedule the publishing time
-            )
+            if not existing_model_id:
+                client.model_publish(
+                    model_id=model_info['id'],
+                    model_version_id=version_info['id'],
+                    publish_at=publish_at,  # publish it at once when None
+                    # publish_at='10 days later',  # schedule the publishing time
+                )
+            else:
+                client.model_version_publish(
+                    model_version_id=version_info['id'],
+                    publish_at=publish_at,  # publish it at once when None
+                    # publish_at='10 days later',  # schedule the publishing time
+                )
 
         # set associated resources
         if model_ids:
