@@ -1222,3 +1222,4 @@ fabric.properties
 /cfgs
 /prompt_tuning_template
 /output
+/.env*
