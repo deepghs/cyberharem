@@ -313,7 +313,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             model_files=[lora_path, pt_path],
         )
 
-        client.upload_images_for_model_version(
+        post_id = client.upload_images_for_model_version(
             model_version_id=version_info['id'],
             image_files=images_to_upload,
             tags=tags,  # tags of images
@@ -335,6 +335,12 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
                     publish_at=publish_at,  # publish it at once when None
                     # publish_at='10 days later',  # schedule the publishing time
                 )
+
+            client.post_publish(
+                post_id=post_id,
+                publish_at=publish_at,  # publish it at once when None
+                # publish_at='10 days later',  # schedule the publishing time
+            )
 
         # set associated resources
         if model_ids:
