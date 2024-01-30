@@ -137,6 +137,7 @@ def plt_metrics(df: pd.DataFrame, model_name: str, dataset_size: int, plot_file:
                  f'Best Step: {best_step}, CCIP: {best_step_info["ccip"]:.3f}, '
                  f'B-P: {best_step_info["bp"]:.3f}, AI-C: {best_step_info["aic"]:.3f}')
     plt.savefig(plot_file, dpi=150)
+    plt.cla()
 
     return df, df_selected
 
