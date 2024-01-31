@@ -92,9 +92,9 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             for img_file in tqdm(df['image'], desc='Detecting rating')
         ]
 
-        df = df[df['ccip'] >= (metrics_info['ccip'] - 0.015)]
-        df = df[df['bp'] >= (metrics_info['bp'] - 0.015)]
-        df = df[df['aic'] >= (metrics_info['aic'] - 0.03)]
+        df = df[df['ccip'] >= (metrics_info['ccip'] - 0.05)]
+        df = df[df['bp'] >= (metrics_info['bp'] - 0.05)]
+        df = df[df['aic'] >= max(metrics_info['aic'] - 0.3, metrics_info['aic'])]
 
         df['ccip_x'] = np.round(df['ccip'] * 30) / 30.0
         df['face_x'] = np.round(df['face'] * 20) / 20.0
