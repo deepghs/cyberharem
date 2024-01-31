@@ -99,8 +99,14 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         df['ccip_x'] = np.round(df['ccip'] * 30) / 30.0
         df['face_x'] = np.round(df['face'] * 20) / 20.0
         df = df.sort_values(by=['ccip_x', 'level', 'face_x'], ascending=False)
+        upload_groups = [
+            ('main', False, df[df['rating'] == 'safe']),
+            ('r15', False, df[df['rating'] == 'r15']),
+        ]
         if not allow_nsfw:
             df = df[df['rating'] != 'r18']
+        else:
+            upload_groups.append(('r18', True, df[df['rating'] == 'r18']))
 
         images_to_upload = [os.path.join(td, img_item) for img_item in df['image']]
         logging.info(f'{plural_word(len(images_to_upload), "image")} to upload.')
@@ -313,12 +319,20 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             model_files=[lora_path, pt_path],
         )
 
-        post_id = client.upload_images_for_model_version(
-            model_version_id=version_info['id'],
-            image_files=images_to_upload,
-            tags=tags,  # tags of images
-            nsfw=False,
-        )
+        post_ids = []
+        for group_name, group_is_nsfw, df_group in upload_groups:
+            local_images = [os.path.join(td, img_item) for img_item in df_group['image']]
+            if local_images:
+                logging.info(f'{plural_word(len(local_images), "image")} to upload for group {group_name!r}.')
+                post_id = client.upload_images_for_model_version(
+                    model_version_id=version_info['id'],
+                    image_files=local_images,
+                    tags=[*tags, group_name],  # tags of images
+                    nsfw=group_is_nsfw,
+                )
+                post_ids.append(post_id)
+            else:
+                logging.info(f'No images to upload for group {group_name!r}.')
 
         # publish the model
         if not draft:
@@ -336,11 +350,12 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
                     # publish_at='10 days later',  # schedule the publishing time
                 )
 
-            client.post_publish(
-                post_id=post_id,
-                publish_at=publish_at,  # publish it at once when None
-                # publish_at='10 days later',  # schedule the publishing time
-            )
+            for post_id in post_ids:
+                client.post_publish(
+                    post_id=post_id,
+                    publish_at=publish_at,  # publish it at once when None
+                    # publish_at='10 days later',  # schedule the publishing time
+                )
 
         # set associated resources
         if model_ids:
