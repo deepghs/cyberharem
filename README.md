@@ -162,6 +162,32 @@ deploy_to_huggingface(
 Images will be created for steps evaluation. After that, best steps will be recommended, and all the information
 (images, model files, data archives and LoRAs) will be pushed to model repository `my_hf_username/surtr_arknights`.
 
+## Upload to CivitAI
+
+Before uploading, you need to create a civitai session
+with [civitai_client](https://github.com/narugo1992/civitai_client).
+
+```python
+from cyberharem.publish import civitai_upload_from_hf
+
+civitai_upload_from_hf(
+    repository='my_hf_username/surtr_arknights',
+    civitai_session='your_civitai_session.json',
+
+    # use best step, you can use the step you like best
+    step=None,
+
+    # upload nsfw images (please attention the TOS of civitai)
+    allow_nsfw=True,
+
+    publish_at=None,  # publish now
+    # publish_at='2030-01-01 08:00:00+00:00', # schedule to publish at '2030-01-01 08:00:00+00:00'
+
+    # if you have already uploaded an older version, put the model id here
+    # existing_model_id=None,
+)
+```
+
 ## F.A.Q.
 
 ### Will Private Repository Or Local Directory Be Supported?
