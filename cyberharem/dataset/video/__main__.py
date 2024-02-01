@@ -10,6 +10,7 @@ from unidecode import unidecode
 
 from .bangumibase import sync_bangumi_base
 from .extract import extract_to_huggingface
+from ...utils import get_global_bg_namespace
 
 import_generic()
 
@@ -39,15 +40,15 @@ def huggingface(video_or_directory: str, bangumi_name: str,
                 repository: str, revision: str = 'main', min_size: int = 320, no_extract: bool = False):
     logging.try_init_root(logging.INFO)
     rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))
-    repository = repository or f"BangumiBase/{rname}"
+    repository = repository or f"{get_global_bg_namespace()}/{rname}"
     extract_to_huggingface(
         video_or_directory, bangumi_name, repository, revision,
         no_extract=no_extract, min_size=min_size
     )
 
 
-@cli.command('bgsync', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Sync index on BangumiBase')
-@click.option('--repository', '-r', 'repository', type=str, default='BangumiBase/README',
+@cli.command('bgsync', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help=f'Sync index on {get_global_bg_namespace()}')
+@click.option('--repository', '-r', 'repository', type=str, default=f'{get_global_bg_namespace()}/README',
               help='Repository to publish to.', show_default=True)
 def bgsync(repository: str):
     logging.try_init_root(logging.INFO)

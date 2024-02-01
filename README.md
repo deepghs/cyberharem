@@ -44,7 +44,7 @@ part: https://deepghs.github.io/cyberharem/main/index.html
 After that, run the following code
 
 ```python
-from cyberharem.source import DanbooruSource
+from waifuc.source import DanbooruSource
 
 from cyberharem.dataset import crawl_dataset_to_huggingface
 
@@ -76,7 +76,7 @@ In some cases, if you do not want it to process your dataset (e.g. your datasour
 as following
 
 ```python
-from cyberharem.source import LocalSource
+from waifuc.source import LocalSource
 
 from cyberharem.dataset import crawl_dataset_to_huggingface
 
@@ -94,6 +94,55 @@ crawl_dataset_to_huggingface(
     skip_preprocess=True,
 )
 ```
+
+### Batch Process Anime Videos
+
+First, you need to download the anime videos to your local environment (e.g. at folder `/my/anime/videos`)
+
+```shell
+set CH_BG_NAMESPACE=bg_namespace
+python -m cyberharem.dataset.video huggingface -i /my/anime/videos -n 'Name of The Anime'
+```
+
+Then the bangumi dataset will be pushed to `bg_namespace/nameoftheanime`.
+
+More options can be found with `-h` option
+
+```
+Usage: python -m cyberharem.dataset.video huggingface [OPTIONS]
+
+  Publish to huggingface
+
+Options:
+  -r, --repository TEXT   Repository to publish to.
+  -R, --revision TEXT     Revision for pushing the model.  [default: main]
+  -i, --input TEXT        Input videos.  [required]
+  -n, --name TEXT         Bangumi name  [required]
+  -s, --min_size INTEGER  Min size of image.  [default: 320]
+  -E, --no_extract        No extraction from videos.
+  -h, --help              Show this message and exit.
+```
+
+### Extract Training Dataset from Bangumi Dataset
+
+You can extract images from the bangumi dataset (e.g. `BangumiBase/fatestaynightufotable`,
+abovementioned `bg_namespace/nameoftheanime`), like this
+
+```python
+from cyberharem.dataset import crawl_base_to_huggingface
+
+crawl_base_to_huggingface(
+    # bangumi repository id
+    source_repository='BangumiBase/fatestaynightufotable',
+
+    ch_id=[18, 19],  # index numbers in bangumi repository
+    name='Illyasviel Von Einzbern',  # official name of this waifu
+    limit=1000,  # max number of images you need
+)
+```
+
+Then the bangumi-based dataset will be uploaded to `my_hf_username/illyasviel_von_einzbern_fatestaynightufotable`.
+Like this: https://huggingface.co/datasets/CyberHarem/illyasviel_von_einzbern_fatestaynightufotable .
 
 ## Train P-LoRA
 

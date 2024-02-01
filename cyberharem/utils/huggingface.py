@@ -44,4 +44,11 @@ _DEFAULT_NAMESPACE = 'CyberHarem'
 
 
 def get_global_namespace() -> str:
-    return os.environ.get('CH_NAMESPACE', _DEFAULT_NAMESPACE) or _DEFAULT_NAMESPACE
+    return os.environ.get('CH_NAMESPACE') or _DEFAULT_NAMESPACE
+
+
+_DEFAULT_BG_NAMESPACE = 'BangumiBase'
+
+
+def get_global_bg_namespace() -> str:
+    return os.environ.get('CH_BG_NAMESPACE') or os.environ.get('CH_NAMESPACE') or _DEFAULT_BG_NAMESPACE

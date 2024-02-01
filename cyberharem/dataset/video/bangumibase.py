@@ -18,7 +18,7 @@ from pyanimeinfo.myanimelist import JikanV4Client
 from requests.exceptions import HTTPError
 from tqdm.auto import tqdm
 
-from ...utils import get_hf_client, get_hf_fs, download_file
+from ...utils import get_hf_client, get_hf_fs, download_file, get_global_bg_namespace
 
 hf_client = get_hf_client()
 hf_fs = get_hf_fs()
@@ -76,7 +76,7 @@ def get_animelist_info(bangumi_name) -> Tuple[Optional[str], Optional[str]]:
     return bangumi_url, image_url
 
 
-def sync_bangumi_base(repository: str = 'BangumiBase/README'):
+def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
     cb_models = [item.modelId for item in hf_client.list_models(author='CyberHarem')]
     cb_datasets = [item.id for item in hf_client.list_datasets(author='CyberHarem')]
 
@@ -84,7 +84,7 @@ def sync_bangumi_base(repository: str = 'BangumiBase/README'):
         readme_file = os.path.join(td, 'README.md')
         with open(readme_file, 'w') as f:
             rows, total_images, total_clusters, total_animes = [], 0, 0, 0
-            for item in tqdm(list(hf_client.list_datasets(author='BangumiBase'))):
+            for item in tqdm(list(hf_client.list_datasets(author=get_global_bg_namespace()))):
                 if not hf_fs.exists(f'datasets/{item.id}/meta.json'):
                     logging.info(f'No meta information found for {item.id!r}, skipped')
                     continue
