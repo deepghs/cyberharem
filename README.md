@@ -1,5 +1,4 @@
-class LocalSource:
-pass# CyberHarem
+# CyberHarem
 
 CyberHarem Automated Waifu Training Pipeline
 
