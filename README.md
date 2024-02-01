@@ -1,6 +1,17 @@
 # CyberHarem
 
+![GitHub Org's stars](https://img.shields.io/github/stars/deepghs)
+[![GitHub stars](https://img.shields.io/github/stars/deepghs/cyberharem)](https://github.com/deepghs/cyberharem/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/deepghs/cyberharem)](https://github.com/deepghs/cyberharem/network)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/deepghs/cyberharem)
+[![GitHub issues](https://img.shields.io/github/issues/deepghs/cyberharem)](https://github.com/deepghs/cyberharem/issues)
+[![GitHub pulls](https://img.shields.io/github/issues-pr/deepghs/cyberharem)](https://github.com/deepghs/cyberharem/pulls)
+[![Contributors](https://img.shields.io/github/contributors/deepghs/cyberharem)](https://github.com/deepghs/cyberharem/graphs/contributors)
+[![GitHub license](https://img.shields.io/github/license/deepghs/cyberharem)](https://github.com/deepghs/cyberharem/blob/master/LICENSE)
+
 CyberHarem Automated Waifu Training Pipeline
+
+(NOTE: This project is still work in progress. It has only been tested on A100 80G, ubuntu environment.)
 
 ## Install
 
@@ -25,20 +36,22 @@ After set `CH_NAMESPACE`, your datasets or models will be saved to `my_hf_userna
 
 ### Create Dataset With Waifuc
 
-Here is the [waifuc project](https://github.com/deepghs/waifuc), an efficient train data collector for anime waifu.
-We recommend you to learn how to use it before start reading this part: https://deepghs.github.io/waifuc/main/index.html
+Here is the [cyberharem project](https://github.com/deepghs/cyberharem), an efficient train data collector for anime
+waifu.
+We recommend you to learn how to use it before start reading this
+part: https://deepghs.github.io/cyberharem/main/index.html
 
 After that, run the following code
 
 ```python
-from waifuc.source import DanbooruSource
+from cyberharem.source import DanbooruSource
 
 from cyberharem.dataset import crawl_dataset_to_huggingface
 
 s = DanbooruSource(['surtr_(arknights)'])
 
 crawl_dataset_to_huggingface(
-    # your waifuc datasource
+    # your cyberharem datasource
     source=s,
 
     # name of dataset, trigger word of model
@@ -63,7 +76,7 @@ In some cases, if you do not want it to process your dataset (e.g. your datasour
 as following
 
 ```python
-from waifuc.source import LocalSource
+from cyberharem.source import LocalSource
 
 from cyberharem.dataset import crawl_dataset_to_huggingface
 
@@ -195,7 +208,7 @@ civitai_upload_from_hf(
 No, and never will be. We developed and open-sourced this project with the intention of making the training of waifus
 simpler and more convenient, while also ensuring more stable quality control. Resources such as datasets and models
 should belong to all anime waifu enthusiasts. They are created by a wide range of anime artists and are collected and
-compiled fully automatically by tools like waifuc and cyberharem. **Our hope is for these resources to be widely
+compiled fully automatically by tools like cyberharem and cyberharem. **Our hope is for these resources to be widely
 circulated, rather than monopolized in any form**. If you do not agree with this philosophy, we do not recommend that
 you continue using this project.
 
