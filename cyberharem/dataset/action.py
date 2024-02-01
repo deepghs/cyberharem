@@ -20,4 +20,5 @@ if __name__ == '__main__':
         ch,
         limit=500,
         drop_multi=bool(os.environ.get('CH_DROP_MULTI')),
+        remove_empty_repo=False,
     )

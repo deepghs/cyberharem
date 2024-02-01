@@ -1,12 +1,9 @@
-import json
 import logging
-import os
 import random
 import time
 from typing import Optional, Dict
 
 import requests
-from huggingface_hub import hf_hub_download
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException
 
@@ -91,19 +88,6 @@ def get_requests_session(max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT, v
     })
     if not verify:
         session.verify = False
-
-    return session
-
-
-def get_civitai_session(
-        civitai_repository: str = 'narugo/civitai_session',
-        max_retries: int = 5, timeout: int = DEFAULT_TIMEOUT, verify: bool = True,
-        headers: Optional[Dict[str, str]] = None, session: Optional[requests.Session] = None) -> requests.Session:
-    session = get_requests_session(max_retries, timeout, verify, headers, session)
-    session_file = hf_hub_download(repo_id=civitai_repository, repo_type='dataset',
-                                   filename='session.json', token=os.environ['HF_TOKEN'])
-    with open(session_file, 'r', encoding='utf-8') as f:
-        session.cookies.update(json.load(f)['cookies'])
 
     return session
 

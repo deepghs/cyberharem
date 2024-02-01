@@ -177,7 +177,7 @@ def crawl_dataset_to_huggingface(
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = False, skip_preprocess: bool = False,
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 5,
-        bangumi_source_repository: Optional[str] = None,
+        bangumi_source_repository: Optional[str] = None, remove_empty_repo: bool = True,
 ):
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
@@ -225,10 +225,12 @@ def crawl_dataset_to_huggingface(
             if img_count < min_images:
                 logging.warn(f'Only {plural_word(img_count, "image")} found for {name} which is too few, '
                              f'skip post-processing and uploading.')
-                # if repo_new_created and hf_client.repo_exists(repo_id=repository, repo_type=repo_type):
-                #     hf_client.delete_repo(repo_id=repository, repo_type=repo_type)
-                hf_fs.write_text(f'datasets/{repository}/.git-empty', 'empty')
-                hf_fs.delete(f'datasets/{repository}/.git-ongoing')
+                if remove_empty_repo and repo_new_created and \
+                        hf_client.repo_exists(repo_id=repository, repo_type=repo_type):
+                    hf_client.delete_repo(repo_id=repository, repo_type=repo_type)
+                else:
+                    hf_fs.write_text(f'datasets/{repository}/.git-empty', 'empty')
+                    hf_fs.delete(f'datasets/{repository}/.git-ongoing')
                 return
 
             ch_core_tags, clu_samples = get_character_tags_info(LocalSource(origin_dir))
