@@ -15,7 +15,8 @@ pip install -r requirements.txt
 This project works on HuggingFace. You should **set the namespace on HuggingFace before start using it**
 
 ```shell
-set CH_NAMESPACE=my_hf_username
+export CH_NAMESPACE=my_hf_username
+export HF_TOKEN=your_huggingface_token
 ```
 
 After set `CH_NAMESPACE`, your datasets or models will be saved to `my_hf_username/xxxxx`.
