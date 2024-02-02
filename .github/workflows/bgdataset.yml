@@ -125,6 +125,6 @@ jobs:
         run: |
           python -m cyberharem.dataset.video extract \
             --source_repository ${{ github.event.inputs.bangumi_repository }} \
-            --name ${{ github.event.inputs.name }} \
+            --name "${{ github.event.inputs.name }}" \
             --ch_id ${{ github.event.inputs.ch_id }} \
             ${{ env.CH_P_LIMIT }} ${{ env.CH_P_REPO }} ${{ env.CH_P_NO_CCIP }}
