@@ -9,6 +9,7 @@ from gchar.utils import print_version as _origin_print_version
 from unidecode import unidecode
 
 from .bangumibase import sync_bangumi_base
+from .crawler import crawl_base_to_huggingface
 from .extract import extract_to_huggingface
 from ...utils import get_global_bg_namespace
 
@@ -44,6 +45,32 @@ def huggingface(video_or_directory: str, bangumi_name: str,
     extract_to_huggingface(
         video_or_directory, bangumi_name, repository, revision,
         no_extract=no_extract, min_size=min_size
+    )
+
+
+@cli.command('extract', context_settings={**GLOBAL_CONTEXT_SETTINGS},
+             help='Crawl character dataset to standalone repository')
+@click.option('--source_repository', '-R', 'source_repository', type=str, required=True,
+              help='Repository of bangumi dataset.', show_default=True)
+@click.option('--repository', '-r', 'repository', type=str, default=None,
+              help='Repository to publish to.', show_default=True)
+@click.option('--ch_id', 'character_ids', type=str, required=True,
+              help='Character IDs from bangumi repository (seperated with \',\')', show_default=True)
+@click.option('--name', '-N', 'name', type=str, required=True,
+              help='Name of the character.', show_default=True)
+@click.option('--limit', '-l', 'limit', type=int, default=1000,
+              help='Limit number of dataset.', show_default=True)
+@click.option('--no_ccip', 'no_ccip', is_flag=True, type=bool, default=False,
+              help='Do not run CCIP on dataset.', show_default=True)
+def extract(source_repository, repository, character_ids, name, limit, no_ccip):
+    ch_ids = sorted(map(int, filter(bool, map(str.strip, re.split(r'\s*,\s*', character_ids)))))
+    crawl_base_to_huggingface(
+        source_repository=source_repository,
+        repository=repository,
+        ch_id=ch_ids,
+        name=name,
+        limit=limit,
+        standalone_ccip=no_ccip,
     )
 
 
