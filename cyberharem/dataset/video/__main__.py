@@ -58,17 +58,20 @@ def huggingface(video_or_directory: str, bangumi_name: str,
               help='Character IDs from bangumi repository (seperated with \',\')', show_default=True)
 @click.option('--name', '-N', 'name', type=str, required=True,
               help='Name of the character.', show_default=True)
+@click.option('--display_name', type=str, default=None,
+              help='Display Name of the character', show_default=True)
 @click.option('--limit', '-l', 'limit', type=int, default=1000,
               help='Limit number of dataset.', show_default=True)
 @click.option('--no_ccip', 'no_ccip', is_flag=True, type=bool, default=False,
               help='Do not run CCIP on dataset.', show_default=True)
-def extract(source_repository, repository, character_ids, name, limit, no_ccip):
+def extract(source_repository, repository, character_ids, name, display_name, limit, no_ccip):
     ch_ids = sorted(map(int, filter(bool, map(str.strip, re.split(r'\s*,\s*', character_ids)))))
     crawl_base_to_huggingface(
         source_repository=source_repository,
         repository=repository,
         ch_id=ch_ids,
         name=name,
+        display_name=display_name,
         limit=limit,
         standalone_ccip=no_ccip,
     )

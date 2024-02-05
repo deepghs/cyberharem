@@ -19,6 +19,10 @@ on:
         description: 'Character IDs (Seperated with ,)'
         type: string
         required: true
+      display_name:
+        description: 'Display Name'
+        type: string
+        default: ''
       limit:
         description: 'Limit of Dataset Size'
         type: int
@@ -115,6 +119,16 @@ jobs:
         shell: bash
         run: |
           echo 'CH_P_LIMIT=' >> $GITHUB_ENV
+      - name: Set Display Name
+        if: ${{ github.event.inputs.display_name != '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_DISPLAY_NAME=--display_name "${{ github.event.inputs.display_name }}"' >> $GITHUB_ENV
+      - name: No Display Name
+        if: ${{ github.event.inputs.display_name == '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_DISPLAY_NAME=' >> $GITHUB_ENV
       - name: Run Crawler
         shell: bash
         env:
@@ -127,4 +141,4 @@ jobs:
             --source_repository ${{ github.event.inputs.bangumi_repository }} \
             --name "${{ github.event.inputs.name }}" \
             --ch_id ${{ github.event.inputs.ch_id }} \
-            ${{ env.CH_P_LIMIT }} ${{ env.CH_P_REPO }} ${{ env.CH_P_NO_CCIP }}
+            ${{ env.CH_P_LIMIT }} ${{ env.CH_P_REPO }} ${{ env.CH_P_NO_CCIP }} ${{ env.CH_P_DISPLAY_NAME }}
