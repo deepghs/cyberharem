@@ -66,7 +66,10 @@ def huggingface(workdir: str, repository, pretrained_model, width, height, clip_
               help='Update the model description only.', show_default=True)
 @click.option('--existing_model_id', 'existing_model_id', type=int, default=None,
               help='Existing model ID', show_default=True)
-def civitai(repository, step, draft, publish_time, allow_nsfw, update_description_only, existing_model_id):
+@click.option('--version_name', '-V', 'version_name', type=str, default=None,
+              help='Name of the version.', show_default=True)
+def civitai(repository, step, draft, publish_time, allow_nsfw, update_description_only, existing_model_id,
+            version_name):
     logging.try_init_root(logging.INFO)
     civitai_upload_from_hf(
         repository=repository,
@@ -76,6 +79,7 @@ def civitai(repository, step, draft, publish_time, allow_nsfw, update_descriptio
         draft=draft,
         update_description_only=update_description_only,
         existing_model_id=existing_model_id,
+        version_name=version_name,
     )
 
 

@@ -40,7 +40,7 @@ def _extract_words_from_display_name(display_name: str):
 def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_nsfw: bool = False,
                            civitai_session: Optional[str] = None, publish_at: Optional[str] = None,
                            draft: bool = False, update_description_only: bool = False,
-                           existing_model_id: Optional[int] = None):
+                           existing_model_id: Optional[int] = None, version_name: Optional[str] = None):
     hf_fs = get_hf_fs()
     meta_info = json.loads(hf_fs.read_text(f'{repository}/meta.json'))
     step = step or meta_info['best_step']
@@ -288,9 +288,10 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             return
 
         # create or update version
+        version_name = version_name or meta_info['version']
         if existing_model_id:
             try:
-                existing_version_id = civitai_find_online(existing_model_id, meta_info['version'],
+                existing_version_id = civitai_find_online(existing_model_id, version_name,
                                                           creator=client.whoami.name).version_id
             except (ModelVersionNotFound,):
                 existing_version_id = None
@@ -298,8 +299,8 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             existing_version_id = None
         version_info = client.upsert_version(
             model_id=model_info['id'],
-            version_name=meta_info['version'],
-            description_md=f'Model {markdown_strings.esc_format(name)} version {meta_info["version"]}',
+            version_name=version_name,
+            description_md=f'Model {markdown_strings.esc_format(name)} version {version_name}',
             trigger_words=[name],
             base_model='SD 1.5',
             epochs=epoch,

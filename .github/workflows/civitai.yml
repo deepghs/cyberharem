@@ -30,6 +30,10 @@ on:
         description: 'Do not publish, just create a draft'
         type: boolean
         default: false
+      version_name:
+        description: 'Custom Name of Version'
+        type: str
+        default: ''
 
 jobs:
   civitai_publish:
@@ -134,6 +138,16 @@ jobs:
         shell: bash
         run: |
           echo 'CH_P_NSFW=' >> $GITHUB_ENV
+      - name: Use Custom Version Name
+        if: ${{ github.event.inputs.version_name != '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_VERSION_NAME=--version_name "${{ github.event.inputs.version_name }}"' >> $GITHUB_ENV
+      - name: Use Default Version Name
+        if: ${{ github.event.inputs.version_name == '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_VERSION_NAME=' >> $GITHUB_ENV
       - name: Run Crawler
         shell: bash
         env:
@@ -144,4 +158,5 @@ jobs:
         run: |
           python -m cyberharem.publish civitai \
             -r ${{ github.event.inputs.hf_repo }} \
-            ${{ env.CH_P_STEP }} ${{ env.CH_P_DRAFT }} ${{ env.CH_P_PTIME }} ${{ env.CH_P_EMID }} ${{ env.CH_P_NSFW }}
+            ${{ env.CH_P_STEP }} ${{ env.CH_P_DRAFT }} ${{ env.CH_P_PTIME }} \
+            ${{ env.CH_P_EMID }} ${{ env.CH_P_NSFW }} ${{ env.CH_P_VERSION_NAME }}
