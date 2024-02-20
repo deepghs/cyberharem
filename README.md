@@ -36,10 +36,10 @@ After set `CH_NAMESPACE`, your datasets or models will be saved to `my_hf_userna
 
 ### Create Dataset With Waifuc
 
-Here is the [cyberharem project](https://github.com/deepghs/cyberharem), an efficient train data collector for anime
+Here is the [waifuc project](https://github.com/deepghs/waifuc), an efficient train data collector for anime
 waifu.
 We recommend you to learn how to use it before start reading this
-part: https://deepghs.github.io/cyberharem/main/index.html
+part: https://deepghs.github.io/waifuc/main/index.html
 
 After that, run the following code
 
