@@ -164,7 +164,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         * Images were generated using some fixed prompts and dataset-based clustered prompts. Random seeds were used, ruling out cherry-picking. **What you see here is what you can get.**
         * No specialized training was done for outfits. You can check our provided preview post to get the prompts corresponding to the outfits.
         * This model is trained with **{plural_word(dataset_size, "image")}**.
-        * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.
+        * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.**
         Here is the overview of all the steps. You can try the other recommended steps in
         [huggingface repository - {markdown_strings.esc_format(repository)}](https://huggingface.co/{repository}).
 
