@@ -61,6 +61,15 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             hf_token=os.environ.get('HF_TOKEN'),
         )
 
+        local_metrics_plot_png = os.path.join(td, f'metrics_plot.png')
+        download_file_to_file(
+            local_file=local_metrics_plot_png,
+            file_in_repo=f'metrics_plot.png',
+            repo_id=repository,
+            repo_type='model',
+            hf_token=os.environ.get('HF_TOKEN'),
+        )
+
         lora_file = f'{name}.safetensors'
         lora_path = os.path.join(td, lora_file)
         pt_file = f'{name}.pt'
@@ -146,6 +155,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         train_pretrained_model = meta_info['train']['model']["pretrained_model_name_or_path"]
         ds_res = meta_info["train"]["dataset"]["resolution"]
         reg_res = meta_info["train"]["reg_dataset"]["resolution"]
+        metrics_plot_url = client.upload_image(local_metrics_plot_png).original_url
         description_md = f"""
         * Due to Civitai's TOS, some images cannot be uploaded. **THE FULL PREVIEW IMAGES CAN BE FOUND ON [HUGGINGFACE](https://huggingface.co/{repository})**.
         * **THIS MODEL HAS 2 FILES**. If you are using a1111's webui v1.6 or lower version, **<span style="color:#fa5252">YOU HAVE TO USE THEM TOGETHER!!!</span>**. If you are using webui v1.7+, just use the safetensors file like the common LoRA.
@@ -154,6 +164,11 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         * Images were generated using some fixed prompts and dataset-based clustered prompts. Random seeds were used, ruling out cherry-picking. **What you see here is what you can get.**
         * No specialized training was done for outfits. You can check our provided preview post to get the prompts corresponding to the outfits.
         * This model is trained with **{plural_word(dataset_size, "image")}**.
+        * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.
+        Here is the overview of all the steps. You can try the other recommended steps in
+        [huggingface repository - {markdown_strings.esc_format(repository)}](https://huggingface.co/{repository}).
+
+        ![Step Overview]({metrics_plot_url})
 
         ## How to Use This Model
 
@@ -200,8 +215,9 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         resolution is {reg_res}x{reg_res}, clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.
         * Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, 
         {plural_word(len(meta_info["steps"]), "checkpoint")} were saved and evaluated.
+        * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.
         
-        For more training details, take a look at 
+        For more training details and recommended steps, take a look at 
         [huggingface repository - {markdown_strings.esc_format(repository)}](https://huggingface.co/{repository}).
 
         ## Why Some Preview Images Not Look Like Her
