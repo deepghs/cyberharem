@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 from ditk import logging
-from waifuc.source import DanbooruSource, AnimePicturesSource, ZerochanSource, EmptySource
+from waifuc.source import DanbooruSource, AnimePicturesSource, ZerochanSource, EmptySource, GelbooruSource
 
 from cyberharem.utils import get_global_namespace
 from .crawler import crawl_dataset_to_huggingface
@@ -14,6 +14,7 @@ logger.disabled = True
 
 def crawl_with_tags(name: str, display_name: str, repo_id: str, repo_type: str = 'dataset', revision: str = 'main',
                     ap_tag: Optional[str] = None, zc_tag: Optional[str] = None, db_tag: Optional[str] = None,
+                    gel_tag: Optional[str] = None,
                     drop_multi: bool = False, limit: Optional[int] = 500, private: bool = False):
     stage1, stage2 = EmptySource(), EmptySource()
     if ap_tag:
@@ -29,6 +30,11 @@ def crawl_with_tags(name: str, display_name: str, repo_id: str, repo_type: str =
             stage2 = stage2 | DanbooruSource([db_tag, 'solo'], min_size=3000)
         else:
             stage2 = stage2 | DanbooruSource([db_tag], min_size=3000)
+    if gel_tag:
+        if drop_multi:
+            stage2 = stage2 | GelbooruSource([gel_tag, 'solo'], min_size=3000)
+        else:
+            stage2 = stage2 | GelbooruSource([gel_tag], min_size=3000)
 
     source = stage1 + stage2
 
@@ -55,6 +61,7 @@ if __name__ == '__main__':
         ap_tag=os.environ.get('CH_AP_TAG'),
         zc_tag=os.environ.get('CH_ZC_TAG'),
         db_tag=os.environ.get('CH_DB_TAG'),
+        gel_tag=os.environ.get('CH_GEL_TAG'),
         drop_multi=bool(os.environ.get('CH_DROP_MULTI')),
         limit=ch_limit,
         private=bool(os.environ.get('CH_PRIVATE')),
