@@ -510,11 +510,13 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = 10):
 
             webhook.execute()
 
-        webhook = DiscordWebhook(
-            url=os.environ['DC_HF_WEBHOOK'],
-            content=f'Model files of `{meta_info["display_name"]}`'
-        )
-        for model_file in [lora_path, pt_path]:
-            with open(model_file, 'rb') as f:
-                webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
-        webhook.execute()
+        # # can not upload large files
+        # webhook = DiscordWebhook(
+        #     url=os.environ['DC_HF_WEBHOOK'],
+        #     content=f'Model files of `{meta_info["display_name"]}`'
+        # )
+        # for model_file in [lora_path, pt_path]:
+        #     with open(model_file, 'rb') as f:
+        #         webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
+        # response = webhook.execute()
+        # response.raise_for_status()
