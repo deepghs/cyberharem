@@ -402,7 +402,7 @@ def send_discord_publish_to_github_action(repository: str):
     )
 
 
-def publish_to_discord(repository: str, max_cnt: Optional[int] = 10):
+def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
     hf_fs = get_hf_fs()
     meta_info = json.loads(hf_fs.read_text(f'{repository}/meta.json'))
     step = meta_info['best_step']
