@@ -482,18 +482,12 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = 10):
             url=os.environ['DC_HF_WEBHOOK'],
             content=textwrap.dedent(f"""
                 Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
-                * The base model used for training is 
-                [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).
-                * Dataset used for training is the `{dataset_info["name"]}` in 
-                [{markdown_strings.esc_format(dataset_info["repository"])}](https://huggingface.co/datasets/{dataset_info["repository"]}),
-                which contains {plural_word(dataset_info["size"], "image")}.
-                * Batch size is {meta_info["train"]["dataset"]["bs"]}, resolution is {ds_res}x{ds_res}, 
-                clustering into {plural_word(meta_info["train"]["dataset"]["num_bucket"], "bucket")}.
-                * Batch size for regularization dataset is {meta_info["train"]["reg_dataset"]["bs"]}, 
-                resolution is {reg_res}x{reg_res}, clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.
-                * Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, 
-                {plural_word(len(meta_info["steps"]), "checkpoint")} were saved and evaluated.
-                * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.
+                * The base model used for training is [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).
+                * Dataset used for training is the `{dataset_info["name"]}` in [{markdown_strings.esc_format(dataset_info["repository"])}](https://huggingface.co/datasets/{dataset_info["repository"]}), which contains {plural_word(dataset_info["size"], "image")}.
+                * Batch size is {meta_info["train"]["dataset"]["bs"]}, resolution is {ds_res}x{ds_res}, clustering into {plural_word(meta_info["train"]["dataset"]["num_bucket"], "bucket")}.
+                * Batch size for regularization dataset is {meta_info["train"]["reg_dataset"]["bs"]}, resolution is {reg_res}x{reg_res}, clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.
+                * Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, {plural_word(len(meta_info["steps"]), "checkpoint")} were saved and evaluated.
+                * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.**
             """).strip(),
         )
         with open(local_metrics_plot_png, 'rb') as f:
@@ -522,6 +516,6 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = 10):
             content=f'Model files of `{meta_info["display_name"]}`'
         )
         for model_file in [lora_path, pt_path]:
-            with open(img_file, 'rb') as f:
+            with open(model_file, 'rb') as f:
                 webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
         webhook.execute()
