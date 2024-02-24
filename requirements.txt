@@ -33,3 +33,4 @@ filelock
 sdeval>=0.0.4
 safetensors
 markdown_strings
+discord-webhook

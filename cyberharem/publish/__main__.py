@@ -7,7 +7,7 @@ from gchar.utils import GLOBAL_CONTEXT_SETTINGS
 from gchar.utils import print_version as _origin_print_version
 
 from .civitai import civitai_upload_from_hf
-from .huggingface import deploy_to_huggingface
+from .huggingface import deploy_to_huggingface, publish_to_discord
 from ..infer.draw import _DEFAULT_INFER_MODEL
 
 import_generic()
@@ -49,6 +49,14 @@ def huggingface(workdir: str, repository, pretrained_model, width, height, clip_
             'height': height,
         },
     )
+
+
+@cli.command('hf_discord', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish hf model to discord.')
+@click.option('--repository', '-r', 'repository', type=str, default=None,
+              help='Repository to publish to.', show_default=True)
+def hf_discord(repository):
+    logging.try_init_root(logging.INFO)
+    publish_to_discord(repository)
 
 
 @cli.command('civitai', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish to huggingface')

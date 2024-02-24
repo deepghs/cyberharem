@@ -4,20 +4,24 @@ import json
 import math
 import os
 import shutil
+import textwrap
 import time
 import zipfile
 from textwrap import dedent
 from typing import Optional
 
+import markdown_strings
 import numpy as np
 import pandas as pd
+from discord_webhook import DiscordWebhook
 from ditk import logging
 from hbutils.scale import size_to_bytes_str
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
-from hfutils.operate import upload_directory_as_directory
+from hfutils.operate import upload_directory_as_directory, download_archive_as_directory, download_file_to_file
 from huggingface_hub import CommitOperationAdd, hf_hub_url
 from imgutils.sd import get_sdmeta_from_image
+from imgutils.validate import anime_rating
 from tqdm import tqdm
 
 from .convert import convert_to_webui_lora, pack_to_bundle_lora
@@ -25,6 +29,7 @@ from .export import _GITLFS, EXPORT_MARK
 from ..eval import eval_for_workdir, list_steps
 from ..infer.draw import list_rtag_names
 from ..utils import get_hf_client, get_hf_fs
+from ..utils.ghaction import GithubActionClient
 
 
 def _init_model_repo(repository: str):
@@ -77,7 +82,7 @@ def _dict_prune(d):
 
 
 def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
-                          steps_batch_size: int = 10):
+                          steps_batch_size: int = 10, discord_publish: bool = True):
     logging.info('Starting evaluation before deployment ...')
     eval_for_workdir(workdir, **(eval_cfgs or {}))
 
@@ -382,3 +387,141 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
             message=f'Upload model for {meta_info["display_name"]}',
             clear=True,
         )
+
+    if discord_publish and 'GH_TOKEN' in os.environ:
+        send_discord_publish_to_github_action(repository)
+
+
+def send_discord_publish_to_github_action(repository: str):
+    client = GithubActionClient()
+    client.create_workflow_run(
+        'deepghs/cyberharem',
+        'Discord HF Publish',
+        data={
+            'repository': repository,
+        }
+    )
+
+
+def publish_to_discord(repository: str, max_cnt: Optional[int] = 10):
+    hf_fs = get_hf_fs()
+    meta_info = json.loads(hf_fs.read_text(f'{repository}/meta.json'))
+    step = meta_info['best_step']
+    name = meta_info['name']
+    dataset_size = meta_info['dataset']['size']
+    bs = meta_info['train']['dataset']['bs']
+
+    with TemporaryDirectory() as td:
+        download_archive_as_directory(
+            local_directory=td,
+            file_in_repo=f'{step}/{name}.zip',
+            repo_id=repository,
+            repo_type='model',
+            hf_token=os.environ.get('HF_TOKEN'),
+        )
+
+        local_metrics_plot_png = os.path.join(td, f'metrics_plot.png')
+        download_file_to_file(
+            local_file=local_metrics_plot_png,
+            file_in_repo=f'metrics_plot.png',
+            repo_id=repository,
+            repo_type='model',
+            hf_token=os.environ.get('HF_TOKEN'),
+        )
+
+        lora_file = f'{name}.safetensors'
+        lora_path = os.path.join(td, lora_file)
+        pt_file = f'{name}.pt'
+        pt_path = os.path.join(td, pt_file)
+
+        details_csv_file = os.path.join(td, 'details.csv')
+        download_file_to_file(
+            local_file=details_csv_file,
+            file_in_repo=f'{step}/details.csv',
+            repo_id=repository,
+            repo_type='model',
+            hf_token=os.environ.get('HF_TOKEN'),
+        )
+
+        from .civitai import _detect_face_value
+
+        metrics_info = json.loads(hf_fs.read_text(f'{repository}/{step}/metrics.json'))
+        df = pd.read_csv(details_csv_file)
+        df['level'] = [
+            2 if 'smile' in img_file or 'portrait' in img_file else (
+                1 if 'pattern' in img_file else 0
+            )
+            for img_file in tqdm(df['image'], desc='Calculating face area')
+        ]
+        df['face'] = [
+            _detect_face_value(os.path.join(td, img_file))
+            for img_file in tqdm(df['image'], desc='Calculating face area')
+        ]
+        df['rating'] = [
+            anime_rating(os.path.join(td, img_file))[0]
+            for img_file in tqdm(df['image'], desc='Detecting rating')
+        ]
+
+        df = df[df['ccip'] >= (metrics_info['ccip'] - 0.05)]
+        df = df[df['bp'] >= (metrics_info['bp'] - 0.05)]
+        df = df[df['aic'] >= max(metrics_info['aic'] - 0.3, metrics_info['aic'] * 0.5)]
+
+        df['ccip_x'] = np.round(df['ccip'] * 30) / 30.0
+        df['face_x'] = np.round(df['face'] * 20) / 20.0
+        df = df[df['rating'] != 'r18']
+        df = df.sort_values(by=['ccip_x', 'level', 'face_x'], ascending=False)
+        if max_cnt is not None:
+            df = df[:max_cnt]
+
+        hf_url = f'https://huggingface.co/{repository}'
+        dataset_info = meta_info['dataset']
+        train_pretrained_model = meta_info['train']['model']["pretrained_model_name_or_path"]
+        ds_res = meta_info["train"]["dataset"]["resolution"]
+        reg_res = meta_info["train"]["reg_dataset"]["resolution"]
+        webhook = DiscordWebhook(
+            url=os.environ['DC_HF_WEBHOOK'],
+            content=textwrap.dedent(f"""
+                Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
+                * The base model used for training is 
+                [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).
+                * Dataset used for training is the `{dataset_info["name"]}` in 
+                [{markdown_strings.esc_format(dataset_info["repository"])}](https://huggingface.co/datasets/{dataset_info["repository"]}),
+                which contains {plural_word(dataset_info["size"], "image")}.
+                * Batch size is {meta_info["train"]["dataset"]["bs"]}, resolution is {ds_res}x{ds_res}, 
+                clustering into {plural_word(meta_info["train"]["dataset"]["num_bucket"], "bucket")}.
+                * Batch size for regularization dataset is {meta_info["train"]["reg_dataset"]["bs"]}, 
+                resolution is {reg_res}x{reg_res}, clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.
+                * Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, 
+                {plural_word(len(meta_info["steps"]), "checkpoint")} were saved and evaluated.
+                * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.
+            """).strip(),
+        )
+        with open(local_metrics_plot_png, 'rb') as f:
+            webhook.add_file(file=f.read(), filename=os.path.basename(local_metrics_plot_png))
+        webhook.execute()
+
+        upload_batch_size = 10
+        batch = int(math.ceil(len(df) / upload_batch_size))
+        for batch_id in range(batch):
+            webhook = DiscordWebhook(
+                url=os.environ['DC_HF_WEBHOOK'],
+                content=textwrap.dedent(f"""
+                    {plural_word(len(df), 'image')} here for preview.
+                """).strip() if batch_id == 0 else "",
+            )
+
+            for df_record in df[upload_batch_size * batch_id: upload_batch_size * (batch_id + 1)].to_dict('records'):
+                img_file = os.path.join(td, df_record['image'])
+                with open(img_file, 'rb') as f:
+                    webhook.add_file(file=f.read(), filename=os.path.basename(img_file))
+
+            webhook.execute()
+
+        webhook = DiscordWebhook(
+            url=os.environ['DC_HF_WEBHOOK'],
+            content=f'Model files of `{meta_info["display_name"]}`'
+        )
+        for model_file in [lora_path, pt_path]:
+            with open(img_file, 'rb') as f:
+                webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
+        webhook.execute()
