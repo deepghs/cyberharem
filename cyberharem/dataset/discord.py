@@ -10,6 +10,7 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import download_archive_as_directory
 from huggingface_hub import hf_hub_url
+from waifuc.action import AlignMaxAreaAction
 from waifuc.source import LocalSource
 
 from cyberharem.utils import get_hf_fs
@@ -51,7 +52,9 @@ def publish_to_discord(repository: str):
 
             dst_dir = os.path.join(td, 'dst')
             os.makedirs(dst_dir, exist_ok=True)
-            LocalSource(origin_dir, shuffle=True)[:10].export(dst_dir)
+            LocalSource(origin_dir, shuffle=True).attach(
+                AlignMaxAreaAction(1200),
+            )[:10].export(dst_dir)
 
             for img_file in glob.glob(os.path.join(dst_dir, '*.png')):
                 with open(img_file, 'rb') as f:
