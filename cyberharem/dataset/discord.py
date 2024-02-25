@@ -51,7 +51,7 @@ def publish_to_discord(repository: str):
 
             dst_dir = os.path.join(td, 'dst')
             os.makedirs(dst_dir, exist_ok=True)
-            LocalSource(origin_dir)[:10].export(dst_dir)
+            LocalSource(origin_dir, shuffle=True)[:10].export(dst_dir)
 
             for img_file in glob.glob(os.path.join(dst_dir, '*.png')):
                 with open(img_file, 'rb') as f:
