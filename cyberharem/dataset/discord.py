@@ -13,7 +13,19 @@ from huggingface_hub import hf_hub_url
 from waifuc.action import AlignMaxAreaAction, RatingFilterAction
 from waifuc.source import LocalSource
 
-from cyberharem.utils import get_hf_fs
+from ..utils import get_hf_fs
+from ..utils.ghaction import GithubActionClient
+
+
+def send_discord_publish_to_github_action(repository: str):
+    client = GithubActionClient()
+    client.create_workflow_run(
+        'deepghs/cyberharem',
+        'DC Dataset Publish',
+        data={
+            'repository': repository,
+        }
+    )
 
 
 def publish_to_discord(repository: str):

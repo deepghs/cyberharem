@@ -25,6 +25,7 @@ from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
 from waifuc.utils import task_ctx
 
 from .analysis import get_character_tags_info
+from .discord import send_discord_publish_to_github_action
 from ..utils import number_to_tag, get_ch_name, get_alphabet_name, get_hf_client, get_hf_fs, get_formal_title, \
     get_global_namespace
 
@@ -178,6 +179,7 @@ def crawl_dataset_to_huggingface(
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 5,
         bangumi_source_repository: Optional[str] = None, remove_empty_repo: bool = True,
+        discord_publish: bool = True,
 ):
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
@@ -440,6 +442,10 @@ def crawl_dataset_to_huggingface(
                 revision=revision,
                 clear=True,
             )
+
+            if discord_publish and 'GH_TOKEN' in os.environ:
+                send_discord_publish_to_github_action(repository)
+
     finally:
         if hf_fs.exists(f'datasets/{repository}/.git-ongoing'):
             hf_fs.rm(f'datasets/{repository}/.git-ongoing')
