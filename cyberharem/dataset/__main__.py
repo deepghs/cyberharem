@@ -22,3 +22,7 @@ def cli():
 def hf_discord(repository: str):
     logging.try_init_root(logging.INFO)
     publish_to_discord(repository)
+
+
+if __name__ == '__main__':
+    cli()
