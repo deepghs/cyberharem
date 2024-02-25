@@ -478,7 +478,7 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
         ds_res = meta_info["train"]["dataset"]["resolution"]
         reg_res = meta_info["train"]["reg_dataset"]["resolution"]
         webhook = DiscordWebhook(
-            url=os.environ['DC_HF_WEBHOOK'],
+            url=os.environ['DC_MODEL_WEBHOOK'],
             content=textwrap.dedent(f"""
                 Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
                 * The base model used for training is [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).
@@ -497,7 +497,7 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
         batch = int(math.ceil(len(df) / upload_batch_size))
         for batch_id in range(batch):
             webhook = DiscordWebhook(
-                url=os.environ['DC_HF_WEBHOOK'],
+                url=os.environ['DC_MODEL_WEBHOOK'],
                 content=textwrap.dedent(f"""
                     {plural_word(len(df), 'image')} here for preview.
                 """).strip() if batch_id == 0 else "",
@@ -512,7 +512,7 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
 
         # # can not upload large files
         # webhook = DiscordWebhook(
-        #     url=os.environ['DC_HF_WEBHOOK'],
+        #     url=os.environ['DC_MODEL_WEBHOOK'],
         #     content=f'Model files of `{meta_info["display_name"]}`'
         # )
         # for model_file in [lora_path, pt_path]:

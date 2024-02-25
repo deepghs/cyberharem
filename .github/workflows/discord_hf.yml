@@ -71,6 +71,6 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           CH_REPOSITORY: ${{ github.event.inputs.repository }}
-          DC_HF_WEBHOOK: ${{ secrets.DC_HF_WEBHOOK }}
+          DC_MODEL_WEBHOOK: ${{ secrets.DC_MODEL_WEBHOOK }}
         run: |
           python -m cyberharem.publish hf_discord --repository $CH_REPOSITORY
