@@ -10,6 +10,7 @@ from unidecode import unidecode
 
 from .bangumibase import sync_bangumi_base
 from .crawler import crawl_base_to_huggingface
+from .discord import publish_to_discord
 from .extract import extract_to_huggingface
 from ...utils import get_global_bg_namespace
 
@@ -46,6 +47,14 @@ def huggingface(video_or_directory: str, bangumi_name: str,
         video_or_directory, bangumi_name, repository, revision,
         no_extract=no_extract, min_size=min_size
     )
+
+
+@cli.command('hf_discord', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish to discord from huggingface')
+@click.option('--repository', '-r', 'repository', type=str, default=None,
+              help='Repository to publish to.', show_default=True)
+def hf_discord(repository: str):
+    logging.try_init_root(logging.INFO)
+    publish_to_discord(repository)
 
 
 @cli.command('extract', context_settings={**GLOBAL_CONTEXT_SETTINGS},
