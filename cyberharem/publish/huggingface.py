@@ -481,6 +481,8 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
             url=os.environ['DC_MODEL_WEBHOOK'],
             content=textwrap.dedent(f"""
                 Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
+                * **Trigger word is `{name}`.**
+                * **Pruned core tags for this waifu are `{", ".join(meta_info["core_tags"])}`.** You can add them to the prompt when some features of waifu (e.g. hair color) are not stable.
                 * The base model used for training is [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).
                 * Dataset used for training is the `{dataset_info["name"]}` in [{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), which contains {plural_word(dataset_info["size"], "image")}.
                 * Batch size is {meta_info["train"]["dataset"]["bs"]}, resolution is {ds_res}x{ds_res}, clustering into {plural_word(meta_info["train"]["dataset"]["num_bucket"], "bucket")}.
