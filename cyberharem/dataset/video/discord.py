@@ -12,6 +12,7 @@ from discord_webhook import DiscordWebhook
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import download_archive_as_directory
+from huggingface_hub import hf_hub_url
 from imgutils.validate import anime_bangumi_char
 from tqdm.auto import tqdm
 from waifuc.action import FilterAction
@@ -111,6 +112,12 @@ def publish_to_discord(repository: str, max_cnt: int = 30):
                 print(f"* MyAnimeList link of this anime: {page_url}", file=sio)
             print(f"* {plural_word(len(char_list), 'character')} were auto-clustered.", file=sio)
             print(f"* {plural_word(meta_info['total'], 'images')} were auto-extracted.", file=sio)
+
+            full_dataset_url = hf_hub_url(repo_id=repository, repo_type='dataset', filename='all.zip')
+            print(f'* You can download this full dataset by clicking [here]({full_dataset_url}).', file=sio)
+
+            reg_dataset_url = hf_hub_url(repo_id=repository, repo_type='dataset', filename='regular/normal.zip')
+            print(f'* We create a dataset for training regularization, [download it here]({reg_dataset_url}).', file=sio)
 
             webhook = DiscordWebhook(
                 url=os.environ['DC_BANGUMIBASE_WEBHOOK'],
