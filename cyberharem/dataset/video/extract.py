@@ -1,5 +1,4 @@
 import glob
-import glob
 import json
 import logging
 import os.path
@@ -289,7 +288,8 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
 
 def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
                            repository: str, revision: str = 'main', no_extract: bool = False,
-                           min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8):
+                           min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8,
+                           discord_publish: bool = True):
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
@@ -306,3 +306,7 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
             revision=revision,
             clear=True,
         )
+
+    if discord_publish and 'GH_TOKEN' in os.environ:
+        from .discord import send_discord_publish_to_github_action
+        send_discord_publish_to_github_action(repository)
