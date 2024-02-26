@@ -117,7 +117,8 @@ def publish_to_discord(repository: str, max_cnt: int = 30):
             print(f'* You can download this full dataset by clicking [here]({full_dataset_url}).', file=sio)
 
             reg_dataset_url = hf_hub_url(repo_id=repository, repo_type='dataset', filename='regular/normal.zip')
-            print(f'* We create a dataset for training regularization, [download it here]({reg_dataset_url}).', file=sio)
+            print(f'* We create a dataset for training regularization, [download it here]({reg_dataset_url}).',
+                  file=sio)
 
             webhook = DiscordWebhook(
                 url=os.environ['DC_BANGUMIBASE_WEBHOOK'],
