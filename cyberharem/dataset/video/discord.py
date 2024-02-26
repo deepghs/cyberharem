@@ -15,7 +15,7 @@ from hfutils.operate import download_archive_as_directory
 from huggingface_hub import hf_hub_url
 from imgutils.validate import anime_bangumi_char
 from tqdm.auto import tqdm
-from waifuc.action import FilterAction
+from waifuc.action import FilterAction, RatingFilterAction, AlignMaxAreaAction
 from waifuc.model import ImageItem
 from waifuc.source import LocalSource
 
@@ -71,6 +71,8 @@ def publish_to_discord(repository: str, max_cnt: int = 30):
                 for gt in [['face'], ['halfbody'], ['imagery']]:
                     with TemporaryDirectory() as etd:
                         LocalSource(origin_dir, shuffle=True).attach(
+                            AlignMaxAreaAction(1500),
+                            RatingFilterAction(['safe', 'r15']),
                             BangumiCharTypeFilterAction(gt),
                         )[:1].export(etd)
                         if glob.glob(os.path.join(etd, '*.png')):
