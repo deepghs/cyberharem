@@ -37,9 +37,10 @@ def publish_to_discord(repository: str):
         print(textwrap.dedent(f"""
             Dataset of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
             * The trigger word expected is `{meta_info['name']}`.
-            * Core tags of this character: `{', '.join(meta_info['core_tags'])}`.
+            * Core tags of this character: `{', '.join(meta_info['core_tags'])}`. **They are pruned in this dataset.**
             * **This dataset contains {plural_word(meta_info['base_size'], 'image')} as base**.
             * {plural_word(len(meta_info['clusters']), 'cluster')} detected in this dataset.
+            * The `raw` dataset are not pruned or pre-processed. You can directly use it in waifuc.
         """).strip(), file=sio)
 
         for key, data in meta_info['packages'].items():
