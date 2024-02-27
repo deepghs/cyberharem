@@ -64,7 +64,7 @@ def get_animelist_info(bangumi_name) -> Tuple[Optional[str], Optional[str]]:
         return None, None
 
     for item_ in items:
-        if item_['type'] and item_['type'].lower() in {"tv", "movie", "ova", "special"}:
+        if item_['type'] and item_['type'].lower() in {"tv", "movie", "ova", "special", "ona"}:
             item = item_
             break
     else:
