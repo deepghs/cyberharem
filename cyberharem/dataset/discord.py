@@ -44,10 +44,12 @@ def publish_to_discord(repository: str):
         """).strip(), file=sio)
 
         for key, data in meta_info['packages'].items():
-            print(f'* Package `{key}` contains {plural_word(data["size"], "image")}. '
-                  f'Type: `{data["type"]}`, Size: `{size_to_bytes_str(data["package_size"], precision=2)}`, '
-                  f'[Download Link]({hf_hub_url(repo_id=repository, filename=data["filename"], repo_type="dataset")}), '
-                  f'Description: {data["description"]}.', file=sio)
+            print(
+                f'* Package `{key}` contains {plural_word(data["size"], "image")}. '
+                f'Type: `{data["type"]}`, Size: `{size_to_bytes_str(data["package_size"], precision=2)}`, '
+                f'[Download Link]({hf_hub_url(repo_id=repository, filename=data["filename"], repo_type="dataset")}).',
+                file=sio
+            )
 
         webhook = DiscordWebhook(
             url=os.environ['DC_DATASET_WEBHOOK'],
