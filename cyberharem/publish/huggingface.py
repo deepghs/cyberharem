@@ -85,7 +85,7 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
     base_model_type = meta_info.get('base_model_type', 'SD1.5')
-    train_type = meta_info.get('train_type', 'LoKr')
+    train_type = meta_info.get('train_type', 'Pivotal LoRA')
 
     logging.info('Starting evaluation before deployment ...')
     if base_model_type == 'SD1.5':
