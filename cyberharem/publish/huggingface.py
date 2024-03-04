@@ -275,6 +275,8 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
             os.path.join(td, 'features.npy'),
         )
 
+        meta_info['base_model_type'] = base_model_type
+        meta_info['train_type'] = train_type
         meta_info['version'] = EXPORT_MARK
         meta_info['time'] = time.time()
         selected_steps = pd.read_csv(os.path.join(td, 'metrics_selected.csv'))['step'].tolist()
