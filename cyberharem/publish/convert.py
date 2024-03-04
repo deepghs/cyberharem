@@ -35,6 +35,21 @@ def convert_to_webui_lora(lora_path, lora_path_te, dump_path, auto_scale_alpha: 
     ckpt_manager._save_ckpt(state, save_path=dump_path)
 
 
+def convert_to_webui_lycoris(lycoris_path, lycoris_path_te, dump_path, auto_scale_alpha: bool = True):
+    from .lycoris import lycoris_to_webui_format
+
+    if lycoris_path_te:
+        logging.info(f'Converting lycoris model {lycoris_path!r} and {lycoris_path_te!r} to {dump_path!r} ...')
+    else:
+        logging.info(f'Converting lycoris model {lycoris_path!r} (unet only) to {dump_path!r} ...')
+    return lycoris_to_webui_format(
+        unet_file=lycoris_path,
+        text_encoder_file=lycoris_path_te,
+        output_file=dump_path,
+        auto_scale_alpha=auto_scale_alpha,
+    )
+
+
 def load_state_dict(file_path):
     is_safetensors = os.path.splitext(os.path.basename(file_path))[-1] == '.safetensors'
     if is_safetensors:

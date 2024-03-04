@@ -15,7 +15,7 @@ from sdeval.fidelity import CCIPMetrics
 from tqdm import tqdm
 
 from ..infer import draw_images_for_workdir
-from ..infer.draw import _DEFAULT_INFER_MODEL
+from ..infer.draw import _DEFAULT_INFER_MODEL, _DEFAULT_INFER_CFG_FILE_LORA
 
 
 def list_steps(workdir) -> List[int]:
@@ -147,7 +147,8 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
                      firstpass_width: int = 512, firstpass_height: int = 768,
                      width: int = 832, height: int = 1216, cfg_scale: float = 7, infer_steps: int = 30,
                      lora_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
-                     select: int = 5, fidelity_alpha: float = 3.0):
+                     select: int = 5, fidelity_alpha: float = 3.0,
+                     cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora'):
     logging.info(f'Evaluate for workdir {workdir!r} ...')
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
@@ -182,9 +183,11 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
                 height=height,
                 cfg_scale=cfg_scale,
                 infer_steps=infer_steps,
-                lora_alpha=lora_alpha,
+                model_alpha=lora_alpha,
                 clip_skip=clip_skip,
                 sample_method=sample_method,
+                cfg_file=cfg_file,
+                model_tag=model_tag,
             )
             logging.info(f'Saving images to {step_dir!r} ...')
             for drawing in tqdm(drawings):

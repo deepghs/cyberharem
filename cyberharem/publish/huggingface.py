@@ -23,10 +23,10 @@ from imgutils.sd import get_sdmeta_from_image
 from imgutils.validate import anime_rating
 from tqdm import tqdm
 
-from .convert import convert_to_webui_lora, pack_to_bundle_lora
+from .convert import convert_to_webui_lora, pack_to_bundle_lora, convert_to_webui_lycoris
 from .export import _GITLFS, EXPORT_MARK
 from ..eval import eval_for_workdir, list_steps
-from ..infer.draw import list_rtag_names
+from ..infer.draw import list_rtag_names, _DEFAULT_INFER_CFG_FILE_LORA, _DEFAULT_INFER_CFG_FILE_LOKR
 from ..utils import get_hf_client, get_hf_fs
 from ..utils.ghaction import GithubActionClient
 
@@ -81,12 +81,37 @@ def _dict_prune(d):
 
 
 def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
-                          steps_batch_size: int = 10, discord_publish: bool = True):
-    logging.info('Starting evaluation before deployment ...')
-    eval_for_workdir(workdir, **(eval_cfgs or {}))
-
+                          steps_batch_size: int = 10, discord_publish: bool = True, enable_bundle: bool = True):
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
+    base_model_type = meta_info.get('base_model_type', 'SD1.5')
+    train_type = meta_info.get('train_type', 'LoKr')
+
+    logging.info('Starting evaluation before deployment ...')
+    if base_model_type == 'SD1.5':
+        if train_type == 'Pivotal LoRA':
+            preset_eval_cfgs = dict(
+                cfg_file=_DEFAULT_INFER_CFG_FILE_LORA,
+                model_tag='lora',
+            )
+            is_pivotal = True
+            is_lycoris = False
+        elif train_type == 'LoKr':
+            preset_eval_cfgs = dict(
+                cfg_file=_DEFAULT_INFER_CFG_FILE_LOKR,
+                model_tag='lokr',
+            )
+            is_pivotal = False
+            is_lycoris = True
+        else:
+            raise f'Train type not supported - {train_type!r}.'
+    else:
+        raise f'Models other than SD1.5 not supported yet - {base_model_type!r}.'
+    if not is_pivotal:
+        logging.warning('No pivotal tuning required, so bundle is disabled.')
+        enable_bundle = False
+
+    eval_for_workdir(workdir, **{**preset_eval_cfgs, **(eval_cfgs or {})})
 
     name = meta_info['name']
     ds_repo = meta_info['dataset']['repository']
@@ -174,30 +199,59 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
             for model_file in glob.glob(os.path.join(workdir, 'ckpts', f'*-{step}.*')):
                 shutil.copyfile(model_file, os.path.join(step_raw_dir, os.path.basename(model_file)))
 
-            unet_file = os.path.join(step_raw_dir, f'unet-{step}.safetensors')
-            pt_file = os.path.join(step_raw_dir, f'{name}-{step}.pt')
-            raw_lora_file = os.path.join(step_dir, f'{name}_raw.safetensors')
-            logging.info(f'Dumping raw LoRA to {raw_lora_file!r}...')
-            convert_to_webui_lora(
-                lora_path=unet_file,
-                lora_path_te=None,
-                dump_path=raw_lora_file,
-            )
+            if is_lycoris:
+                unet_file = os.path.join(step_raw_dir, f'unet-lokr-{step}.safetensors')
+                if is_pivotal:
+                    pt_file = os.path.join(step_raw_dir, f'{name}-{step}.pt')
+                    text_encoder_file = None
+                else:
+                    pt_file = None
+                    text_encoder_file = os.path.join(step_raw_dir, f'text_encoder-lokr-{step}.safetensors')
+            else:
+                unet_file = os.path.join(step_raw_dir, f'unet-{step}.safetensors')
+                if is_pivotal:
+                    pt_file = os.path.join(step_raw_dir, f'{name}-{step}.pt')
+                    text_encoder_file = None
+                else:
+                    pt_file = None
+                    text_encoder_file = os.path.join(step_raw_dir, f'text_encoder-{step}.safetensors')
 
-            bundled_lora_file = os.path.join(step_dir, f'{name}.safetensors')
-            logging.info(f'Creating bundled LoRA to {bundled_lora_file!r} ...')
-            pack_to_bundle_lora(
-                lora_model=raw_lora_file,
-                embeddings={name: pt_file},
-                bundle_lora_path=bundled_lora_file,
-            )
-            shutil.copyfile(pt_file, os.path.join(step_dir, f'{name}.pt'))
+            raw_lora_file = os.path.join(step_dir, f'{name}_raw.safetensors')
+            if not is_lycoris:
+                logging.info(f'Dumping raw LoRA to {raw_lora_file!r}...')
+                convert_to_webui_lora(
+                    lora_path=unet_file,
+                    lora_path_te=text_encoder_file,
+                    dump_path=raw_lora_file,
+                )
+            else:
+                logging.info(f'Dumping raw LyCORIS to {raw_lora_file!r}...')
+                convert_to_webui_lycoris(
+                    lycoris_path=unet_file,
+                    lycoris_path_te=text_encoder_file,
+                    dump_path=raw_lora_file,
+                )
+
+            final_lora_file = os.path.join(step_dir, f'{name}.safetensors')
+            if enable_bundle:
+                logging.info(f'Creating bundled LoRA to {final_lora_file!r} ...')
+                pack_to_bundle_lora(
+                    lora_model=raw_lora_file,
+                    embeddings={name: pt_file},
+                    bundle_lora_path=final_lora_file,
+                )
+            else:
+                logging.info(f'No bundle required, just move lora file to {final_lora_file!r} ...')
+                shutil.move(raw_lora_file, final_lora_file)
+            if is_pivotal:
+                shutil.copyfile(pt_file, os.path.join(step_dir, f'{name}.pt'))
 
             zip_file = os.path.join(step_dir, f'{name}.zip')
             logging.info(f'Packing package {zip_file!r} ...')
             with zipfile.ZipFile(zip_file, 'w') as f:
-                f.write(bundled_lora_file, f'{name}.safetensors')
-                f.write(pt_file, f'{name}.pt')
+                f.write(final_lora_file, f'{name}.safetensors')
+                if is_pivotal:
+                    f.write(pt_file, f'{name}.pt')
                 for png_file in glob.glob(os.path.join(step_previews_dir, '*.png')):
                     f.write(png_file, os.path.basename(png_file))
 
@@ -249,12 +303,13 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                 print(f'---', file=f)
                 print(f'', file=f)
 
-                print(f'# Lora of {meta_info["display_name"]}', file=f)
+                print(f'# {"LyCORIS" if is_lycoris else "LoRA"} model of {meta_info["display_name"]}', file=f)
                 print(f'', file=f)
 
                 print(f'## What Is This?', file=f)
                 print(f'', file=f)
-                print(f'This is the LoRA model of waifu {meta_info["display_name"]}.', file=f)
+                print(f'This is the {"LyCORIS" if is_lycoris else "LoRA"} model of '
+                      f'waifu {meta_info["display_name"]}.', file=f)
                 print(f'', file=f)
 
                 print(f'## How Is It Trained?', file=f)
@@ -265,7 +320,11 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
 
                 train_pretrained_model = meta_info['train']['model']["pretrained_model_name_or_path"]
                 print(f'* The base model used for training is '
-                      f'[{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).', file=f)
+                      f'[{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}). '
+                      f'The architecture is `{base_model_type}`.', file=f)
+                if is_pivotal:
+                    print(f'* This model is pivotal-tuned, so it should have 2 files -- '
+                          f'a {"LyCORIS" if is_lycoris else "LoRA"} file and a embedding file.')
 
                 dataset_info = meta_info['dataset']
                 print(f'* Dataset used for training is the `{dataset_info["name"]}` in '
@@ -296,23 +355,27 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
 
                 print(f'## How to Use It?', file=f)
                 print(f'', file=f)
-                print(f'### If You Are Using A1111 WebUI v1.7+', file=f)
-                print(f'', file=f)
-                print(f'**Just use it like the classic LoRA**. '
-                      f'The LoRA we provided are bundled with the embedding file.', file=f)
-                print(f'', file=f)
-                print(f'### If You Are Using A1111 WebUI v1.6 or Lower', file=f)
-                print(f'', file=f)
+                if enable_bundle:
+                    print(f'### If You Are Using A1111 WebUI v1.7+', file=f)
+                    print(f'', file=f)
+                    print(f'**Just use it like the classic {"LyCORIS" if is_lycoris else "LoRA"}**. '
+                          f'The {"LyCORIS" if is_lycoris else "LoRA"} '
+                          f'we provided are bundled with the embedding file.', file=f)
+                    print(f'', file=f)
+                    print(f'### If You Are Using A1111 WebUI v1.6 or Lower', file=f)
+                    print(f'', file=f)
                 print(f'After downloading the pt and safetensors files for the specified step, '
                       f'you need to use them simultaneously. The pt file will be used as an embedding, '
-                      f'while the safetensors file will be loaded for Lora.', file=f)
+                      f'while the safetensors file will be loaded for {"LyCORIS" if is_lycoris else "LoRA"}.', file=f)
                 print(f'', file=f)
 
                 pt_url = hf_hub_url(repo_id=repository, repo_type='model', filename=f'{best_step}/{name}.pt')
-                lora_url = hf_hub_url(repo_id=repository, repo_type='model', filename=f'{best_step}/{name}.safetensors')
+                model_url = hf_hub_url(repo_id=repository, repo_type='model',
+                                       filename=f'{best_step}/{name}.safetensors')
                 print(f'For example, if you want to use the model from step {best_step}, '
                       f'you need to download [`{best_step}/{name}.pt`]({pt_url}) as the embedding and '
-                      f'[`{best_step}/{name}.safetensors`]({lora_url}) for loading Lora. '
+                      f'[`{best_step}/{name}.safetensors`]({model_url}) '
+                      f'for loading {"LyCORIS" if is_lycoris else "LoRA"}. '
                       f'By using both files together, you can generate images for the desired characters.', file=f)
                 print(f'', file=f)
 
@@ -346,12 +409,12 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                 print(f'## Anything Else?', file=f)
                 print(f'', file=f)
 
-                print(dedent("""
-                    Because the automation of LoRA training always annoys some people. So for the following groups, it is not recommended to use this model and we express regret:
+                print(dedent(f"""
+                    Because the automation of {"LyCORIS" if is_lycoris else "LoRA"} training always annoys some people. So for the following groups, it is not recommended to use this model and we express regret:
                     1. Individuals who cannot tolerate any deviations from the original character design, even in the slightest detail.
                     2. Individuals who are facing the application scenarios with high demands for accuracy in recreating character outfits.
                     3. Individuals who cannot accept the potential randomness in AI-generated images based on the Stable Diffusion algorithm.
-                    4. Individuals who are not comfortable with the fully automated process of training character models using LoRA, or those who believe that training character models must be done purely through manual operations to avoid disrespecting the characters.
+                    4. Individuals who are not comfortable with the fully automated process of training character models using {"LyCORIS" if is_lycoris else "LoRA"}, or those who believe that training character models must be done purely through manual operations to avoid disrespecting the characters.
                     5. Individuals who finds the generated image content offensive to their values.
                 """).strip(), file=f)
                 print(f'', file=f)

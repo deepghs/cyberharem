@@ -22,7 +22,8 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-_DEFAULT_INFER_CFG_FILE = 'cfgs/workflow/anime/highres_fix_anime_lora.yaml'
+_DEFAULT_INFER_CFG_FILE_LORA = 'cfgs/workflow/anime/highres_fix_anime_lora.yaml'
+_DEFAULT_INFER_CFG_FILE_LOKR = 'cfgs/workflow/anime/highres_fix_anime_lokr.yaml'
 _DEFAULT_INFER_MODEL = 'Meina/MeinaMix_V11'
 
 _KNOWN_MODEL_HASHES = {
@@ -80,8 +81,9 @@ def sample_method_to_config(method):
 def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], seeds: List[int],
                     model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
                     firstpass_width: int = 512, firstpass_height: int = 768, width: int = 832, height: int = 1216,
-                    cfg_scale: float = 7, infer_steps: int = 30, lora_alpha: float = 0.8,
-                    clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras') -> List[Image.Image]:
+                    cfg_scale: float = 7, infer_steps: int = 30, model_alpha: float = 0.8,
+                    clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
+                    cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') -> List[Image.Image]:
     unet_file = os.path.join(workdir, 'ckpts', f'unet-{model_steps}.safetensors')
     logging.info(f'Using unet file {unet_file!r} ...')
 
@@ -116,12 +118,11 @@ def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], se
             },
 
             'output_dir': output_dir,
-            'lora': {
-                'alpha': lora_alpha,
+            model_tag: {
+                'alpha': model_alpha,
                 'step': model_steps,
             }
         })
-        cfg_file = _DEFAULT_INFER_CFG_FILE
         logging.info(f'Infer based on {cfg_file!r}, with {cli_args!r}')
         cfgs = load_config_with_cli(cfg_file, args_list=cli_args)  # skip --cfg
 
@@ -185,8 +186,9 @@ def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts:
                 seeds: List[int], model_steps: int = 1000, n_repeats: int = 2,
                 pretrained_model: str = _DEFAULT_INFER_MODEL, model_hash: Optional[str] = None,
                 firstpass_width: int = 512, firstpass_height: int = 768, width: int = 832, height: int = 1216,
-                cfg_scale: float = 7, infer_steps: int = 30, lora_alpha: float = 0.8,
-                clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras') -> List[Drawing]:
+                cfg_scale: float = 7, infer_steps: int = 30, model_alpha: float = 0.8,
+                clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
+                cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') -> List[Drawing]:
     model_hash = model_hash or _KNOWN_MODEL_HASHES.get(pretrained_model) or None
     images: List[Image.Image] = raw_draw_images(
         workdir=workdir,
@@ -202,9 +204,11 @@ def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts:
         height=height,
         cfg_scale=cfg_scale,
         infer_steps=infer_steps,
-        lora_alpha=lora_alpha,
+        model_alpha=model_alpha,
         clip_skip=clip_skip,
-        sample_method=sample_method
+        sample_method=sample_method,
+        cfg_file=cfg_file,
+        model_tag=model_tag,
     )
 
     retval = []
@@ -245,7 +249,8 @@ def draw_images_for_workdir(workdir: str, model_steps: int, batch_size: int = 32
                             pretrained_model: str = _DEFAULT_INFER_MODEL, model_hash: Optional[str] = None,
                             firstpass_width: int = 512, firstpass_height: int = 768,
                             width: int = 832, height: int = 1216, cfg_scale: float = 7, infer_steps: int = 30,
-                            lora_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras') \
+                            model_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
+                            cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') \
         -> List[Drawing]:
     items = list_rtags(workdir)
     names, prompts, neg_prompts, seeds = [], [], [], []
@@ -276,9 +281,11 @@ def draw_images_for_workdir(workdir: str, model_steps: int, batch_size: int = 32
                     height=height,
                     cfg_scale=cfg_scale,
                     infer_steps=infer_steps,
-                    lora_alpha=lora_alpha,
+                    model_alpha=model_alpha,
                     clip_skip=clip_skip,
-                    sample_method=sample_method
+                    sample_method=sample_method,
+                    cfg_file=cfg_file,
+                    model_tag=model_tag,
                 )
             except RuntimeError as err:
                 n_repeats += 1
