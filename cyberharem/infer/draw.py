@@ -23,6 +23,7 @@ except ImportError:
     from yaml import Loader, Dumper
 
 _DEFAULT_INFER_CFG_FILE_LORA = 'cfgs/workflow/anime/highres_fix_anime_lora.yaml'
+_DEFAULT_INFER_CFG_FILE_LORA_SIMPLE = 'cfgs/workflow/anime/highres_fix_anime_lora_simple.yaml'
 _DEFAULT_INFER_CFG_FILE_LOKR = 'cfgs/workflow/anime/highres_fix_anime_lokr.yaml'
 _DEFAULT_INFER_MODEL = 'Meina/MeinaMix_V11'
 

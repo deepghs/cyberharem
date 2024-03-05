@@ -20,10 +20,10 @@ from ..infer.draw import _DEFAULT_INFER_MODEL, _DEFAULT_INFER_CFG_FILE_LORA
 
 def list_steps(workdir) -> List[int]:
     ckpts_dir = os.path.join(workdir, 'ckpts')
-    return sorted([
+    return sorted(set([
         int(os.path.splitext(os.path.basename(file))[0].split('-')[-1])
         for file in glob.glob(os.path.join(ckpts_dir, 'unet-*.safetensors'))
-    ])
+    ]))
 
 
 def plt_metrics(df: pd.DataFrame, model_name: str, dataset_size: int, plot_file: str,

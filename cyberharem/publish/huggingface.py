@@ -26,7 +26,8 @@ from tqdm import tqdm
 from .convert import convert_to_webui_lora, pack_to_bundle_lora, convert_to_webui_lycoris
 from .export import _GITLFS, EXPORT_MARK
 from ..eval import eval_for_workdir, list_steps
-from ..infer.draw import list_rtag_names, _DEFAULT_INFER_CFG_FILE_LORA, _DEFAULT_INFER_CFG_FILE_LOKR
+from ..infer.draw import list_rtag_names, _DEFAULT_INFER_CFG_FILE_LORA, _DEFAULT_INFER_CFG_FILE_LOKR, \
+    _DEFAULT_INFER_CFG_FILE_LORA_SIMPLE
 from ..utils import get_hf_client, get_hf_fs
 from ..utils.ghaction import GithubActionClient
 
@@ -95,6 +96,13 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                 model_tag='lora',
             )
             is_pivotal = True
+            is_lycoris = False
+        elif train_type == 'LoRA':
+            preset_eval_cfgs = dict(
+                cfg_file=_DEFAULT_INFER_CFG_FILE_LORA_SIMPLE,
+                model_tag='lora',
+            )
+            is_pivotal = False
             is_lycoris = False
         elif train_type == 'LoKr':
             preset_eval_cfgs = dict(
