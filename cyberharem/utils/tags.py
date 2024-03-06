@@ -117,7 +117,7 @@ def load_tags_from_directory(directory: str, core_threshold: float = 0.35, thres
     return core_tags, feats
 
 
-def repr_tags(tags: List[Union[str, Tuple[str, float]]]) -> str:
+def repr_tags(tags: List[Union[str, Tuple[str, float]]], left_curve: str = '{', right_curve: str = '}') -> str:
     _exists = set()
     _str_items = []
     for item in tags:
@@ -129,7 +129,7 @@ def repr_tags(tags: List[Union[str, Tuple[str, float]]]) -> str:
             continue
 
         if weight is not None:
-            _str_items.append(f'{{{tag}:{weight:.2f}}}')
+            _str_items.append(f'{left_curve}{tag}:{weight:.2f}{right_curve}')
         else:
             _str_items.append(tag)
         _exists.add(tag)

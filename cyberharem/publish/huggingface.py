@@ -8,7 +8,7 @@ import textwrap
 import time
 import zipfile
 from textwrap import dedent
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -81,6 +81,22 @@ def _dict_prune(d):
         return d
 
 
+def check_with_train_type(train_type: str = 'Pivotal LoRA') -> Tuple[bool, bool]:
+    if train_type == 'Pivotal LoRA':
+        is_pivotal = True
+        is_lycoris = False
+    elif train_type == 'LoRA':
+        is_pivotal = False
+        is_lycoris = False
+    elif train_type == 'LoKr':
+        is_pivotal = False
+        is_lycoris = True
+    else:
+        raise f'Train type not supported - {train_type!r}.'
+
+    return is_pivotal, is_lycoris
+
+
 def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
                           steps_batch_size: int = 10, discord_publish: bool = True, enable_bundle: bool = True):
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
@@ -90,29 +106,19 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
 
     logging.info('Starting evaluation before deployment ...')
     if base_model_type == 'SD1.5':
-        if train_type == 'Pivotal LoRA':
+        is_pivotal, is_lycoris = check_with_train_type(train_type)
+        if is_pivotal:
+            if is_lycoris:
+                raise 'Pivotal LyCORIS is not supported yet!'
             preset_eval_cfgs = dict(
                 cfg_file=_DEFAULT_INFER_CFG_FILE_LORA,
-                model_tag='lora',
+                model_tag='lora' if not is_lycoris else 'lokr',
             )
-            is_pivotal = True
-            is_lycoris = False
-        elif train_type == 'LoRA':
-            preset_eval_cfgs = dict(
-                cfg_file=_DEFAULT_INFER_CFG_FILE_LORA_SIMPLE,
-                model_tag='lora',
-            )
-            is_pivotal = False
-            is_lycoris = False
-        elif train_type == 'LoKr':
-            preset_eval_cfgs = dict(
-                cfg_file=_DEFAULT_INFER_CFG_FILE_LOKR,
-                model_tag='lokr',
-            )
-            is_pivotal = False
-            is_lycoris = True
         else:
-            raise f'Train type not supported - {train_type!r}.'
+            preset_eval_cfgs = dict(
+                cfg_file=_DEFAULT_INFER_CFG_FILE_LORA_SIMPLE if not is_lycoris else _DEFAULT_INFER_CFG_FILE_LOKR,
+                model_tag='lora' if not is_lycoris else 'lokr',
+            )
     else:
         raise f'Models other than SD1.5 not supported yet - {base_model_type!r}.'
     if not is_pivotal:
@@ -365,28 +371,42 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
 
                 print(f'## How to Use It?', file=f)
                 print(f'', file=f)
-                if enable_bundle:
-                    print(f'### If You Are Using A1111 WebUI v1.7+', file=f)
+                if is_pivotal:
+                    if enable_bundle:
+                        print(f'### If You Are Using A1111 WebUI v1.7+', file=f)
+                        print(f'', file=f)
+                        print(f'**Just use it like the classic {"LyCORIS" if is_lycoris else "LoRA"}**. '
+                              f'The {"LyCORIS" if is_lycoris else "LoRA"} '
+                              f'we provided are bundled with the embedding file.', file=f)
+                        print(f'', file=f)
+                        print(f'### If You Are Using A1111 WebUI v1.6 or Lower', file=f)
+                        print(f'', file=f)
+                    print(f'After downloading the pt and safetensors files for the specified step, '
+                          f'you need to use them simultaneously. The pt file will be used as an embedding, '
+                          f'while the safetensors file will be loaded for {"LyCORIS" if is_lycoris else "LoRA"}.',
+                          file=f)
                     print(f'', file=f)
-                    print(f'**Just use it like the classic {"LyCORIS" if is_lycoris else "LoRA"}**. '
-                          f'The {"LyCORIS" if is_lycoris else "LoRA"} '
-                          f'we provided are bundled with the embedding file.', file=f)
+                else:
+                    print(f'After downloading the safetensors files for the specified step, '
+                          f'you need to use them like common {"LyCORIS" if is_lycoris else "LoRA"}.',
+                          file=f)
                     print(f'', file=f)
-                    print(f'### If You Are Using A1111 WebUI v1.6 or Lower', file=f)
-                    print(f'', file=f)
-                print(f'After downloading the pt and safetensors files for the specified step, '
-                      f'you need to use them simultaneously. The pt file will be used as an embedding, '
-                      f'while the safetensors file will be loaded for {"LyCORIS" if is_lycoris else "LoRA"}.', file=f)
-                print(f'', file=f)
 
                 pt_url = hf_hub_url(repo_id=repository, repo_type='model', filename=f'{best_step}/{name}.pt')
                 model_url = hf_hub_url(repo_id=repository, repo_type='model',
                                        filename=f'{best_step}/{name}.safetensors')
-                print(f'For example, if you want to use the model from step {best_step}, '
-                      f'you need to download [`{best_step}/{name}.pt`]({pt_url}) as the embedding and '
-                      f'[`{best_step}/{name}.safetensors`]({model_url}) '
-                      f'for loading {"LyCORIS" if is_lycoris else "LoRA"}. '
-                      f'By using both files together, you can generate images for the desired characters.', file=f)
+                if enable_bundle:
+                    print(f'For example, if you want to use the model from step {best_step}, '
+                          f'you need to download [`{best_step}/{name}.pt`]({pt_url}) as the embedding and '
+                          f'[`{best_step}/{name}.safetensors`]({model_url}) '
+                          f'for loading {"LyCORIS" if is_lycoris else "LoRA"}. '
+                          f'By using both files together, you can generate images for the desired characters.', file=f)
+                else:
+                    print(f'For example, if you want to use the model from step {best_step}, '
+                          f'you need to download [`{best_step}/{name}.safetensors`]({model_url}) '
+                          f'as {"LyCORIS" if is_lycoris else "LoRA"}. '
+                          f'By using this {"LyCORIS" if is_lycoris else "LoRA"} model, '
+                          f'you can generate images for the desired characters.', file=f)
                 print(f'', file=f)
 
                 print(f'## Which Step Should I Use?', file=f)
@@ -483,6 +503,14 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
     dataset_size = meta_info['dataset']['size']
     bs = meta_info['train']['dataset']['bs']
 
+    base_model_type = meta_info.get('base_model_type', 'SD1.5')
+    train_type = meta_info.get('train_type', 'Pivotal LoRA')
+
+    if base_model_type == 'SD1.5':
+        is_pivotal, is_lycoris = check_with_train_type(train_type)
+    else:
+        raise f'Models other than SD1.5 not supported yet - {base_model_type!r}.'
+
     with TemporaryDirectory() as td:
         download_archive_as_directory(
             local_directory=td,
@@ -501,10 +529,15 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
             hf_token=os.environ.get('HF_TOKEN'),
         )
 
+        model_files = []
         lora_file = f'{name}.safetensors'
         lora_path = os.path.join(td, lora_file)
+        if os.path.exists(lora_path):
+            model_files.append(lora_path)
         pt_file = f'{name}.pt'
         pt_path = os.path.join(td, pt_file)
+        if os.path.exists(pt_path):
+            model_files.append(pt_path)
 
         details_csv_file = os.path.join(td, 'details.csv')
         download_file_to_file(
@@ -553,10 +586,10 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
         webhook = DiscordWebhook(
             url=os.environ['DC_MODEL_WEBHOOK'],
             content=textwrap.dedent(f"""
-                Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
+                {"LyCORIS" if is_lycoris else "LoRA"} Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
                 * **Trigger word is `{name}`.**
                 * **Pruned core tags for this waifu are `{", ".join(meta_info["core_tags"])}`.** You can add them to the prompt when some features of waifu (e.g. hair color) are not stable.
-                * The base model used for training is [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).
+                * The base model used for training is [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}). Architecture is `{base_model_type}`.
                 * Dataset used for training is the `{dataset_info["name"]}` in [{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), which contains {plural_word(dataset_info["size"], "image")}.
                 * Batch size is {meta_info["train"]["dataset"]["bs"]}, resolution is {ds_res}x{ds_res}, clustering into {plural_word(meta_info["train"]["dataset"]["num_bucket"], "bucket")}.
                 * Batch size for regularization dataset is {meta_info["train"]["reg_dataset"]["bs"]}, resolution is {reg_res}x{reg_res}, clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.
@@ -585,13 +618,13 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
 
             webhook.execute()
 
-        # # can not upload large files
-        # webhook = DiscordWebhook(
-        #     url=os.environ['DC_MODEL_WEBHOOK'],
-        #     content=f'Model files of `{meta_info["display_name"]}`'
-        # )
-        # for model_file in [lora_path, pt_path]:
-        #     with open(model_file, 'rb') as f:
-        #         webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
-        # response = webhook.execute()
-        # response.raise_for_status()
+        # can not upload large files
+        webhook = DiscordWebhook(
+            url=os.environ['DC_MODEL_WEBHOOK'],
+            content=f'{"LyCORIS" if is_lycoris else "LoRA"} Model {"files" if len(model_files) > 1 else "file"} of `{meta_info["display_name"]}`'
+        )
+        for model_file in model_files:
+            with open(model_file, 'rb') as f:
+                webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
+        response = webhook.execute()
+        response.raise_for_status()

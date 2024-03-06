@@ -82,8 +82,8 @@ def sample_method_to_config(method):
 def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], seeds: List[int],
                     model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
                     firstpass_width: int = 512, firstpass_height: int = 768, width: int = 832, height: int = 1216,
-                    cfg_scale: float = 7, infer_steps: int = 30, model_alpha: float = 0.8,
-                    clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
+                    cfg_scale: float = 7, infer_steps: int = 30, hires_steps: int = 18,
+                    model_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
                     cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') -> List[Image.Image]:
     unet_file = os.path.join(workdir, 'ckpts', f'unet-{model_steps}.safetensors')
     logging.info(f'Using unet file {unet_file!r} ...')
@@ -115,6 +115,7 @@ def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], se
                 'height': height,
                 'guidance_scale': cfg_scale,
                 'num_inference_steps': infer_steps,
+                'hires_inference_steps': hires_steps,
                 'scheduler': sample_method_to_config(sample_method),
             },
 
@@ -149,10 +150,13 @@ class Drawing:
     prompt: str
     neg_prompt: str
     seed: int
+    firstpass_width: int
+    firstpass_height: int
     width: int
     height: int
     cfg_scale: float
     infer_steps: int
+    hires_steps: int
     image: Image.Image
     sample_method: str
     clip_skip: int
@@ -166,7 +170,10 @@ class Drawing:
             'Sampler': self.sample_method,
             'CFG scale': self.cfg_scale,
             'Seed': self.seed,
-            'Size': (self.width, self.height),
+            'Size': (self.firstpass_width, self.firstpass_height),
+            'Hires resize': (self.width, self.height),
+            'Hires steps': self.hires_steps,
+            'Hires upscaler': 'Latent (bicubic)',
             'Model': self.model,
             'Clip skip': self.clip_skip,
         }
@@ -184,11 +191,12 @@ class Drawing:
 
 
 def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts: List[str],
+                prompt_reprs: List[str], neg_prompt_reprs: List[str],
                 seeds: List[int], model_steps: int = 1000, n_repeats: int = 2,
                 pretrained_model: str = _DEFAULT_INFER_MODEL, model_hash: Optional[str] = None,
                 firstpass_width: int = 512, firstpass_height: int = 768, width: int = 832, height: int = 1216,
-                cfg_scale: float = 7, infer_steps: int = 30, model_alpha: float = 0.8,
-                clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
+                cfg_scale: float = 7, infer_steps: int = 30, hires_steps: int = 18,
+                model_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
                 cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') -> List[Drawing]:
     model_hash = model_hash or _KNOWN_MODEL_HASHES.get(pretrained_model) or None
     images: List[Image.Image] = raw_draw_images(
@@ -205,6 +213,7 @@ def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts:
         height=height,
         cfg_scale=cfg_scale,
         infer_steps=infer_steps,
+        hires_steps=hires_steps,
         model_alpha=model_alpha,
         clip_skip=clip_skip,
         sample_method=sample_method,
@@ -213,16 +222,20 @@ def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts:
     )
 
     retval = []
-    for name, image, seed, prompt, neg_prompt in zip(names, images, seeds, prompts, neg_prompts):
+    for name, image, seed, prompt, neg_prompt, prompt_repr, neg_prompt_repr in (
+            zip(names, images, seeds, prompts, neg_prompts, prompt_reprs, neg_prompt_reprs)):
         retval.append(Drawing(
             name=name,
-            prompt=prompt,
-            neg_prompt=neg_prompt,
+            prompt=prompt_repr if prompt_repr is not None else prompt,
+            neg_prompt=neg_prompt_repr if neg_prompt_repr is not None else neg_prompt,
             seed=seed,
+            firstpass_width=firstpass_width,
+            firstpass_height=firstpass_height,
             width=width,
             height=height,
             cfg_scale=cfg_scale,
             infer_steps=infer_steps,
+            hires_steps=hires_steps,
             image=image,
             sample_method=sample_method,
             clip_skip=clip_skip,
@@ -233,12 +246,17 @@ def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts:
     return retval
 
 
-def list_rtags(workdir: str) -> List[Tuple[int, str, str, str, int]]:
+def list_rtags(workdir: str) -> List[Tuple[int, str, Tuple[str, str], Tuple[str, str], int]]:
     items = []
     for rtag_file in glob.glob(os.path.join(workdir, 'rtags', '*.json')):
         with open(rtag_file, 'r') as f:
             data = json.load(f)
-        items.append((data['index'], data['name'], data['prompt'], data['neg_prompt'], data['seed']))
+        items.append((
+            data['index'], data['name'],
+            (data['prompt'], data['neg_prompt']),
+            (data['prompt_repr'], data['neg_prompt_repr']),
+            data['seed']
+        ))
     return sorted(items)
 
 
@@ -249,16 +267,19 @@ def list_rtag_names(workdir: str) -> List[str]:
 def draw_images_for_workdir(workdir: str, model_steps: int, batch_size: int = 32, n_repeats: int = 2,
                             pretrained_model: str = _DEFAULT_INFER_MODEL, model_hash: Optional[str] = None,
                             firstpass_width: int = 512, firstpass_height: int = 768,
-                            width: int = 832, height: int = 1216, cfg_scale: float = 7, infer_steps: int = 30,
+                            width: int = 832, height: int = 1216, cfg_scale: float = 7,
+                            infer_steps: int = 30, hires_steps: int = 18,
                             model_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
                             cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') \
         -> List[Drawing]:
     items = list_rtags(workdir)
-    names, prompts, neg_prompts, seeds = [], [], [], []
-    for _, name, prompt, neg_prompt, seed in items:
+    names, prompts, neg_prompts, prompt_reprs, neg_prompt_reprs, seeds = [], [], [], [], [], []
+    for _, name, (prompt, neg_prompt), (prompt_repr, neg_prompt_repr), seed in items:
         names.append(name)
         prompts.append(prompt)
         neg_prompts.append(neg_prompt)
+        prompt_reprs.append(prompt_repr)
+        neg_prompt_reprs.append(neg_prompt_repr)
         seeds.append(seed)
 
     batch_count = int(math.ceil(len(names) / batch_size))
@@ -271,6 +292,8 @@ def draw_images_for_workdir(workdir: str, model_steps: int, batch_size: int = 32
                     names=names[i * batch_size: (i + 1) * batch_size],
                     prompts=prompts[i * batch_size: (i + 1) * batch_size],
                     neg_prompts=neg_prompts[i * batch_size: (i + 1) * batch_size],
+                    prompt_reprs=prompt_reprs[i * batch_size: (i + 1) * batch_size],
+                    neg_prompt_reprs=neg_prompt_reprs[i * batch_size: (i + 1) * batch_size],
                     seeds=seeds[i * batch_size: (i + 1) * batch_size],
                     model_steps=model_steps,
                     model_hash=model_hash,
@@ -282,6 +305,7 @@ def draw_images_for_workdir(workdir: str, model_steps: int, batch_size: int = 32
                     height=height,
                     cfg_scale=cfg_scale,
                     infer_steps=infer_steps,
+                    hires_steps=hires_steps,
                     model_alpha=model_alpha,
                     clip_skip=clip_skip,
                     sample_method=sample_method,
