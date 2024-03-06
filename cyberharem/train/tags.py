@@ -365,13 +365,16 @@ def save_recommended_tags(character_name: str, clusters, workdir: str, base: int
             pos_words = [*generic_words, (character_name, _DEFAULT_NAME_WEIGHT), *item['tags']]
             pos_prompt_ = repr_tags(pos_words)
             neg_prompt_ = repr_tags(generic_neg_words)
+            pos_prompt_repr_ = repr_tags(pos_words, left_curve='(', right_curve=')')
+            neg_prompt_repr_ = repr_tags(generic_neg_words, left_curve='(', right_curve=')')
 
             cnt = int(min(max(math.log(item['size'] / base) / math.log(scale) + 1, 1), 3))
             if cnt > 1:
                 for i in range(cnt):
-                    yield f'{base_name}_{i}', pos_prompt_, neg_prompt_, _random_seed()
+                    yield (f'{base_name}_{i}', (pos_prompt_, neg_prompt_), (pos_prompt_repr_, neg_prompt_repr_),
+                           _random_seed())
             else:
-                yield base_name, pos_prompt_, neg_prompt_, _random_seed()
+                yield base_name, (pos_prompt_, neg_prompt_), (pos_prompt_repr_, neg_prompt_repr_), _random_seed()
 
         for name_, func_, repeats in EXTRAS:
             pos_words, neg_words, seed_ = func_(character_name)
