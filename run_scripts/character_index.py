@@ -15,12 +15,15 @@ from hbutils.system import TemporaryDirectory
 from hfutils.operate import upload_directory_as_directory
 from huggingface_hub import hf_hub_download
 from imgutils.metrics import ccip_extract_feature
+from imgutils.validate import anime_completeness
 from natsort import natsorted
 from tqdm import tqdm
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
-    AlignMinSizeAction, FileExtAction, FileOrderAction, PaddingAlignAction, ArrivalAction, RatingFilterAction
+    AlignMinSizeAction, FileExtAction, FileOrderAction, PaddingAlignAction, ArrivalAction, RatingFilterAction, \
+    FilterAction
 from waifuc.export import SaveExporter
+from waifuc.model import ImageItem
 from waifuc.source import DanbooruSource, LocalSource
 
 from cyberharem.dataset.analysis import get_character_tags_info
@@ -37,6 +40,12 @@ def _get_df_tags():
     df = df.sort_values(['post_count'], ascending=False)
     df = df[df['post_count'] >= 500]
     return df
+
+
+class CCFilterAction(FilterAction):
+    def check(self, item: ImageItem) -> bool:
+        type_, score = anime_completeness(item.image)
+        return type_ == 'polished'
 
 
 def _name_safe(name_text):
@@ -107,6 +116,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 ModeConvertAction('RGB', 'white'),
 
                 # pre-filtering for images
+                CCFilterAction(),
                 RatingFilterAction(['safe', 'r15']),
                 NoMonochromeAction(),  # no monochrome, greyscale or sketch
                 ClassFilterAction(['illustration', 'bangumi']),  # no comic or 3d
