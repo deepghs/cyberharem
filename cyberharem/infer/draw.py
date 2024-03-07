@@ -82,7 +82,8 @@ def sample_method_to_config(method):
 def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], seeds: List[int],
                     model_steps: int = 1000, n_repeats: int = 2, pretrained_model: str = _DEFAULT_INFER_MODEL,
                     firstpass_width: int = 512, firstpass_height: int = 768, width: int = 832, height: int = 1216,
-                    cfg_scale: float = 7, infer_steps: int = 30, hires_steps: int = 18,
+                    cfg_scale: float = 7, infer_steps: int = 30,
+                    denoising_strength: float = 0.5, hires_steps: int = 20,
                     model_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
                     cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') -> List[Image.Image]:
     unet_file = os.path.join(workdir, 'ckpts', f'unet-{model_steps}.safetensors')
@@ -116,6 +117,7 @@ def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], se
                 'guidance_scale': cfg_scale,
                 'num_inference_steps': infer_steps,
                 'hires_inference_steps': hires_steps,
+                'denoising_strength': denoising_strength,
                 'scheduler': sample_method_to_config(sample_method),
             },
 
@@ -156,6 +158,7 @@ class Drawing:
     height: int
     cfg_scale: float
     infer_steps: int
+    denoising_strength: float
     hires_steps: int
     image: Image.Image
     sample_method: str
@@ -171,6 +174,7 @@ class Drawing:
             'CFG scale': self.cfg_scale,
             'Seed': self.seed,
             'Size': (self.firstpass_width, self.firstpass_height),
+            'Denoising strength': self.denoising_strength,
             'Hires resize': (self.width, self.height),
             'Hires steps': self.hires_steps,
             'Hires upscaler': 'Latent (bicubic)',
@@ -195,7 +199,8 @@ def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts:
                 seeds: List[int], model_steps: int = 1000, n_repeats: int = 2,
                 pretrained_model: str = _DEFAULT_INFER_MODEL, model_hash: Optional[str] = None,
                 firstpass_width: int = 512, firstpass_height: int = 768, width: int = 832, height: int = 1216,
-                cfg_scale: float = 7, infer_steps: int = 30, hires_steps: int = 18,
+                cfg_scale: float = 7, infer_steps: int = 30,
+                denoising_strength: float = 0.5, hires_steps: int = 20,
                 model_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
                 cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') -> List[Drawing]:
     model_hash = model_hash or _KNOWN_MODEL_HASHES.get(pretrained_model) or None
@@ -213,6 +218,7 @@ def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts:
         height=height,
         cfg_scale=cfg_scale,
         infer_steps=infer_steps,
+        denoising_strength=denoising_strength,
         hires_steps=hires_steps,
         model_alpha=model_alpha,
         clip_skip=clip_skip,
@@ -235,6 +241,7 @@ def draw_images(workdir: str, names: List[str], prompts: List[str], neg_prompts:
             height=height,
             cfg_scale=cfg_scale,
             infer_steps=infer_steps,
+            denoising_strength=denoising_strength,
             hires_steps=hires_steps,
             image=image,
             sample_method=sample_method,
@@ -268,7 +275,7 @@ def draw_images_for_workdir(workdir: str, model_steps: int, batch_size: int = 32
                             pretrained_model: str = _DEFAULT_INFER_MODEL, model_hash: Optional[str] = None,
                             firstpass_width: int = 512, firstpass_height: int = 768,
                             width: int = 832, height: int = 1216, cfg_scale: float = 7,
-                            infer_steps: int = 30, hires_steps: int = 18,
+                            infer_steps: int = 30, denoising_strength: float = 0.5, hires_steps: int = 20,
                             model_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
                             cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora') \
         -> List[Drawing]:
@@ -305,6 +312,7 @@ def draw_images_for_workdir(workdir: str, model_steps: int, batch_size: int = 32
                     height=height,
                     cfg_scale=cfg_scale,
                     infer_steps=infer_steps,
+                    denoising_strength=denoising_strength,
                     hires_steps=hires_steps,
                     model_alpha=model_alpha,
                     clip_skip=clip_skip,
