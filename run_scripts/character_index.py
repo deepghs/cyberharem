@@ -223,6 +223,6 @@ if __name__ == '__main__':
     logging.try_init_root(logging.INFO)
     run_it(
         repository='deepghs/character_index',
-        max_cnt=2000000,
+        max_cnt=200000,
         max_time_limit=340 * 60,
     )
