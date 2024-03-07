@@ -239,5 +239,5 @@ if __name__ == '__main__':
     run_it(
         repository='deepghs/character_index',
         max_cnt=200000,
-        max_time_limit=80 * 60,
+        max_time_limit=340 * 60,
     )
