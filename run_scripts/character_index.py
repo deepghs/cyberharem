@@ -102,7 +102,9 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             os.makedirs(export_dir, exist_ok=True)
 
             logging.info('Crawling images from danbooru ...')
-            DanbooruSource([tag, 'order:random']).attach(
+            s1 = DanbooruSource([tag, 'order:random']).attach(RatingFilterAction(['safe']))
+            s2 = DanbooruSource([tag, 'order:random']).attach(RatingFilterAction(['r15']))
+            (s1 | s2).attach(
                 # preprocess images with white background RGB
                 ModeConvertAction('RGB', 'white'),
 
@@ -133,6 +135,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             )[:crawl_img_count].export(SaveExporter(export_dir))
 
             core_tags, _ = get_character_tags_info(LocalSource(export_dir))
+            core_tags = [v.replace('_', ' ') for v in core_tags]
 
             upload_dir = os.path.join(td, 'upload')
             os.makedirs(upload_dir, exist_ok=True)
@@ -140,8 +143,9 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             ch_dir = os.path.join(upload_dir, hprefix, short_tag)
             os.makedirs(ch_dir)
             logging.info('Generating samples ...')
-            LocalSource(export_dir, shuffle=True).attach(
-                RatingFilterAction(['safe', 'r15']),
+            ss1 = LocalSource(export_dir, shuffle=True).attach(RatingFilterAction(['safe']))
+            ss2 = LocalSource(export_dir, shuffle=True).attach(RatingFilterAction(['r15']))
+            (ss1 + ss2).attach(
                 PaddingAlignAction((512, 768)),
                 FileOrderAction(ext='.webp'),
             )[:3].export(ch_dir)
