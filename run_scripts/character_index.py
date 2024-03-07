@@ -149,7 +149,6 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 logging.warning(f'Too few valid images detect for {tag!r}, skipped.')
                 continue
             core_tags, _ = get_character_tags_info(LocalSource(export_dir))
-            core_tags = [v.replace('_', ' ') for v in core_tags]
 
             upload_dir = os.path.join(td, 'upload')
             os.makedirs(upload_dir, exist_ok=True)
