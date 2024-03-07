@@ -6,7 +6,6 @@ import time
 import zipfile
 from urllib.parse import quote_plus
 
-import markdown_strings
 import numpy as np
 import pandas as pd
 from ditk import logging
@@ -180,7 +179,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 'Sample2': f'![sample2]({sample_files[1]})',
                 'Sample3': f'![sample3]({sample_files[2]})',
                 'Post Count': post_count,
-                'Core Tags': markdown_strings.esc_format(', '.join(core_tags))
+                'Core Tags': f'`{", ".join(core_tags)}`',
             })
 
             with open(os.path.join(upload_dir, 'exist_tags.json'), 'w') as f:
