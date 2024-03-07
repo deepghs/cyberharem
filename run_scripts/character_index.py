@@ -175,9 +175,9 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             ]
             table_data.append({
                 'Character': f'[{tag}]({danbooru_wiki_url})',
-                'Sample1': f'![sample1][{sample_files[0]}',
-                'Sample2': f'![sample2][{sample_files[1]}',
-                'Sample3': f'![sample3][{sample_files[2]}',
+                'Sample1': f'![sample1]({sample_files[0]})',
+                'Sample2': f'![sample2]({sample_files[1]})',
+                'Sample3': f'![sample3]({sample_files[2]})',
                 'Post Count': post_count,
                 'Core Tags': markdown_strings.esc_format(', '.join(core_tags))
             })
@@ -190,6 +190,11 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             df.to_csv(os.path.join(upload_dir, 'table.csv'), index=False)
 
             with open(os.path.join(upload_dir, 'README.md'), 'w') as f:
+                print('---', file=f)
+                print('license: mit', file=f)
+                print('---', file=f)
+                print('', file=f)
+
                 print('# Anime Character Index', file=f)
                 print('', file=f)
 
