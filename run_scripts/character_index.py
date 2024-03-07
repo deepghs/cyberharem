@@ -20,7 +20,7 @@ from natsort import natsorted
 from tqdm import tqdm
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
-    AlignMinSizeAction, FileExtAction, FileOrderAction, PaddingAlignAction, ArrivalAction
+    AlignMinSizeAction, FileExtAction, FileOrderAction, PaddingAlignAction, ArrivalAction, RatingFilterAction
 from waifuc.export import SaveExporter
 from waifuc.source import DanbooruSource, LocalSource
 
@@ -142,6 +142,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             os.makedirs(ch_dir)
             logging.info('Generating samples ...')
             LocalSource(export_dir, shuffle=True).attach(
+                RatingFilterAction(['safe', 'r15']),
                 PaddingAlignAction((512, 768)),
                 FileOrderAction(ext='.webp'),
             )[:3].export(ch_dir)
