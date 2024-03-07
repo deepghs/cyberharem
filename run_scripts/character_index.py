@@ -102,9 +102,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             os.makedirs(export_dir, exist_ok=True)
 
             logging.info('Crawling images from danbooru ...')
-            s1 = DanbooruSource([tag, 'order:random']).attach(RatingFilterAction(['safe']))
-            s2 = DanbooruSource([tag, 'order:random']).attach(RatingFilterAction(['r15']))
-            (s1 | s2).attach(
+            DanbooruSource([tag, 'order:random']).attach(
                 # preprocess images with white background RGB
                 ModeConvertAction('RGB', 'white'),
 
