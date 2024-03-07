@@ -107,6 +107,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 ModeConvertAction('RGB', 'white'),
 
                 # pre-filtering for images
+                RatingFilterAction(['safe', 'r15']),
                 NoMonochromeAction(),  # no monochrome, greyscale or sketch
                 ClassFilterAction(['illustration', 'bangumi']),  # no comic or 3d
                 # RatingFilterAction(['safe', 'r15']),  # filter images with rating, like safe, r15, r18
