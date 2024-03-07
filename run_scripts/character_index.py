@@ -102,7 +102,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             os.makedirs(export_dir, exist_ok=True)
 
             logging.info('Crawling images from danbooru ...')
-            DanbooruSource([tag, 'order:random']).attach(
+            DanbooruSource([tag, 'order:random'])[:500].attach(
                 # preprocess images with white background RGB
                 ModeConvertAction('RGB', 'white'),
 
@@ -133,6 +133,11 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 FileExtAction(ext='.webp'),  # random rename files
             )[:crawl_img_count].export(SaveExporter(export_dir))
 
+            img_count = len(glob.glob(os.path.join(export_dir, '*.webp')))
+            if img_count < 10:
+                exist_tags.add(tag)
+                logging.warning(f'Too few valid images detect for {tag!r}, skipped.')
+                continue
             core_tags, _ = get_character_tags_info(LocalSource(export_dir))
             core_tags = [v.replace('_', ' ') for v in core_tags]
 
