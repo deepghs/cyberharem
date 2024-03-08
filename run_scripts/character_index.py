@@ -215,6 +215,11 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 print('# Anime Character Index', file=f)
                 print('', file=f)
 
+                print(f'This dataset if for collecting all the hot characters from the internet, '
+                      f'and extract their features and core tags. '
+                      f'It will be useful for **automatically testing the character generating ability of '
+                      f'the anime-style base models**.', file=f)
+                print(f'', file=f)
                 print(f'{plural_word(len(all_characters), "character")} in total.', file=f)
                 print('', file=f)
 
