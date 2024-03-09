@@ -26,7 +26,7 @@ natsort
 pyquery
 pandas
 tqdm
-torch<2.1.0
+torch>=2.1.0
 pyanimeinfo>=0.0.2
 hfutils>=0.0.6
 filelock
