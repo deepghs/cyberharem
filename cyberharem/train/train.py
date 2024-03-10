@@ -316,7 +316,7 @@ def train_lokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
                workdir: str = None, clip_skip: int = 2,
                max_epochs: int = 40, min_epochs: int = 10, min_steps: int = 800, max_steps: int = 10000,
                train_resolution: int = 720, max_reg_bs: int = 16, tag_dropout: float = 0.1,
-               lokr_lr: float = 2e-4, lokr_dim: int = 10000, lokr_alpha: int = 0, lokr_factor: int = 8,
+               lokr_lr: float = 2e-4, lokr_dim: int = 10000, lokr_alpha: int = 0, lokr_factor: int = 4,
                single_card: bool = True, force: bool = False) -> str:
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
