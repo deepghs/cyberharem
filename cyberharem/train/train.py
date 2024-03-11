@@ -313,7 +313,7 @@ _DEFAULT_TRAIN_CFG_LOKR = 'cfgs/train/examples/lokr_anime_character_reg_v1.5.yam
 
 def train_lokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
                keep_ckpts: int = 40, bs: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
-               workdir: str = None, clip_skip: int = 2,
+               workdir: str = None, clip_skip: int = 2, train_steps: Optional[int] = None,
                max_epochs: int = 40, min_epochs: int = 10, min_steps: int = 800, max_steps: int = 10000,
                train_resolution: int = 720, max_reg_bs: int = 16, tag_dropout: float = 0.1,
                unet_lr: float = 2e-4, unet_dim: int = 10000, unet_alpha: int = 0, unet_factor: int = 4,
@@ -329,7 +329,11 @@ def train_lokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
         raise TypeError(f'Dataset {dataset_name!r}\'s type is {meta["packages"][dataset_name]["type"]}, '
                         f'cannot be used for training.')
     dataset_size = meta['packages'][dataset_name]['size']
-    train_steps = min(max(dataset_size * max_epochs / bs, min_steps), max(dataset_size * min_epochs / bs, max_steps))
+    if train_steps is None:
+        train_steps = min(
+            max(dataset_size * max_epochs / bs, min_steps),
+            max(dataset_size * min_epochs / bs, max_steps)
+        )
     train_steps = int(math.ceil(train_steps / keep_ckpts) * keep_ckpts)
     save_per_steps = train_steps // keep_ckpts
     reg_bs = min(max(round(max_steps * (bs + 1) / train_steps) - bs, 1), max_reg_bs)
