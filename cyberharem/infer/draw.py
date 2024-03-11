@@ -89,6 +89,7 @@ def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], se
     meta_file = os.path.join(workdir, 'meta.json')
     with open(meta_file, 'r') as f:
         meta_info = json.load(f)
+    train_info = meta_info['train']
 
     unet_file = os.path.join(workdir, 'ckpts', f'unet-{model_steps}.safetensors')
     logging.info(f'Using unet file {unet_file!r} ...')
@@ -129,7 +130,8 @@ def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], se
             model_tag: {
                 'alpha': model_alpha,
                 'step': model_steps,
-                'train': meta_info['train']['train'].get(model_tag) or {},
+                'unet_': train_info['unet_'] if 'unet_' in train_info else {},
+                'text_encoder_': train_info['text_encoder_'] if 'text_encoder_' in train_info else {},
             }
         })
         logging.info(f'Infer based on {cfg_file!r}, with {cli_args!r}')
