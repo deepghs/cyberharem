@@ -319,6 +319,7 @@ def train_lokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
                unet_lr: float = 2e-4, unet_dim: int = 10000, unet_alpha: int = 0, unet_factor: int = 4,
                text_encoder_lr: float = 1e-4, text_encoder_dim: int = 10000,
                text_encoder_alpha: int = 0, text_encoder_factor: int = 4,
+               optimizer_weight_decay: float = 1e-2, scheduler: str = 'one_cycle', warmup_steps: Optional[int] = None,
                single_card: bool = True, force: bool = False) -> str:
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
@@ -335,6 +336,8 @@ def train_lokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
             max(dataset_size * min_epochs / bs, max_steps)
         )
     train_steps = int(math.ceil(train_steps / keep_ckpts) * keep_ckpts)
+    if warmup_steps is None:
+        warmup_steps = max(train_steps // 20, 10)
     save_per_steps = train_steps // keep_ckpts
     reg_bs = min(max(round(max_steps * (bs + 1) / train_steps) - bs, 1), max_reg_bs)
 
@@ -368,6 +371,13 @@ def train_lokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
                 'train': {
                     'train_steps': train_steps,
                     'save_step': save_per_steps,
+                    'optimizer': {
+                        'weight_decay': optimizer_weight_decay,
+                    },
+                    'scheduler': {
+                        'name': scheduler,
+                        'num_warmup_steps': warmup_steps,
+                    }
                 },
                 'unet_': {
                     'lr': unet_lr,
