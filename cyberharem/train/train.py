@@ -319,7 +319,7 @@ def train_lokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
                unet_lr: float = 2e-4, unet_dim: int = 10000, unet_alpha: int = 0, unet_factor: int = 4,
                text_encoder_lr: float = 1e-4, text_encoder_dim: int = 10000,
                text_encoder_alpha: int = 0, text_encoder_factor: int = 4,
-               optimizer_weight_decay: float = 1e-2, scheduler: str = 'one_cycle', warmup_steps: Optional[int] = None,
+               optimizer_weight_decay: float = 1e-3, scheduler: str = 'one_cycle', warmup_steps: Optional[int] = None,
                single_card: bool = True, force: bool = False) -> str:
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
@@ -434,6 +434,147 @@ def train_lokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
             conf = load_config_with_cli(_DEFAULT_TRAIN_CFG_LOKR, args_list=cli_args)  # skip --cfg
 
             logging.info(f'Training with {_DEFAULT_TRAIN_CFG_LOKR!r}, args: {cli_args!r} ...')
+            if single_card:
+                logging.info('Training with single card ...')
+                trainer = TrainerSingleCard(conf)
+            else:
+                logging.info('Training with non-single cards ...')
+                trainer = Trainer(conf)
+
+            trainer.train()
+
+    pathlib.Path(ok_file).touch()
+    return workdir
+
+
+_DEFAULT_TRAIN_CFG_LOKR_PIVOTAL = 'cfgs/train/examples/lokr_anime_character_reg_v1.5_pivotal.yaml'
+
+
+def train_plokr(ds_repo_id: str, dataset_name: str = 'stage3-p480-800',
+                keep_ckpts: int = 40, bs: int = 4, pretrained_model: str = _DEFAULT_TRAIN_MODEL,
+                workdir: str = None, emb_n_words: int = 4, clip_skip: int = 2, train_steps: Optional[int] = None,
+                max_epochs: int = 40, min_epochs: int = 10, min_steps: int = 800, max_steps: int = 10000,
+                train_resolution: int = 720, max_reg_bs: int = 16, tag_dropout: float = 0.1, pt_lr: float = 0.03,
+                unet_lr: float = 2e-4, unet_dim: int = 10000, unet_alpha: int = 0, unet_factor: int = 4,
+                optimizer_weight_decay: float = 1e-3, scheduler: str = 'one_cycle', warmup_steps: Optional[int] = None,
+                single_card: bool = True, force: bool = False) -> str:
+    hf_fs = get_hf_fs()
+    meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
+
+    if dataset_name not in meta['packages']:
+        raise ValueError(f'Unknown dataset {dataset_name!r} in repository {ds_repo_id!r}.')
+    if meta['packages'][dataset_name]['type'] != "IMG+TXT":
+        raise TypeError(f'Dataset {dataset_name!r}\'s type is {meta["packages"][dataset_name]["type"]}, '
+                        f'cannot be used for training.')
+    dataset_size = meta['packages'][dataset_name]['size']
+    if train_steps is None:
+        train_steps = min(
+            max(dataset_size * max_epochs / bs, min_steps),
+            max(dataset_size * min_epochs / bs, max_steps)
+        )
+    train_steps = int(math.ceil(train_steps / keep_ckpts) * keep_ckpts)
+    if warmup_steps is None:
+        warmup_steps = max(train_steps // 20, 10)
+    save_per_steps = train_steps // keep_ckpts
+    reg_bs = min(max(round(max_steps * (bs + 1) / train_steps) - bs, 1), max_reg_bs)
+
+    if re.fullmatch(r'^[a-z\\d_]+$', meta['name']):
+        name = meta['name']
+    else:
+        name = ds_repo_id.split('/')[-1]
+    workdir = workdir or os.path.join('runs', name)
+    os.makedirs(workdir, exist_ok=True)
+
+    ok_file = os.path.join(workdir, '.train-ok')
+    if os.path.exists(ok_file) and not force:
+        logging.info(f'Already trained on {workdir!r}, skipped.')
+        return workdir
+
+    save_recommended_tags(name, meta['clusters'], workdir)
+
+    with load_dataset_from_repository(ds_repo_id, dataset_name) as dataset_dir, \
+            _get_reg_dir(meta['bangumi']) as (reg_dataset_dir, reg_cache, reg_buckets):
+        features = _extract_features_from_directory(dataset_dir)
+        with open(os.path.join(workdir, 'features.npy'), 'wb') as f:
+            np.save(f, features)
+
+        emb_init_text = ', '.join(['1girl', *meta['core_tags']])
+        with TemporaryDirectory() as embs_dir:
+            logging.info(f'Creating embeddings {name!r} at {embs_dir!r}, '
+                         f'n_words: {emb_n_words!r}, init_text: {emb_init_text!r}, '
+                         f'pretrained_model: {pretrained_model!r}.')
+            create_embedding(
+                name, emb_n_words, emb_init_text,
+                replace=True,
+                pretrained_model=pretrained_model,
+                embs_dir=embs_dir,
+            )
+            train_cfgs = {
+                'model': {
+                    'pretrained_model_name_or_path': pretrained_model,
+                    'clip_skip': clip_skip - 1,
+                },
+                'train': {
+                    'train_steps': train_steps,
+                    'save_step': save_per_steps,
+                    'optimizer': {
+                        'weight_decay': optimizer_weight_decay,
+                    },
+                    'scheduler': {
+                        'name': scheduler,
+                        'num_warmup_steps': warmup_steps,
+                    }
+                },
+                'unet_': {
+                    'lr': unet_lr,
+                    'dim': unet_dim,
+                    'alpha': unet_alpha,
+                    'factor': unet_factor,
+                },
+                'character_name': name,
+                'exp_dir': workdir,
+                'dataset': {
+                    'dir': dataset_dir,
+                    'bs': bs,
+                    'resolution': train_resolution,
+                    'num_bucket': 5,
+                },
+                'reg_dataset': {
+                    'dir': reg_dataset_dir,
+                    'cache': reg_cache,
+                    'bs': reg_bs,
+                    'resolution': train_resolution,
+                    'num_bucket': reg_buckets,
+                },
+                'tag_dropout': tag_dropout,
+                'pt': {
+                    'emb_dir': embs_dir,
+                    'lr': pt_lr,
+                },
+            }
+            if reg_bs == 0:
+                train_cfgs['data'] = {'dataset_class': '---'}
+            with open(os.path.join(workdir, 'meta.json'), 'w', encoding='utf-8') as f:
+                json.dump({
+                    'base_model_type': 'SD1.5',
+                    'train_type': 'Pivotal LoKr',
+                    'dataset': {
+                        'repository': ds_repo_id,
+                        'size': dataset_size,
+                        'name': dataset_name,
+                    },
+                    'train': train_cfgs,
+                    'core_tags': meta['core_tags'],
+                    'bangumi': meta['bangumi'],
+                    'name': name,
+                    'display_name': meta['display_name'],
+                    'version': meta['version'],
+                }, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+            cli_args = data_to_cli_args(train_cfgs)
+            conf = load_config_with_cli(_DEFAULT_TRAIN_CFG_LOKR_PIVOTAL, args_list=cli_args)  # skip --cfg
+
+            logging.info(f'Training with {_DEFAULT_TRAIN_CFG_LOKR_PIVOTAL!r}, args: {cli_args!r} ...')
             if single_card:
                 logging.info('Training with single card ...')
                 trainer = TrainerSingleCard(conf)

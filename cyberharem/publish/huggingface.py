@@ -27,7 +27,7 @@ from .convert import convert_to_webui_lora, pack_to_bundle_lora, convert_to_webu
 from .export import _GITLFS, EXPORT_MARK
 from ..eval import eval_for_workdir, list_steps
 from ..infer.draw import list_rtag_names, _DEFAULT_INFER_CFG_FILE_LORA, _DEFAULT_INFER_CFG_FILE_LOKR, \
-    _DEFAULT_INFER_CFG_FILE_LORA_SIMPLE
+    _DEFAULT_INFER_CFG_FILE_LORA_SIMPLE, _DEFAULT_INFER_CFG_FILE_LOKR_PIVOTAL
 from ..utils import get_hf_client, get_hf_fs
 from ..utils.ghaction import GithubActionClient
 
@@ -91,6 +91,9 @@ def check_with_train_type(train_type: str = 'Pivotal LoRA') -> Tuple[bool, bool]
     elif train_type == 'LoKr':
         is_pivotal = False
         is_lycoris = True
+    elif train_type == 'Pivotal Lokr':
+        is_pivotal = True
+        is_lycoris = True
     else:
         raise f'Train type not supported - {train_type!r}.'
 
@@ -108,10 +111,8 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
     if base_model_type == 'SD1.5':
         is_pivotal, is_lycoris = check_with_train_type(train_type)
         if is_pivotal:
-            if is_lycoris:
-                raise 'Pivotal LyCORIS is not supported yet!'
             preset_eval_cfgs = dict(
-                cfg_file=_DEFAULT_INFER_CFG_FILE_LORA,
+                cfg_file=_DEFAULT_INFER_CFG_FILE_LORA if not is_lycoris else _DEFAULT_INFER_CFG_FILE_LOKR_PIVOTAL,
                 model_tag='lora' if not is_lycoris else 'lokr',
             )
         else:
