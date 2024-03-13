@@ -92,9 +92,6 @@ def raw_draw_images(workdir: str, prompts: List[str], neg_prompts: List[str], se
         meta_info = json.load(f)
     train_info = meta_info['train']
 
-    unet_file = os.path.join(workdir, 'ckpts', f'unet-{model_steps}.safetensors')
-    logging.info(f'Using unet file {unet_file!r} ...')
-
     with TemporaryDirectory() as emb_dir, TemporaryDirectory() as output_dir:
         for pt_file in glob.glob(os.path.join(workdir, 'ckpts', f'*-{model_steps}.pt')):
             pt_basename = os.path.splitext(os.path.basename(pt_file))[0]

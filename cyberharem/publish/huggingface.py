@@ -91,7 +91,7 @@ def check_with_train_type(train_type: str = 'Pivotal LoRA') -> Tuple[bool, bool]
     elif train_type == 'LoKr':
         is_pivotal = False
         is_lycoris = True
-    elif train_type == 'Pivotal Lokr':
+    elif train_type == 'Pivotal LoKr':
         is_pivotal = True
         is_lycoris = True
     else:
