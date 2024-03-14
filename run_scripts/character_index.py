@@ -4,6 +4,8 @@ import os.path
 import re
 import time
 import zipfile
+from functools import lru_cache
+from typing import List
 from urllib.parse import quote_plus
 
 import numpy as np
@@ -50,6 +52,28 @@ class CCFilterAction(FilterAction):
 
 def _name_safe(name_text):
     return re.sub(r'[\W_]+', '_', name_text).strip('_')
+
+
+@lru_cache()
+def _db_session():
+    s = DanbooruSource(['1girl'])
+    s._prune_session()
+    return s.session
+
+
+def get_copyrights(tag, threshold: float = 0.7) -> List[str]:
+    session = _db_session()
+    resp = session.get('https://danbooru.donmai.us/related_tag.json', params={
+        'query': tag,
+        'category': 'copyright',
+    })
+    resp.raise_for_status()
+    tags = []
+    for item in resp.json()['related_tags']:
+        if item['frequency'] >= threshold:
+            tags.append((item['tag']['name'], item['frequency']))
+    tags = sorted(tags, key=lambda x: (-x[1], x[0]))
+    return [tag for tag, _ in tags]
 
 
 def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, crawl_img_count: int = 50):
@@ -164,6 +188,8 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             )[:3].export(ch_dir)
 
             exist_tags.add(tag)
+            copyrights = get_copyrights(tag)
+            copyright = copyrights[0] if copyrights else None
             ch_data = {
                 'id': danbooru_id,
                 'tag': tag,
@@ -171,6 +197,8 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 'hprefix': hprefix,
                 'post_count': post_count,
                 'core_tags': core_tags,
+                'copyright': copyright,
+                'copyrights': copyrights,
             }
             all_characters.append(ch_data)
             with open(os.path.join(ch_dir, 'data.json'), 'w') as f:
@@ -186,6 +214,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             np.save(os.path.join(ch_dir, 'feat.npy'), np.stack(feats))
 
             danbooru_wiki_url = f"https://danbooru.donmai.us/wiki_pages/{quote_plus(tag)}"
+            copyright_wiki_url = f'https://danbooru.donmai.us/wiki_pages/{quote_plus(copyright or "")}'
             sample_files = [
                 os.path.relpath(file, upload_dir) for file in
                 natsorted(glob.glob(os.path.join(ch_dir, '*.webp')))
@@ -196,6 +225,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 'Sample2': f'![sample2]({sample_files[1]})',
                 'Sample3': f'![sample3]({sample_files[2]})',
                 'Post Count': post_count,
+                'Copyright': f'[{copyright}]({copyright_wiki_url})' if copyright else '(Unknown)',
                 'Core Tags': f'`{", ".join(core_tags)}`',
             })
 
