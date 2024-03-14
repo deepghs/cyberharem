@@ -229,6 +229,19 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 'Core Tags': f'`{", ".join(core_tags)}`',
             })
 
+            copyright_cnts = {}
+            for citem in all_characters:
+                c = citem['copyright']
+                copyright_cnts[c] = copyright_cnts.get(c, 0) + 1
+            cp_data = []
+            for c, count in sorted(citem.items(), key=lambda x: (-x[1], x[0])):
+                copyright_wiki_url = f'https://danbooru.donmai.us/wiki_pages/{quote_plus(c or "")}'
+                cp_data.append({
+                    'Copyright': f'[{c}]({copyright_wiki_url})' if c else '(Unknown)',
+                    'Count': count,
+                })
+            df_cp = pd.DataFrame(cp_data)
+
             with open(os.path.join(upload_dir, 'exist_tags.json'), 'w') as f:
                 json.dump(sorted(exist_tags), f)
             with open(os.path.join(upload_dir, 'characters.json'), 'w') as f:
@@ -253,10 +266,14 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 print(f'{plural_word(len(all_characters), "character")} in total.', file=f)
                 print('', file=f)
 
-                print('## Index', file=f)
+                print('## Copyright Index', file=f)
+                print('', file=f)
+                print(df_cp.to_markdown(index=False), file=f)
                 print('', file=f)
 
-                print(df.to_markdown(index=False), file=f)
+                print('## Character Index', file=f)
+                print('', file=f)
+                print(df[:100].to_markdown(index=False), file=f)
                 print('', file=f)
 
             upload_directory_as_directory(
