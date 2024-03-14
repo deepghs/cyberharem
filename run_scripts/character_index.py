@@ -234,7 +234,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 c = citem['copyright']
                 copyright_cnts[c] = copyright_cnts.get(c, 0) + 1
             cp_data = []
-            for c, count in sorted(citem.items(), key=lambda x: (-x[1], x[0])):
+            for c, count in sorted(copyright_cnts.items(), key=lambda x: (-x[1], x[0])):
                 copyright_wiki_url = f'https://danbooru.donmai.us/wiki_pages/{quote_plus(c or "")}'
                 cp_data.append({
                     'Copyright': f'[{c}]({copyright_wiki_url})' if c else '(Unknown)',
