@@ -230,7 +230,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
 
                     if ch_copyright:
                         copyright_wiki_url = f'https://danbooru.donmai.us/wiki_pages/{quote_plus(ch_copyright)}'
-                        print(f'Danbooru wiki page: {copyright_wiki_url}', file=f)
+                        print(f'Danbooru tag: `{ch_copyright}`, wiki page: {copyright_wiki_url}', file=f)
                         print(f'', file=f)
 
                     print(f'This dataset if for collecting all the hot characters from the internet, '
