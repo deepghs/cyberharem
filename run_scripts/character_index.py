@@ -206,7 +206,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
 
                 def _rel_path(ft):
                     return os.path.relpath(
-                        os.path.join(td, ch_item['hprefix'], ch_item['short_tag'], ft),
+                        os.path.join(upload_dir, ch_item['hprefix'], ch_item['short_tag'], ft),
                         pages_dir
                     )
 
