@@ -5,7 +5,7 @@ import re
 import time
 import zipfile
 from functools import lru_cache
-from typing import List
+from typing import List, Dict
 from urllib.parse import quote_plus
 
 import numpy as np
@@ -73,6 +73,32 @@ def get_copyrights(tag, threshold: float = 0.7) -> List[str]:
             tags.append((item['tag']['name'], item['frequency']))
     tags = sorted(tags, key=lambda x: (-x[1], x[0]))
     return [tag for tag, _ in tags]
+
+
+def get_gender(tag) -> Dict[str, float]:
+    session = _db_session()
+    resp = session.get('https://danbooru.donmai.us/related_tag.json', params={
+        'query': ' '.join([tag, 'solo']),
+        'category': 'general',
+    })
+    resp.raise_for_status()
+
+    boy_frequency, girl_frequency = None, None
+    for item in resp.json()['related_tags']:
+        if item['tag']['name'] == '1boy':
+            boy_frequency = item['frequency']
+        if item['tag']['name'] == '1girl':
+            girl_frequency = item['frequency']
+        if boy_frequency is not None and girl_frequency is not None:
+            break
+
+    boy_frequency = boy_frequency or 0.0
+    girl_frequency = girl_frequency or 0.0
+    logging.info(f'Gender frequency of {tag!r}, boy: {boy_frequency!r}, girl: {girl_frequency!r}')
+    return {
+        'boy': boy_frequency,
+        'girl': girl_frequency,
+    }
 
 
 def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, crawl_img_count: int = 50):
@@ -189,6 +215,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 'core_tags': core_tags,
                 'copyright': copyright,
                 'copyrights': copyrights,
+                'gender': get_gender(tag),
             }
             all_characters.append(ch_data)
             with open(os.path.join(ch_dir, 'data.json'), 'w') as f:
