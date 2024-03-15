@@ -18,7 +18,6 @@ from hfutils.operate import upload_directory_as_directory
 from huggingface_hub import hf_hub_download
 from imgutils.metrics import ccip_extract_feature
 from imgutils.validate import anime_completeness
-from natsort import natsorted
 from tqdm import tqdm
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
@@ -207,48 +206,72 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 for file in os.listdir(export_dir):
                     zf.write(os.path.join(export_dir, file), file)
 
+            pages_dir = os.path.join(td, 'pages')
+            os.makedirs(pages_dir, exist_ok=True)
+            pages_map = {}
+            for ch_item in all_characters:
+                if ch_item['copyright'] not in pages_map:
+                    pages_map[ch_item['copyright']] = []
+
+                def _rel_path(ft):
+                    return os.path.relpath(
+                        os.path.join(td, ch_item['hprefix'], ch_item['short_tag'], ft),
+                        pages_dir
+                    )
+
+                danbooru_wiki_url = f'https://danbooru.donmai.us/wiki_pages/{quote_plus(ch_item["tag"])}'
+                pages_map[ch_item['copyright']].append({
+                    'Character': f'[{ch_item["tag"]}]({danbooru_wiki_url})',
+                    'Sample1': f'![sample1]({_rel_path("1.webp")})',
+                    'Sample2': f'![sample2]({_rel_path("2.webp")})',
+                    'Sample3': f'![sample3]({_rel_path("3.webp")})',
+                    'Post Count': ch_item['post_count'],
+                    'Core Tags': f'`{", ".join(ch_item["core_tags"])}`',
+                })
+
+            cp_data = []
+            for ch_copyright, ch_items in sorted(pages_map.items(), key=lambda x: (-len(x[1]), x[0])):
+                ch_md_file = os.path.join(pages_dir, f'{_name_safe(ch_copyright or "unknown")}.md')
+                with open(ch_md_file, 'w') as f:
+                    print(f'# {ch_copyright}', file=f)
+                    print(f'', file=f)
+
+                    if ch_copyright:
+                        copyright_wiki_url = f'https://danbooru.donmai.us/wiki_pages/{quote_plus(ch_copyright)}'
+                        print(f'Danbooru wiki page: {copyright_wiki_url}', file=f)
+                        print(f'', file=f)
+
+                    print(f'This dataset if for collecting all the hot characters from the internet, '
+                          f'and extract their features and core tags. '
+                          f'It will be useful for **automatically testing the character generating ability of '
+                          f'the anime-style base models**.', file=f)
+                    print(f'', file=f)
+                    print(f'{plural_word(len(ch_items), "character")} in total.', file=f)
+                    print('', file=f)
+
+                    print('## Character Index', file=f)
+                    print('', file=f)
+                    print(pd.DataFrame(ch_items).to_markdown(index=False), file=f)
+                    print('', file=f)
+
+                copyright_page_relpath = os.path.relpath(ch_md_file, td)
+                cp_data.append({
+                    'Copyright': f'[{ch_copyright or "(unknown)"}]({copyright_page_relpath})',
+                    'Count': len(pages_map[ch_copyright]),
+                })
+
             logging.info(f'Extracting feature of {tag!r} ...')
             feats = []
             for file in tqdm(glob.glob(os.path.join(export_dir, '*.webp'))):
                 feats.append(ccip_extract_feature(file))
             np.save(os.path.join(ch_dir, 'feat.npy'), np.stack(feats))
 
-            danbooru_wiki_url = f"https://danbooru.donmai.us/wiki_pages/{quote_plus(tag)}"
-            copyright_wiki_url = f'https://danbooru.donmai.us/wiki_pages/{quote_plus(copyright or "")}'
-            sample_files = [
-                os.path.relpath(file, upload_dir) for file in
-                natsorted(glob.glob(os.path.join(ch_dir, '*.webp')))
-            ]
-            table_data.append({
-                'Character': f'[{tag}]({danbooru_wiki_url})',
-                'Sample1': f'![sample1]({sample_files[0]})',
-                'Sample2': f'![sample2]({sample_files[1]})',
-                'Sample3': f'![sample3]({sample_files[2]})',
-                'Post Count': post_count,
-                'Copyright': f'[{copyright}]({copyright_wiki_url})' if copyright else '(Unknown)',
-                'Core Tags': f'`{", ".join(core_tags)}`',
-            })
-
-            copyright_cnts = {}
-            for citem in all_characters:
-                c = citem['copyright']
-                copyright_cnts[c] = copyright_cnts.get(c, 0) + 1
-            cp_data = []
-            for c, count in sorted(copyright_cnts.items(), key=lambda x: (-x[1], x[0])):
-                copyright_wiki_url = f'https://danbooru.donmai.us/wiki_pages/{quote_plus(c or "")}'
-                cp_data.append({
-                    'Copyright': f'[{c}]({copyright_wiki_url})' if c else '(Unknown)',
-                    'Count': count,
-                })
-            df_cp = pd.DataFrame(cp_data)
-
             with open(os.path.join(upload_dir, 'exist_tags.json'), 'w') as f:
                 json.dump(sorted(exist_tags), f)
             with open(os.path.join(upload_dir, 'characters.json'), 'w') as f:
                 json.dump(all_characters, f, ensure_ascii=False, indent=4, sort_keys=True)
-            df = pd.DataFrame(table_data)
-            df.to_csv(os.path.join(upload_dir, 'table.csv'), index=False)
 
+            df_cp = pd.DataFrame(cp_data)
             with open(os.path.join(upload_dir, 'README.md'), 'w') as f:
                 print('---', file=f)
                 print('license: mit', file=f)
@@ -266,14 +289,9 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 print(f'{plural_word(len(all_characters), "character")} in total.', file=f)
                 print('', file=f)
 
-                print('## Copyright Index', file=f)
+                print('## Copyrights', file=f)
                 print('', file=f)
                 print(df_cp.to_markdown(index=False), file=f)
-                print('', file=f)
-
-                print('## Character Index', file=f)
-                print('', file=f)
-                print(df[:100].to_markdown(index=False), file=f)
                 print('', file=f)
 
             upload_directory_as_directory(
