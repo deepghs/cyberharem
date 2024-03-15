@@ -102,15 +102,6 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
     else:
         all_characters = []
 
-    if hf_fs.exists(f'datasets/{repository}/table.csv'):
-        table_data = pd.read_csv(hf_hub_download(
-            repo_id=repository,
-            repo_type='dataset',
-            filename='table.csv',
-        )).to_dict('records')
-    else:
-        table_data = []
-
     cnt = 0
     for item in _get_df_tags().to_dict('records'):
         if time.time() - start_time > max_time_limit:
@@ -206,7 +197,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 for file in os.listdir(export_dir):
                     zf.write(os.path.join(export_dir, file), file)
 
-            pages_dir = os.path.join(td, 'pages')
+            pages_dir = os.path.join(upload_dir, 'pages')
             os.makedirs(pages_dir, exist_ok=True)
             pages_map = {}
             for ch_item in all_characters:
@@ -230,7 +221,8 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 })
 
             cp_data = []
-            for ch_copyright, ch_items in sorted(pages_map.items(), key=lambda x: (-len(x[1]), x[0])):
+            for ch_copyright, ch_items in sorted(pages_map.items(),
+                                                 key=lambda x: (0 if x[0] else 1, -len(x[1]), x[0])):
                 ch_md_file = os.path.join(pages_dir, f'{_name_safe(ch_copyright or "unknown")}.md')
                 with open(ch_md_file, 'w') as f:
                     print(f'# {ch_copyright}', file=f)
@@ -254,7 +246,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                     print(pd.DataFrame(ch_items).to_markdown(index=False), file=f)
                     print('', file=f)
 
-                copyright_page_relpath = os.path.relpath(ch_md_file, td)
+                copyright_page_relpath = os.path.relpath(ch_md_file, upload_dir)
                 cp_data.append({
                     'Copyright': f'[{ch_copyright or "(unknown)"}]({copyright_page_relpath})',
                     'Count': len(pages_map[ch_copyright]),
