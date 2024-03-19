@@ -12,7 +12,7 @@ on:
         type: number
         default: 6
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/20 * * * *'
 
 jobs:
   bangumibase_sync:
