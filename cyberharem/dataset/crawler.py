@@ -14,12 +14,11 @@ from hbutils.system import TemporaryDirectory
 from hfutils.archive import archive_pack
 from hfutils.operate import upload_directory_as_directory, download_archive_as_directory
 from huggingface_hub import hf_hub_url
-from imgutils.tagging import is_blacklisted, remove_underline
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
     AlignMinSizeAction, MinSizeFilterAction, FilterAction, MinAreaFilterAction, SafetyAction, TagDropAction, \
-    TagOverlapDropAction, AlignMaxAreaAction, ProcessAction
+    TagOverlapDropAction, AlignMaxAreaAction, BlacklistedTagDropAction, TagRemoveUnderlineAction, ProcessAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.model import ImageItem
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
@@ -117,17 +116,10 @@ class CustomMinSizeAction(FilterAction):
             return min_size >= self.main_size
 
 
-class FilterBlacklistedTagAction(ProcessAction):
+class UnescapeTagAction(ProcessAction):
     def process(self, item: ImageItem) -> ImageItem:
         tags = dict(item.meta.get('tags') or {})
-        tags = {tag: score for tag, score in tags.items() if not is_blacklisted(tag)}
-        return ImageItem(item.image, {**item.meta, 'tags': tags})
-
-
-class TagRemoveUnderlineAction(ProcessAction):
-    def process(self, item: ImageItem) -> ImageItem:
-        tags = dict(item.meta.get('tags') or {})
-        tags = {remove_underline(tag): score for tag, score in tags.items()}
+        tags = {tag.replace('\\', ''): score for tag, score in tags.items()}
         return ImageItem(item.image, {**item.meta, 'tags': tags})
 
 
@@ -300,7 +292,8 @@ def crawl_dataset_to_huggingface(
                             *actions,
                             TagOverlapDropAction(),
                             TagDropAction(ch_core_tags),
-                            FilterBlacklistedTagAction(),
+                            UnescapeTagAction(),
+                            BlacklistedTagDropAction(),
                             TagRemoveUnderlineAction(),
                         ]
                     LocalSource(origin_dir).attach(*actions).export(SaveExporter(os.path.join(source_dir, sname)))
