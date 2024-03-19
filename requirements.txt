@@ -37,3 +37,4 @@ sdeval>=0.0.4
 safetensors
 markdown_strings
 discord-webhook
+toml>=0.10.2

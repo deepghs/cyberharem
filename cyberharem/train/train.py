@@ -3,17 +3,23 @@ import logging
 import math
 import os.path
 import pathlib
+import random
 import re
+import shutil
+import subprocess
 from contextlib import contextmanager
-from typing import ContextManager, Optional, Tuple
+from typing import ContextManager, Optional, Tuple, List, Union
 
 import numpy as np
+import toml
+from hbutils.design import SingletonMark
 from hbutils.system import TemporaryDirectory
 from hcpdiff.train_ac import Trainer
 from hcpdiff.train_ac_single import TrainerSingleCard
 from hcpdiff.utils import load_config_with_cli
 from hfutils.operate import download_archive_as_directory
 from hfutils.operate.base import RepoTypeTyping, get_hf_fs
+from huggingface_hub import hf_hub_download
 from imgutils.metrics import ccip_extract_feature
 from tqdm.auto import tqdm
 from waifuc.utils import get_file_type
@@ -21,7 +27,7 @@ from waifuc.utils import get_file_type
 from .embedding import create_embedding
 from .reg import get_default_reg_dir, get_bangumi_reg_dir
 from .tags import save_recommended_tags
-from ..utils import data_to_cli_args
+from ..utils import data_to_cli_args, get_exec_from_venv
 
 
 @contextmanager
@@ -59,6 +65,102 @@ def load_dataset_from_repository(repo_id: str, dataset_name: str = 'stage3-p480-
             local_directory=ds_dir,
         )
         yield ds_dir
+
+
+_TRAIN_DIR = os.path.abspath(os.path.dirname(__file__))
+
+
+def _get_toml_file(file):
+    if os.path.exists(os.path.abspath(file)):
+        return os.path.abspath(file)
+    elif os.path.exists(os.path.abspath(os.path.join(_TRAIN_DIR, file))):
+        return os.path.abspath(os.path.join(_TRAIN_DIR, file))
+    else:
+        raise FileNotFoundError(f'Configuration file {file!r} not found.')
+
+
+def _load_toml_file(file):
+    file = _get_toml_file(file)
+    logging.info(f'Loading training config file {file!r} ...')
+    return toml.load(file)
+
+
+@contextmanager
+def _use_toml_cfg_file(template_file: str, configs: dict) -> ContextManager[str]:
+    with TemporaryDirectory() as td:
+        cfg_file = os.path.join(td, 'train_cfg.toml')
+        with open(cfg_file, 'w') as f:
+            toml.dump({**_load_toml_file(template_file), **configs}, f)
+        yield cfg_file
+
+
+CFG_FILE = SingletonMark('config_file')
+
+_ACCELERATE_EXEC = shutil.which('accelerate')
+_KOHYA_TRAIN_TEMPLATE = [_ACCELERATE_EXEC, 'launch', 'train_network.py', '--config_file', CFG_FILE]
+
+
+def _set_kohya_command(args: List[Union[str, object]]):
+    global _KOHYA_TRAIN_TEMPLATE
+    logging.info(f'Kohya train command has been changed from {_KOHYA_TRAIN_TEMPLATE!r} '
+                 f'to {args!r}.')
+    _KOHYA_TRAIN_TEMPLATE = args
+
+
+def _get_kohya_train_command(cfg_file) -> List[str]:
+    return [cfg_file if item is CFG_FILE else str(item) for item in _KOHYA_TRAIN_TEMPLATE]
+
+
+_CONDA_EXEC = shutil.which('conda')
+
+
+def set_kohya_from_conda_dir(conda_env_name: str, conda_directory: str):
+    if not _CONDA_EXEC:
+        raise EnvironmentError('conda command not found, please install conda and check if it is installed properly.')
+    else:
+        _set_kohya_command([
+            _CONDA_EXEC, 'run', '-n', conda_env_name,
+            'accelerate', 'launch', os.path.join(conda_directory, 'train_network.py'),
+            '--config_file', CFG_FILE,
+        ])
+
+
+def set_kohya_from_venv_dir(kohya_directory: str):
+    _set_kohya_command([
+        get_exec_from_venv(os.path.join(kohya_directory, 'venv'), exec_name='accelerate'),
+        'launch', os.path.join(kohya_directory, 'train_network.py'),
+        '--config_file', CFG_FILE,
+    ])
+
+
+def _run_kohya_train_command(cfg_file: str):
+    commands = _get_kohya_train_command(cfg_file)
+    logging.info(f'Running kohya train command with {commands!r} ...')
+    process = subprocess.run(commands)
+    process.check_returncode()
+
+
+def train_lora(workdir: str, template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
+               seed: int = None):
+    kohya_save_dir = os.path.join(workdir, 'kohya')
+    os.makedirs(kohya_save_dir, exist_ok=True)
+    with _use_toml_cfg_file(template_file, {
+        'Basics': {
+            'pretrained_model_name_or_path': pretrained_model or hf_hub_download(
+                repo_id='deepghs/animefull-latest-ckpt',
+                repo_type='model',
+                filename='model.ckpt',
+            ),
+            'train_data_dir': 'xxxx',
+            'seed': seed or random.randint(0, (1 << 31) - 1),
+        },
+        'Save': {
+            'output_dir': kohya_save_dir,
+        }
+    }) as cfg_file:
+        workdir_cfg_file = os.path.join(workdir, 'train.toml')
+        shutil.copy(cfg_file, workdir_cfg_file)
+        pass
 
 
 _DEFAULT_TRAIN_MODEL = 'deepghs/animefull-latest'
