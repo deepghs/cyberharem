@@ -20,7 +20,7 @@ from ..utils.ghaction import GithubActionClient
 def send_discord_publish_to_github_action(repository: str):
     client = GithubActionClient()
     client.create_workflow_run(
-        'deepghs/cyberharem',
+        os.environ.get('GITHUB_REPOSITORY') or 'deepghs/cyberharem',
         'DC Dataset Publish',
         data={
             'repository': repository,

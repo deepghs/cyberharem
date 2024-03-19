@@ -164,7 +164,7 @@ class Scheduler:
             if task.character_name and (_repo_exists or new_create_cnt < self.max_new_create):
                 logging.info(f'Scheduling for {task!r} ...')
                 client.create_workflow_run(
-                    'deepghs/cyberharem',
+                    os.environ.get('GITHUB_REPOSITORY') or 'deepghs/cyberharem',
                     'Test Script',
                     data={
                         'character_name': task.character_name,
@@ -184,6 +184,7 @@ _DEFAULT_CONCURRENCY = 12
 _MAX_NEW_CREATE = 3
 
 _ALL_GAMES = [
+    'arknights',
     # 'bangdream',
     # 'bangdreamdai2ki',
     #
@@ -201,7 +202,7 @@ _ALL_GAMES = [
     # 'honkai3',
     # 'fireemblem',
 
-    'neuralcloud',
+    # 'neuralcloud',
 ]
 
 if __name__ == '__main__':
