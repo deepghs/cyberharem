@@ -22,7 +22,7 @@ from sklearn.cluster import OPTICS
 from tqdm.auto import tqdm
 from waifuc.action import PaddingAlignAction, PersonSplitAction, FaceCountAction, MinSizeFilterAction, \
     NoMonochromeAction, FilterSimilarAction, HeadCountAction, FileOrderAction, TaggingAction, RandomFilenameAction, \
-    BackgroundRemovalAction, ModeConvertAction, FileExtAction
+    TagOverlapDropAction, BlacklistedTagDropAction, TagRemoveUnderlineAction, ProcessAction
 from waifuc.action.filter import MinAreaFilterAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.model import ImageItem
@@ -39,6 +39,13 @@ class ListFeatImageSource(BaseDataSource):
     def _iter(self) -> Iterator[ImageItem]:
         for file, feat in zip(self.image_files, self.feats):
             yield ImageItem(load_image(file), {'ccip_feature': feat, 'filename': os.path.basename(file)})
+
+
+class UnescapeTagAction(ProcessAction):
+    def process(self, item: ImageItem) -> ImageItem:
+        tags = dict(item.meta.get('tags') or {})
+        tags = {tag.replace('\\', ''): score for tag, score in tags.items()}
+        return ImageItem(item.image, {**item.meta, 'tags': tags})
 
 
 def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.85, clu_min_samples: int = 5,
@@ -168,6 +175,10 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
         logging.info('Creating regular normal dataset ...')
         reg_source.attach(
             TaggingAction(force=False, character_threshold=1.01),
+            TagOverlapDropAction(),
+            UnescapeTagAction(),
+            BlacklistedTagDropAction(),
+            TagRemoveUnderlineAction(),
             RandomFilenameAction(),
         )[:regsize].export(TextualInversionExporter(td))
 
@@ -177,22 +188,6 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
         with zipfile.ZipFile(reg_zip, 'w') as zf:
             for file in glob.glob(os.path.join(td, '*')):
                 zf.write(file, os.path.relpath(file, td))
-
-        with TemporaryDirectory() as td_nobg:
-            logging.info('Creating regular no-background dataset ...')
-            LocalSource(td).attach(
-                BackgroundRemovalAction(),
-                ModeConvertAction('RGB', 'white'),
-                TaggingAction(force=True, character_threshold=1.01),
-                FileExtAction('.png'),
-            ).export(TextualInversionExporter(td_nobg))
-
-            logging.info('Packing regular no-background dataset ...')
-            reg_nobg_zip = os.path.join(dst_dir, 'regular', 'nobg.zip')
-            os.makedirs(os.path.dirname(reg_nobg_zip), exist_ok=True)
-            with zipfile.ZipFile(reg_nobg_zip, 'w') as zf:
-                for file in glob.glob(os.path.join(td_nobg, '*')):
-                    zf.write(file, os.path.relpath(file, td_nobg))
 
     logging.info('Packing all images ...')
     all_zip = os.path.join(dst_dir, 'all.zip')
