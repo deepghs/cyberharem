@@ -104,7 +104,7 @@ class RegDataset:
         _reg_dir = os.path.join(_reg_root_dir(), reg_name)
         _reg_ds_dir = os.path.join(_reg_dir, 'dataset')
         _reg_cache_dir = os.path.join(_reg_dir, 'caches')
-        os.makedirs(_reg_ds_dir, exist_ok=True)
+        os.makedirs(_reg_cache_dir, exist_ok=True)
 
         _reg_lock = os.path.join(_reg_dir, '.lock')
         logging.info(f'Acquiring lock file {_reg_lock} ...')
