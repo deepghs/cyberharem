@@ -365,41 +365,33 @@ def save_recommended_tags(character_name: str, clusters, workdir: str, base: int
             pos_words = [*generic_words, (character_name, _DEFAULT_NAME_WEIGHT), *item['tags']]
             pos_prompt_ = repr_tags(pos_words)
             neg_prompt_ = repr_tags(generic_neg_words)
-            pos_prompt_repr_ = repr_tags(pos_words, left_curve='(', right_curve=')')
-            neg_prompt_repr_ = repr_tags(generic_neg_words, left_curve='(', right_curve=')')
 
             cnt = int(min(max(math.log(item['size'] / base) / math.log(scale) + 1, 1), 3))
             if cnt > 1:
                 for i in range(cnt):
-                    yield (f'{base_name}_{i}', (pos_prompt_, neg_prompt_), (pos_prompt_repr_, neg_prompt_repr_),
-                           _random_seed())
+                    yield f'{base_name}_{i}', (pos_prompt_, neg_prompt_), _random_seed()
             else:
-                yield base_name, (pos_prompt_, neg_prompt_), (pos_prompt_repr_, neg_prompt_repr_), _random_seed()
+                yield base_name, (pos_prompt_, neg_prompt_), _random_seed()
 
         for name_, func_, repeats in EXTRAS:
             pos_words, neg_words, seed_ = func_(character_name)
             pos_prompt_ = repr_tags(pos_words)
             neg_prompt_ = repr_tags(neg_words)
-            pos_prompt_repr_ = repr_tags(pos_words, left_curve='(', right_curve=')')
-            neg_prompt_repr_ = repr_tags(neg_words, left_curve='(', right_curve=')')
             if seed_ is None:
                 seed_ = _random_seed()
 
             if repeats > 1:
                 for i in range(repeats):
-                    yield (f'{name_}_{i}', (pos_prompt_, neg_prompt_), (pos_prompt_repr_, neg_prompt_repr_),
-                           (seed_ if i == 0 else _random_seed()))
+                    yield f'{name_}_{i}', (pos_prompt_, neg_prompt_), (seed_ if i == 0 else _random_seed())
             else:
-                yield name_, (pos_prompt_, neg_prompt_), (pos_prompt_repr_, neg_prompt_repr_), seed_
+                yield name_, (pos_prompt_, neg_prompt_), seed_
 
-    for idx, (name, (pos_prompt, neg_prompt), (pos_prompt_repr, neg_prompt_repr), seed) in enumerate(_yielder()):
+    for idx, (name, (pos_prompt, neg_prompt), seed) in enumerate(_yielder()):
         with open(os.path.join(tags_dir, f'{name}.json'), 'w', encoding='utf-8') as f:
             json.dump({
                 'index': idx,
                 'name': name,
                 'prompt': pos_prompt,
                 'neg_prompt': neg_prompt,
-                'prompt_repr': pos_prompt_repr,
-                'neg_prompt_repr': neg_prompt_repr,
                 'seed': seed,
             }, f, indent=4, ensure_ascii=False)

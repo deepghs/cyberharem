@@ -117,7 +117,7 @@ def load_tags_from_directory(directory: str, core_threshold: float = 0.35, thres
     return core_tags, feats
 
 
-def repr_tags(tags: List[Union[str, Tuple[str, float]]], left_curve: str = '{', right_curve: str = '}') -> str:
+def repr_tags(tags: List[Union[str, Tuple[str, float]]], left_curve: str = '(', right_curve: str = ')') -> str:
     _exists = set()
     _str_items = []
     for item in tags:
