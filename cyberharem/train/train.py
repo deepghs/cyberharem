@@ -240,3 +240,5 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                 }, f, indent=4, sort_keys=True, ensure_ascii=False)
 
             _run_kohya_train_command(workdir_cfg_file)
+
+    return workdir
