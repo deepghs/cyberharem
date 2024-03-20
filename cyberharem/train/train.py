@@ -52,7 +52,7 @@ def _extract_features_from_directory(dataset_dir):
 
 
 @contextmanager
-def load_dataset_from_repository(repo_id: str, dataset_name: str = 'stage3-p480-800',
+def load_dataset_from_repository(repo_id: str, dataset_name: str = 'stage3-p480-1200',
                                  revision: str = 'main', repo_type: RepoTypeTyping = 'dataset') -> ContextManager[str]:
     logging.info(f'Loading dataset from {repo_id}@{revision}, {dataset_name} ...')
     with TemporaryDirectory() as dltmp:
@@ -98,13 +98,15 @@ CFG_FILE = SingletonMark('config_file')
 
 _ACCELERATE_EXEC = shutil.which('accelerate')
 _KOHYA_TRAIN_TEMPLATE = [_ACCELERATE_EXEC, 'launch', 'train_network.py', '--config_file', CFG_FILE]
+_KOHYA_WORKDIR = None
 
 
-def _set_kohya_command(args: List[Union[str, object]]):
-    global _KOHYA_TRAIN_TEMPLATE
+def _set_kohya_command(args: List[Union[str, object]], workdir: str):
+    global _KOHYA_TRAIN_TEMPLATE, _KOHYA_WORKDIR
     logging.info(f'Kohya train command has been changed from {_KOHYA_TRAIN_TEMPLATE!r} '
                  f'to {args!r}.')
     _KOHYA_TRAIN_TEMPLATE = args
+    _KOHYA_WORKDIR = workdir
 
 
 def _get_kohya_train_command(cfg_file) -> List[str]:
@@ -114,15 +116,15 @@ def _get_kohya_train_command(cfg_file) -> List[str]:
 _CONDA_EXEC = shutil.which('conda')
 
 
-def set_kohya_from_conda_dir(conda_env_name: str, conda_directory: str):
+def set_kohya_from_conda_dir(conda_env_name: str, kohya_directory: str):
     if not _CONDA_EXEC:
         raise EnvironmentError('conda command not found, please install conda and check if it is installed properly.')
     else:
         _set_kohya_command([
             _CONDA_EXEC, 'run', '-n', conda_env_name,
-            'accelerate', 'launch', os.path.join(conda_directory, 'train_network.py'),
+            'accelerate', 'launch', os.path.join(kohya_directory, 'train_network.py'),
             '--config_file', CFG_FILE,
-        ])
+        ], kohya_directory)
 
 
 def set_kohya_from_venv_dir(kohya_directory: str):
@@ -130,13 +132,17 @@ def set_kohya_from_venv_dir(kohya_directory: str):
         get_exec_from_venv(os.path.join(kohya_directory, 'venv'), exec_name='accelerate'),
         'launch', os.path.join(kohya_directory, 'train_network.py'),
         '--config_file', CFG_FILE,
-    ])
+    ], kohya_directory)
 
 
 def _run_kohya_train_command(cfg_file: str):
+    if not _KOHYA_WORKDIR:
+        raise EnvironmentError('Kohya work directory not assigned. '
+                               'Please use `set_kohya_from_conda_dir` or `set_kohya_from_venv_dir` to assign it.')
+
     commands = _get_kohya_train_command(cfg_file)
     logging.info(f'Running kohya train command with {commands!r} ...')
-    process = subprocess.run(commands)
+    process = subprocess.run(commands, cwd=_KOHYA_WORKDIR)
     process.check_returncode()
 
 

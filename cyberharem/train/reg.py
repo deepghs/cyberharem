@@ -3,7 +3,7 @@ import os
 import pathlib
 import re
 from contextlib import contextmanager
-from typing import Tuple, ContextManager
+from typing import Tuple, ContextManager, Optional, List
 
 from filelock import FileLock
 from hfutils.operate import download_archive_as_directory
@@ -53,3 +53,24 @@ def get_bangumi_reg_dir(bangumi_repo_id: str, select: str = 'normal') -> Context
     name = re.sub(r'[\W_]+', '_', bangumi_repo_id).strip('_')
     logging.info(f'Loading regularization dataset for bangumi {bangumi_repo_id!r} ...')
     yield _get_reg_dir(name, bangumi_repo_id, f'regular/{select}.zip', repo_type='dataset')
+
+
+@contextmanager
+def make_reg_dir(bangumi_repo_id: Optional[str] = None, bangumi_select: str = 'normal',
+                 bangumi_reg_tags: List[str] = None, use_generic_reg: bool = True):
+    @contextmanager
+    def _yield_default_reg() -> ContextManager[Tuple[str, str]]:
+        if use_generic_reg:
+            with get_default_reg_dir() as (dir_, cache):
+                yield dir_, cache
+        else:
+            yield None, None
+
+    @contextmanager
+    def _yield_bangumi_reg() -> ContextManager[Tuple[str, str]]:
+        if bangumi_repo_id:
+            with get_bangumi_reg_dir(bangumi_repo_id, bangumi_select) as (dir_, cache):
+                yield dir_, cache
+        else:
+            yield None, None
+
