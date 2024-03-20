@@ -172,6 +172,8 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
     else:
         name = ds_repo_id.split('/')[-1]
 
+    workdir = workdir or os.path.join('runs', name)
+    os.makedirs(workdir, exist_ok=True)
     save_recommended_tags(name, meta['clusters'], workdir)
 
     kohya_save_dir = os.path.join(workdir, 'kohya')
