@@ -133,7 +133,7 @@ def set_kohya_from_conda_dir(conda_env_name: str, kohya_directory: str):
         raise EnvironmentError('conda command not found, please install conda and check if it is installed properly.')
     else:
         _set_kohya_command([
-            _CONDA_EXEC, 'run', '-n', conda_env_name,
+            _CONDA_EXEC, 'run', '--live-stream', '-n', conda_env_name,
             'accelerate', 'launch', os.path.join(kohya_directory, 'train_network.py'),
             '--config_file', CFG_FILE,
         ], kohya_directory)
@@ -154,7 +154,15 @@ def _run_kohya_train_command(cfg_file: str):
 
     commands = _get_kohya_train_command(cfg_file)
     logging.info(f'Running kohya train command with {commands!r}, on workdir {_KOHYA_WORKDIR!r} ...')
-    process = subprocess.run(commands, cwd=_KOHYA_WORKDIR)
+    terminal_size = os.get_terminal_size()
+    process = subprocess.run(
+        commands, cwd=_KOHYA_WORKDIR,
+        env={
+            **os.environ,
+            'COLUMNS': str(terminal_size.columns),
+            'LINES': str(terminal_size.lines),
+        }
+    )
     process.check_returncode()
 
 
