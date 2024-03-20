@@ -35,68 +35,72 @@ class RegDataset:
 
     @property
     def image_count(self) -> int:
-        if self._image_cnt is None:
-            image_count = 0
-            for file in os.listdir(self.dataset_dir):
-                if is_image_file(file):
-                    image_count += 1
-            self._image_cnt = image_count
-        return self._image_cnt
+        with self.lock:
+            if self._image_cnt is None:
+                image_count = 0
+                for file in os.listdir(self.dataset_dir):
+                    if is_image_file(file):
+                        image_count += 1
+                self._image_cnt = image_count
+            return self._image_cnt
 
     @contextmanager
     def mock_to_dir(self, directory, cache_id: Optional[str], prefix_tags: List[str] = None):
         os.makedirs(directory, exist_ok=True)
         prefix_tags = list(prefix_tags or [])
-        logging.info('Mocking dataset files ...')
-        for file in tqdm(os.listdir(self.dataset_dir)):
-            src_file = os.path.join(self.dataset_dir, file)
-            dst_file = os.path.join(directory, file)
-            if is_txt_file(file):
-                if not prefix_tags:
-                    shutil.copy(src_file, dst_file)
-                else:
-                    origin_text = pathlib.Path(src_file).read_text().strip()
-                    with open(dst_file, 'w') as f:
-                        print(', '.join(prefix_tags), file=f, end='')
-                        if origin_text:
-                            print(f', {origin_text}', file=f)
-            elif is_image_file(file):
-                os.symlink(src_file, dst_file)
-            else:
-                logging.warning(f'Unknown file {file!r} in reg dataset {self.reg_name!r}, skipped.')
-
-        if cache_id is not None:
-            logging.info('Loading latent cache files ...')
-            cache_dir = os.path.join(self.caches_dir, cache_id)
-            os.makedirs(cache_dir, exist_ok=True)
-
-            for file in tqdm(os.listdir(cache_dir)):
-                src_file = os.path.join(cache_dir, file)
+        with self.lock:
+            logging.info('Mocking dataset files ...')
+            for file in tqdm(os.listdir(self.dataset_dir)):
+                src_file = os.path.join(self.dataset_dir, file)
                 dst_file = os.path.join(directory, file)
-                if is_npz_file(src_file):
+                if is_txt_file(file):
+                    if not prefix_tags:
+                        shutil.copy(src_file, dst_file)
+                    else:
+                        origin_text = pathlib.Path(src_file).read_text().strip()
+                        with open(dst_file, 'w') as f:
+                            print(', '.join(prefix_tags), file=f, end='')
+                            if origin_text:
+                                print(f', {origin_text}', file=f)
+                elif is_image_file(file):
                     os.symlink(src_file, dst_file)
                 else:
-                    logging.warning(f'Unknown file {file!r} in reg dataset {self.reg_name!r}@{cache_id!r}, skipped.')
-        else:
-            cache_dir = None
+                    logging.warning(f'Unknown file {file!r} in reg dataset {self.reg_name!r}, skipped.')
+
+            if cache_id is not None:
+                logging.info('Loading latent cache files ...')
+                cache_dir = os.path.join(self.caches_dir, cache_id)
+                os.makedirs(cache_dir, exist_ok=True)
+
+                for file in tqdm(os.listdir(cache_dir)):
+                    src_file = os.path.join(cache_dir, file)
+                    dst_file = os.path.join(directory, file)
+                    if is_npz_file(src_file):
+                        os.symlink(src_file, dst_file)
+                    else:
+                        logging.warning(
+                            f'Unknown file {file!r} in reg dataset {self.reg_name!r}@{cache_id!r}, skipped.')
+            else:
+                cache_dir = None
 
         try:
             yield directory
         finally:
             if cache_dir is not None:
-                logging.info('Sync cache files back to reg dataset ...')
-                for file in tqdm(os.listdir(directory)):
-                    src_file = os.path.join(directory, file)
-                    dst_file = os.path.join(cache_dir, file)
-                    if not os.path.islink(src_file):
-                        if is_npz_file(src_file):
-                            shutil.copyfile(src_file, dst_file)
-                        elif is_txt_file(src_file):
-                            pass  # just do nothing
-                        else:
-                            logging.warning(
-                                f'Unknown file {file!r} in cached reg dataset {self.reg_name!r}@{cache_id!r}, '
-                                f'skipped and not synced back.')
+                with self.lock:
+                    logging.info('Sync cache files back to reg dataset ...')
+                    for file in tqdm(os.listdir(directory)):
+                        src_file = os.path.join(directory, file)
+                        dst_file = os.path.join(cache_dir, file)
+                        if not os.path.islink(src_file):
+                            if is_npz_file(src_file):
+                                shutil.copyfile(src_file, dst_file)
+                            elif is_txt_file(src_file):
+                                pass  # just do nothing
+                            else:
+                                logging.warning(
+                                    f'Unknown file {file!r} in cached reg dataset {self.reg_name!r}@{cache_id!r}, '
+                                    f'skipped and not synced back.')
 
     @classmethod
     def initialize_reg_dataset(cls, reg_name: str, repo_id: str, archive_file: str,
