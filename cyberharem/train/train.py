@@ -20,6 +20,7 @@ from imgutils.metrics import ccip_extract_feature
 from tqdm.auto import tqdm
 
 from .reg import prepare_reg_dataset, default_reg_dataset, bangumi_reg_dataset
+from .tags import save_recommended_tags
 from ..utils import get_exec_from_venv, yield_all_images, is_txt_file, file_sha256, dict_merge, \
     NOT_EXIST, IGNORE
 
@@ -170,6 +171,8 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
         name = meta['name']
     else:
         name = ds_repo_id.split('/')[-1]
+
+    save_recommended_tags(name, meta['clusters'], workdir)
 
     kohya_save_dir = os.path.join(workdir, 'kohya')
     os.makedirs(kohya_save_dir, exist_ok=True)
