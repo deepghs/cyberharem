@@ -179,7 +179,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
     kohya_save_dir = os.path.join(workdir, 'kohya')
     os.makedirs(kohya_save_dir, exist_ok=True)
 
-    pretrained_model = pretrained_model or hf_hub_download(
+    pretrained_model = pretrained_model or os.environ.get('CH_TRAIN_BASE_MODEL') or hf_hub_download(
         repo_id='deepghs/animefull-latest-ckpt',
         repo_type='model',
         filename='model.ckpt',
