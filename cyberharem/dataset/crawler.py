@@ -128,6 +128,7 @@ _SOURCES = {
                 TaggingAction(force=False, character_threshold=1.01),
             ], False),
     'native': ([
+                   AlignMaxAreaAction(1800),
                    TaggingAction(force=False, character_threshold=1.01),
                ], True),
     'stage3': ([
@@ -135,6 +136,7 @@ _SOURCES = {
                    FilterSimilarAction(),
                    MinSizeFilterAction(180),
                    MinAreaFilterAction(360),
+                   AlignMaxAreaAction(1800),
                    TaggingAction(force=False, character_threshold=1.01),
                ], True),
     # 'stage3-eyes': [
@@ -159,10 +161,10 @@ _DEFAULT_RESOLUTIONS = {
     # '640x880': ('native', (640, 880), '640x880 aligned dataset.'),
 
     # 'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
-    '800': ('native', False, 800, 'dataset with the shorter side not exceeding 800 pixels.'),
+    # '800': ('native', False, 800, 'dataset with the shorter side not exceeding 800 pixels.'),
     # 'stage3-800': ('stage3', False, 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
-    'stage3-p480-800': ('stage3', False, [MinAreaFilterAction(480), AlignMinSizeAction(800)],
-                        '3-stage cropped dataset with the area not less than 480x480 pixels.'),
+    # 'stage3-p480-800': ('stage3', False, [MinAreaFilterAction(480), AlignMinSizeAction(800)],
+    #                     '3-stage cropped dataset with the area not less than 480x480 pixels.'),
 
     '1200': ('native', False, 1200, 'dataset with the shorter side not exceeding 1200 pixels.'),
     # 'stage3-1200': ('stage3', False, 1200, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
