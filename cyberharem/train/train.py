@@ -153,7 +153,7 @@ def _run_kohya_train_command(cfg_file: str):
                                'Please use `set_kohya_from_conda_dir` or `set_kohya_from_venv_dir` to assign it.')
 
     commands = _get_kohya_train_command(cfg_file)
-    logging.info(f'Running kohya train command with {commands!r} ...')
+    logging.info(f'Running kohya train command with {commands!r}, on workdir {_KOHYA_WORKDIR!r} ...')
     process = subprocess.run(commands, cwd=_KOHYA_WORKDIR)
     process.check_returncode()
 
@@ -176,7 +176,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
     os.makedirs(workdir, exist_ok=True)
     save_recommended_tags(name, meta['clusters'], workdir)
 
-    kohya_save_dir = os.path.join(workdir, 'kohya')
+    kohya_save_dir = os.path.abspath(os.path.join(workdir, 'kohya'))
     os.makedirs(kohya_save_dir, exist_ok=True)
 
     pretrained_model = pretrained_model or os.environ.get('CH_TRAIN_BASE_MODEL') or hf_hub_download(
@@ -220,7 +220,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                 'training_comment': comment if comment else IGNORE,
             }
         }) as cfg_file:
-            workdir_cfg_file = os.path.join(workdir, 'train.toml')
+            workdir_cfg_file = os.path.abspath(os.path.join(workdir, 'train.toml'))
             shutil.copy(cfg_file, workdir_cfg_file)
 
             with open(os.path.join(workdir, 'meta.json'), 'w', encoding='utf-8') as f:
@@ -238,3 +238,5 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                     'display_name': meta['display_name'],
                     'version': meta['version'],
                 }, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+            _run_kohya_train_command(workdir_cfg_file)
