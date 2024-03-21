@@ -21,7 +21,7 @@ generic_neg_words = [
     ('censored, mosaic censoring, bar censor', 1.2),
 ]
 
-_DEFAULT_NAME_WEIGHT = 0.9
+_DEFAULT_NAME_WEIGHT = 1.1
 
 
 def _full_body_words(name):
