@@ -247,12 +247,14 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
         eps, save_interval = piecewise_ep(image_count)
         logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
                      f'recommended epochs: {eps}, save interval: {save_interval}.')
+
+        seed = seed or random.randint(0, (1 << 30) - 1)
         with _use_toml_cfg_file(template_file, {
             'Basics': {
                 'pretrained_model_name_or_path': pretrained_model,
                 'train_data_dir': train_dir,
                 'reg_data_dir': reg_dir if reg_dir else NOT_EXIST,
-                'seed': seed or random.randint(0, (1 << 31) - 1),
+                'seed': seed,
                 'resolution': f'{resolution},{resolution}',
                 'max_train_steps': (1 << 31 - 1),
                 'max_train_epochs': eps,
