@@ -10,7 +10,7 @@ from typing import Optional, List, Set
 import pandas as pd
 import toml
 from hbutils.random import random_sha1_with_timestamp
-from hbutils.string import singular_form
+from hbutils.string import singular_form, plural_word
 from imgutils.sd import parse_sdmeta_from_text
 from imgutils.tagging import remove_underline
 from tqdm import tqdm
@@ -120,6 +120,7 @@ def infer_with_lora(
     client = _get_webui_client()
     lora_name = mock.mock_lora(lora_file)
     try:
+        logging.info(f'Preparing to infer {plural_word(len(df_tags), "image")} ...')
         suffix = f'<lora:{lora_name}:1>'
         prompts = []
         names = []
@@ -129,6 +130,8 @@ def infer_with_lora(
             names.append(tag_item['name'])
 
         full_prompt = f'{{{"|".join(prompts)}}} {suffix}'
+        print(full_prompt)
+        quit()
         scripts = {}
         dynamic_prompt_name = _get_dynamic_prompts_name()
         if dynamic_prompt_name:
