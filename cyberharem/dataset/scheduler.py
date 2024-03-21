@@ -3,6 +3,7 @@ import os
 import warnings
 from typing import Literal, Union, List
 
+import requests
 from ditk import logging
 from gchar.games import get_character_class
 from gchar.games.base import Character
@@ -134,9 +135,10 @@ class Scheduler:
         not_started = []
         completed = []
         for task in tqdm(self.list_task_pool()):
+            logging.info(f'Task {task!r} ...')
             try:
                 status = self.get_task_status(task)
-            except (ValueError,) as err:
+            except (ValueError, requests.RequestException) as err:
                 warnings.warn(f'Error: {err!r} for task {task!r}, skipped.')
                 continue
 

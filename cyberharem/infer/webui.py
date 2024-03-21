@@ -1,10 +1,17 @@
 import glob
+import json
 import logging
 import os.path
+import re
 from typing import Optional, List
 
+import pandas as pd
 from hbutils.random import random_sha1_with_timestamp
-from webuiapi import WebUIApi
+from hbutils.string import singular_form
+from webuiapi import WebUIApi, ADetailer
+
+from .steps import find_steps_in_workdir
+from .tags import find_tags_from_workdir
 
 _WEBUI_CLIENT: Optional[WebUIApi] = None
 
@@ -77,5 +84,83 @@ def _get_webui_lora_mock() -> LoraMock:
     return _WEBUI_LORA_MOCK
 
 
-def infer_with_lora(lora_file: str, eyes_tags: List[str]):
-    pass
+def infer_with_lora(
+        lora_file: str, eyes_tags: List[str], df_tags: pd.DataFrame,
+        batch_size=16, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
+        firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
+        denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
+):
+    mock = _get_webui_lora_mock()
+    client = _get_webui_client()
+    lora_name = mock.mock_lora(lora_file)
+    try:
+        suffix = f'<lora:{lora_name}:1>'
+
+        result = client.txt2img(
+            prompt=p,
+            negative_prompt='(worst quality, low quality:1.40), (zombie, sketch, interlocked fingers, comic:1.10), (full body:1.10), lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, white border, (english text, chinese text:1.05), (censored, mosaic censoring, bar censor:1.20)',
+            alwayson_scripts={
+                'Dynamic Prompts v2.17.1': {
+                    "args": [
+                        True,
+                        True,
+                    ]
+                }
+            },
+            batch_size=batch_size,
+            sampler_name=sampler_name,
+            cfg_scale=cfg_scale,
+            steps=steps,
+            firstphase_width=firstphase_width,
+            firstphase_height=firstphase_height,
+            hr_resize_x=hr_resize_x,
+            hr_resize_y=hr_resize_y,
+            denoising_strength=denoising_strength,
+            hr_second_pass_steps=hr_second_pass_steps,
+            hr_upscaler=hr_upscaler,
+            seed=636480265,
+            enable_hr=True,
+            override_settings={
+            },
+            adetailer=[
+                ADetailer(
+                    ad_model='face_yolov8n.pt',
+                    ad_prompt='best eyes, masterpiece, best quality, extremely detailed, 8killustration, '
+                              'beautiful illustration, beautiful eyes, extremely detailed eyes, shiny eyes, '
+                              'lively eyes, livid eyes',
+                    ad_denoising_strength=denoising_strength,
+                ),
+                ADetailer(ad_model='None'),
+            ],
+
+        )
+
+    finally:
+        mock.unmock_lora(lora_name)
+
+
+def infer_with_workdir(workdir: str):
+    df_steps = find_steps_in_workdir(workdir)
+    logging.info(f'Available steps: {len(df_steps)}\n'
+                 f'{df_steps}')
+
+    df_tags = find_tags_from_workdir(workdir)
+    logging.info(f'Available prompts: {len(df_tags)}\n'
+                 f'{df_tags}')
+
+    with open(os.path.join(workdir, 'meta.json')) as f:
+        meta = json.load(f)
+    name = meta['name']
+    core_tags = meta['core_tags']
+    eye_tags = []
+    for tag in core_tags:
+        is_eye_tag = False
+        for word in re.split(r'[\W_]+', tag):
+            if word:
+                if singular_form(word) == 'eye':
+                    is_eye_tag = True
+                    break
+            else:
+                continue
+        if is_eye_tag:
+            eye_tags.append(tag)
