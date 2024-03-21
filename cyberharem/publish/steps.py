@@ -2,8 +2,11 @@ import glob
 import os.path
 from typing import List, Tuple
 
+import pandas as pd
+from imgutils.sd import read_metadata
 
-def find_steps_in_workdir(workdir: str) -> Tuple[str, List[int]]:
+
+def find_steps_in_workdir_dep(workdir: str) -> Tuple[str, List[int]]:
     ckpts_dir = os.path.join(workdir, 'ckpts')
     pt_steps = []
     pt_name = None
@@ -30,3 +33,20 @@ def find_steps_in_workdir(workdir: str) -> Tuple[str, List[int]]:
         text_encoder_steps.append(int(segs[-1]))
 
     return pt_name, sorted(set(pt_steps) & set(unet_steps) & set(text_encoder_steps))
+
+
+def find_steps_in_workdir(workdir: str) -> pd.DataFrame:
+    data = []
+    for file in glob.glob(os.path.join(workdir, 'kohya', '*.safetensors')):
+        meta = read_metadata(file)
+        step = int(meta['ss_steps'])
+        data.append({
+            'step': step,
+            'epoch': int(meta['ss_epoch']),
+            'name': os.path.splitext(os.path.basename(file))[0],
+            'filename': os.path.basename(file),
+            'file': os.path.abspath(file),
+        })
+    df = pd.DataFrame(data)
+    df = df.sort_values(['step'], ascending=[True])
+    return df

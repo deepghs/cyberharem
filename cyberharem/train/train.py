@@ -30,8 +30,8 @@ from ..utils import get_exec_from_venv, yield_all_images, is_txt_file, file_sha2
 @contextmanager
 def load_reg_dataset(bangumi_repo_id: Optional[str] = None, bangumi_select: str = 'normal',
                      bangumi_prefix_tag: str = 'anime_style', generic_scale: Optional[int] = None,
-                     use_reg: bool = False, latent_cache_id: Optional[str] = None, balance: bool = True) -> Optional[
-    str]:
+                     use_reg: bool = False, latent_cache_id: Optional[str] = None, balance: bool = True) \
+        -> Optional[str]:
     if not use_reg:
         yield None
     else:
