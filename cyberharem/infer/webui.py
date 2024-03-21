@@ -126,7 +126,7 @@ def infer_with_lora(
         names = []
         for tag_item in df_tags.to_dict('records'):
             prompt = tag_item['prompt'].replace('{', '').replace('}', '').replace('|', '')
-            prompts.append(prompt)
+            prompts.append(f'{prompt}, {tag_item["seed"]}')
             names.append(tag_item['name'])
 
         full_prompt = f'{{{"|".join(prompts)}}} {suffix}'
