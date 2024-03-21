@@ -163,7 +163,8 @@ def _run_kohya_train_command(cfg_file: str):
             **os.environ,
             'COLUMNS': str(terminal_size.columns),
             'LINES': str(terminal_size.lines),
-        }
+        },
+        bufsize=0,
     )
     process.check_returncode()
 
