@@ -175,7 +175,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                seed: int = None, use_reg: bool = True, latent_cache_id: Optional[str] = None,
                bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
                dim: int = 4, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
-               comment: str = None):
+               bangumi_style_tag: str = 'anime_style', comment: str = None):
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
     dataset_size = meta['packages'][dataset_name]['size']
@@ -198,9 +198,11 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
     )
     latent_cache_id = latent_cache_id or file_sha256(pretrained_model)
 
-    with load_train_dataset(repo_id=ds_repo_id, prefix_tags=[name], dataset_name=dataset_name) as train_dir, \
-            load_reg_dataset(bangumi_repo_id=meta['bangumi'], use_reg=use_reg,
-                             latent_cache_id=latent_cache_id) as reg_dir:
+    train_prefix_tags = [name] if not meta['bangumi'] else [name, bangumi_style_tag]
+    with load_train_dataset(repo_id=ds_repo_id, prefix_tags=train_prefix_tags,
+                            dataset_name=dataset_name) as train_dir, \
+            load_reg_dataset(bangumi_repo_id=meta['bangumi'], bangumi_prefix_tag=bangumi_style_tag,
+                             use_reg=use_reg, latent_cache_id=latent_cache_id) as reg_dir:
         with _use_toml_cfg_file(template_file, {
             'Basics': {
                 'pretrained_model_name_or_path': pretrained_model,
@@ -247,6 +249,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                     'core_tags': meta['core_tags'],
                     'bangumi': meta['bangumi'],
                     'name': name,
+                    'bangumi_style_name': bangumi_style_tag if meta['bangumi'] else None,
                     'display_name': meta['display_name'],
                     'version': meta['version'],
                 }, f, indent=4, sort_keys=True, ensure_ascii=False)
