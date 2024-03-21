@@ -1,7 +1,7 @@
 import glob
 import logging
 import os.path
-from typing import Optional
+from typing import Optional, List
 
 from hbutils.random import random_sha1_with_timestamp
 from webuiapi import WebUIApi
@@ -75,3 +75,7 @@ def set_webui_local_dir(webui_local_dir: str):
 
 def _get_webui_lora_mock() -> LoraMock:
     return _WEBUI_LORA_MOCK
+
+
+def infer_with_lora(lora_file: str, eyes_tags: List[str]):
+    pass
