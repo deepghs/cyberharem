@@ -111,7 +111,7 @@ def _get_dynamic_prompts_name() -> Optional[str]:
 
 def infer_with_lora(
         lora_file: str, eye_tags: List[str], df_tags: pd.DataFrame, seed: int,
-        batch_size=32, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
+        batch_size=64, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
@@ -146,7 +146,8 @@ def infer_with_lora(
             if enable_adetailer:
                 adetailers = [
                     ADetailer(
-                        ad_model='mediapipe_face_mesh_eyes_only',
+                        # ad_model='mediapipe_face_mesh_eyes_only',
+                        ad_model='face_yolov8n.pt',
                         ad_prompt=f'best eyes, masterpiece, best quality, extremely detailed, 8killustration, '
                                   f'beautiful illustration, beautiful eyes, extremely detailed eyes, shiny eyes, '
                                   f'lively eyes, livid eyes, {", ".join(map(remove_underline, eye_tags))}',
@@ -184,7 +185,7 @@ def infer_with_lora(
             },
             adetailer=adetailers,
         )
-        return list(zip(names, result.images))
+        return list(zip(names, result.images)), lora_name
 
     finally:
         mock.unmock_lora(lora_name)
@@ -192,7 +193,7 @@ def infer_with_lora(
 
 def infer_with_workdir(
         workdir: str,
-        batch_size=32, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
+        batch_size=64, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
@@ -207,6 +208,7 @@ def infer_with_workdir(
 
     with open(os.path.join(workdir, 'meta.json')) as f:
         meta = json.load(f)
+    name = meta['name']
     core_tags = meta['core_tags']
     eye_tags = []
     for tag in core_tags:
@@ -233,7 +235,7 @@ def infer_with_workdir(
         else:
             os.makedirs(step_eval_dir, exist_ok=True)
             logging.info(f'Infer for step {step} ...')
-            pairs = infer_with_lora(
+            pairs, lora_name = infer_with_lora(
                 lora_file=step_item['file'],
                 eye_tags=eye_tags,
                 df_tags=df_tags,
@@ -253,8 +255,8 @@ def infer_with_workdir(
                 lora_alpha=lora_alpha,
                 enable_adetailer=enable_adetailer,
             )
-            for name, image in pairs:
-                param_text = image.info.get('parameters')
+            for name, image in tqdm(pairs, desc='Save Images'):
+                param_text = image.info.get('parameters').replace(lora_name, name)
                 sdmeta = parse_sdmeta_from_text(param_text)
                 dst_image_file = os.path.join(step_eval_dir, f'{name}.png')
                 image.save(dst_image_file, pnginfo=sdmeta.pnginfo)
