@@ -225,7 +225,7 @@ def infer_with_workdir(
         if os.path.exists(step_eval_infer_okay_file):
             logging.info(f'Step {step} already inferred, skipped.')
         else:
-            os.makedirs(step_eval_dir)
+            os.makedirs(step_eval_dir, exist_ok=True)
             logging.info(f'Infer for step {step} ...')
             pairs = infer_with_lora(
                 lora_file=step_item['file'],
