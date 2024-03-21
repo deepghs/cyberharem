@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import os.path
 import pathlib
 import random
@@ -12,6 +13,7 @@ from typing import ContextManager, Optional, List, Union
 import numpy as np
 import toml
 from hbutils.design import SingletonMark
+from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import download_archive_as_directory
 from hfutils.operate.base import RepoTypeTyping, get_hf_fs
@@ -22,7 +24,7 @@ from tqdm.auto import tqdm
 from .reg import prepare_reg_dataset, default_reg_dataset, bangumi_reg_dataset
 from .tags import save_recommended_tags
 from ..utils import get_exec_from_venv, yield_all_images, is_txt_file, file_sha256, dict_merge, \
-    NOT_EXIST, IGNORE
+    NOT_EXIST, IGNORE, is_image_file
 
 
 @contextmanager
@@ -170,6 +172,44 @@ def _run_kohya_train_command(cfg_file: str):
     process.check_returncode()
 
 
+_TRAIN_SET_RANGES = {
+    (10000, +math.inf): (6, 1),
+    (8000, 10000): (7, 1),
+    (6000, 8000): (8, 1),
+    (4000, 6000): (10, 1),
+    (2000, 4000): (15, 1),
+    (1000, 2000): (20, 1),
+    (480, 1000): (30, 2),
+    (300, 480): (40, 2),
+    (100, 300): (60, 3),
+    (0, 100): (80, 4),
+}
+
+
+def piecewise_ep(train_set_size: int):
+    """
+    Created on Wed Mar 20 16:23:32 2024
+
+    @author: rezer
+    """
+    for range_, return_value in _TRAIN_SET_RANGES.items():
+        if range_[0] < train_set_size <= range_[1]:
+            return return_value
+    else:
+        raise ValueError(f'Invalid train set size: {train_set_size!r}')
+
+
+def count_images_from_train_dir(train_dir) -> int:
+    cnt = 0
+    for root, dirs, files in os.walk(train_dir):
+        for file in files:
+            src_file = os.path.join(root, file)
+            if is_image_file(src_file):
+                cnt += 1
+
+    return cnt
+
+
 def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir: Optional[str] = None,
                template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
                seed: int = None, use_reg: bool = True, latent_cache_id: Optional[str] = None,
@@ -203,17 +243,25 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                             dataset_name=dataset_name) as train_dir, \
             load_reg_dataset(bangumi_repo_id=meta['bangumi'], bangumi_prefix_tag=bangumi_style_tag,
                              use_reg=use_reg, latent_cache_id=latent_cache_id) as reg_dir:
+        image_count = count_images_from_train_dir(train_dir)
+        eps, save_interval = piecewise_ep(image_count)
+        logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
+                     f'recommended epochs: {eps}, save interval: {save_interval}.')
         with _use_toml_cfg_file(template_file, {
             'Basics': {
                 'pretrained_model_name_or_path': pretrained_model,
                 'train_data_dir': train_dir,
                 'reg_data_dir': reg_dir if reg_dir else NOT_EXIST,
                 'seed': seed or random.randint(0, (1 << 31) - 1),
-                'resolution': f'{resolution},{resolution}'
+                'resolution': f'{resolution},{resolution}',
+                'max_train_steps': (1 << 31 - 1),
+                'max_train_epochs': eps,
             },
             'Save': {
                 'output_dir': kohya_save_dir,
                 'output_name': name,
+                'save_every_n_epochs': save_interval,
+                'save_every_n_steps': (1 << 31 - 1),
             },
             'Network_setup': {
                 'network_dim': dim,
