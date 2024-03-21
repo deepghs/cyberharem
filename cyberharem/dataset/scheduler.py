@@ -188,8 +188,8 @@ _MAX_NEW_CREATE = 3
 _ALL_GAMES = [
     'bluearchive',
     'genshin',
-    'fgo',
-    'girlsfrontline',
+    # 'fgo',
+    # 'girlsfrontline',
     # 'arknights',
     # 'bangdream',
     # 'bangdreamdai2ki',
