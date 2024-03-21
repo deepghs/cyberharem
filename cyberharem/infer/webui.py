@@ -114,7 +114,7 @@ def infer_with_lora(
         batch_size=32, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
-        clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = False,
+        clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
 ):
     mock = _get_webui_lora_mock()
     client = _get_webui_client()
@@ -146,11 +146,12 @@ def infer_with_lora(
             if enable_adetailer:
                 adetailers = [
                     ADetailer(
-                        ad_model='face_yolov8n.pt',
+                        ad_model='mediapipe_face_mesh_eyes_only',
                         ad_prompt=f'best eyes, masterpiece, best quality, extremely detailed, 8killustration, '
                                   f'beautiful illustration, beautiful eyes, extremely detailed eyes, shiny eyes, '
                                   f'lively eyes, livid eyes, {", ".join(map(remove_underline, eye_tags))}',
                         ad_denoising_strength=denoising_strength,
+                        ad_clip_skip=clip_skip,
                     ),
                     ADetailer(ad_model='None'),
                 ]
@@ -194,7 +195,7 @@ def infer_with_workdir(
         batch_size=32, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
-        clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = False,
+        clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
 ):
     df_steps = find_steps_in_workdir(workdir)
     logging.info(f'Available steps: {len(df_steps)}\n'
