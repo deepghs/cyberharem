@@ -129,12 +129,13 @@ _CONDA_EXEC = shutil.which('conda')
 
 
 def set_kohya_from_conda_dir(conda_env_name: str, kohya_directory: str,
-                             accelerate_extra_args: Optional[List[str]] = None):
+                             accelerate_extra_args: Optional[List[str]] = None,
+                             live_stream: bool = True):
     if not _CONDA_EXEC:
         raise EnvironmentError('conda command not found, please install conda and check if it is installed properly.')
     else:
         _set_kohya_command([
-            _CONDA_EXEC, 'run', '--live-stream', '-n', conda_env_name,
+            _CONDA_EXEC, 'run', *(['--live-stream'] if live_stream else []), '-n', conda_env_name,
             'accelerate', 'launch', *(accelerate_extra_args or []),
             os.path.join(kohya_directory, 'train_network.py'), '--config_file', CFG_FILE,
         ], kohya_directory)
