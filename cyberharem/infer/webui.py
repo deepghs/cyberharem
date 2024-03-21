@@ -111,10 +111,10 @@ def _get_dynamic_prompts_name() -> Optional[str]:
 
 def infer_with_lora(
         lora_file: str, eye_tags: List[str], df_tags: pd.DataFrame, seed: int,
-        batch_size=16, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
+        batch_size=32, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
-        clip_skip: int = 2, lora_alpha: float = 0.8,
+        clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = False,
 ):
     mock = _get_webui_lora_mock()
     client = _get_webui_client()
@@ -124,9 +124,9 @@ def infer_with_lora(
         suffix = f'<lora:{lora_name}:{lora_alpha:.2f}>'
         prompts = []
         names = []
-        for tag_item in df_tags.to_dict('records'):
+        for i, tag_item in enumerate(df_tags.to_dict('records')):
             prompt = tag_item['prompt'].replace('{', '').replace('}', '').replace('|', '')
-            prompts.append(f'{prompt}, {tag_item["seed"]}')
+            prompts.append(f'{prompt}, {i}')
             names.append(tag_item['name'])
 
         full_prompt = f'{{{"|".join(prompts)}}} {suffix}'
@@ -143,16 +143,19 @@ def infer_with_lora(
             raise OSError('No dynamic prompt detected in webui, please install it!')
 
         if _has_adetailer():
-            adetailers = [
-                ADetailer(
-                    ad_model='face_yolov8n.pt',
-                    ad_prompt=f'best eyes, masterpiece, best quality, extremely detailed, 8killustration, '
-                              f'beautiful illustration, beautiful eyes, extremely detailed eyes, shiny eyes, '
-                              f'lively eyes, livid eyes, {", ".join(map(remove_underline, eye_tags))}',
-                    ad_denoising_strength=denoising_strength,
-                ),
-                ADetailer(ad_model='None'),
-            ]
+            if enable_adetailer:
+                adetailers = [
+                    ADetailer(
+                        ad_model='face_yolov8n.pt',
+                        ad_prompt=f'best eyes, masterpiece, best quality, extremely detailed, 8killustration, '
+                                  f'beautiful illustration, beautiful eyes, extremely detailed eyes, shiny eyes, '
+                                  f'lively eyes, livid eyes, {", ".join(map(remove_underline, eye_tags))}',
+                        ad_denoising_strength=denoising_strength,
+                    ),
+                    ADetailer(ad_model='None'),
+                ]
+            else:
+                logging.info('ADetailer disabled.')
         else:
             logging.warning('No Adetailer detected in webui, adetailer will be disabled.')
             adetailers = []
@@ -187,10 +190,10 @@ def infer_with_lora(
 
 def infer_with_workdir(
         workdir: str,
-        batch_size=16, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
+        batch_size=32, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
-        clip_skip: int = 2, lora_alpha: float = 0.8,
+        clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = False,
 ):
     df_steps = find_steps_in_workdir(workdir)
     logging.info(f'Available steps: {len(df_steps)}\n'
@@ -246,6 +249,7 @@ def infer_with_workdir(
                 hr_upscaler=hr_upscaler,
                 clip_skip=clip_skip,
                 lora_alpha=lora_alpha,
+                enable_adetailer=enable_adetailer,
             )
             for name, image in pairs:
                 param_text = image.info.get('parameters')
