@@ -114,14 +114,14 @@ def infer_with_lora(
         batch_size=16, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
-        clip_skip: int = 2,
+        clip_skip: int = 2, lora_alpha: float = 0.8,
 ):
     mock = _get_webui_lora_mock()
     client = _get_webui_client()
     lora_name = mock.mock_lora(lora_file)
     try:
         logging.info(f'Preparing to infer {plural_word(len(df_tags), "image")} ...')
-        suffix = f'<lora:{lora_name}:1>'
+        suffix = f'<lora:{lora_name}:{lora_alpha:.2f}>'
         prompts = []
         names = []
         for tag_item in df_tags.to_dict('records'):
@@ -192,7 +192,7 @@ def infer_with_workdir(
         batch_size=16, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
-        clip_skip: int = 2,
+        clip_skip: int = 2, lora_alpha: float = 0.8,
 ):
     df_steps = find_steps_in_workdir(workdir)
     logging.info(f'Available steps: {len(df_steps)}\n'
@@ -247,6 +247,7 @@ def infer_with_workdir(
                 hr_second_pass_steps=hr_second_pass_steps,
                 hr_upscaler=hr_upscaler,
                 clip_skip=clip_skip,
+                lora_alpha=lora_alpha,
             )
             for name, image in pairs:
                 param_text = image.info.get('parameters')
