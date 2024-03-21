@@ -130,8 +130,6 @@ def infer_with_lora(
             names.append(tag_item['name'])
 
         full_prompt = f'{{{"|".join(prompts)}}} {suffix}'
-        print(full_prompt)
-        quit()
         scripts = {}
         dynamic_prompt_name = _get_dynamic_prompts_name()
         if dynamic_prompt_name:
