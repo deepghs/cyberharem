@@ -156,6 +156,7 @@ def infer_with_lora(
                 ]
             else:
                 logging.info('ADetailer disabled.')
+                adetailers = []
         else:
             logging.warning('No Adetailer detected in webui, adetailer will be disabled.')
             adetailers = []
