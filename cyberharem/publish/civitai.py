@@ -56,6 +56,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
 
     step_info = df_metrics[df_metrics['step'] == step].to_dict('records')[0]
     name = meta_info['name']
+    bangumi_style_name = meta_info.get("bangumi_style_name")
     dataset_size = meta_info['dataset']['size']
     epoch = step_info['epoch']
 
@@ -337,7 +338,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             model_id=model_info['id'],
             version_name=version_name,
             description_md=f'Model {markdown_strings.esc_format(name)} version {version_name}',
-            trigger_words=[name],
+            trigger_words=[name] if not bangumi_style_name else [name, bangumi_style_name],
             base_model='SD 1.5',
             epochs=epoch,
             steps=step,
