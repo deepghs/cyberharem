@@ -215,7 +215,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                seed: int = None, use_reg: bool = True, latent_cache_id: Optional[str] = None,
                bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
                dim: int = 4, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
-               bangumi_style_tag: str = 'anime_style', comment: str = None):
+               bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False):
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
     dataset_size = meta['packages'][dataset_name]['size']
@@ -226,6 +226,10 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
 
     workdir = workdir or os.path.join('runs', name)
     os.makedirs(workdir, exist_ok=True)
+    trained_flag_file = os.path.join(workdir, '.trained')
+    if os.path.exists(trained_flag_file) and not force_retrain:
+        logging.info('Model already trained, skipped.')
+        return workdir
     save_recommended_tags(name, meta['clusters'], workdir)
 
     kohya_save_dir = os.path.abspath(os.path.join(workdir, 'kohya'))
@@ -310,4 +314,5 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
 
             _run_kohya_train_command(workdir_cfg_file)
 
+    pathlib.Path(trained_flag_file).touch()
     return workdir
