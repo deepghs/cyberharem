@@ -154,7 +154,7 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                 os.path.join(step_dir, 'details.csv'),
             )
 
-            raw_lora_file = os.path.join(step_dir, step_item['filename'])
+            raw_lora_file = os.path.join(workdir, 'kohya', step_item['filename'])
             final_lora_file = os.path.join(step_dir, f'{name}.safetensors')
             logging.info(f'No bundle required, just move lora file to {final_lora_file!r} ...')
             shutil.move(raw_lora_file, final_lora_file)
