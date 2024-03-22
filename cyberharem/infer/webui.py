@@ -115,12 +115,12 @@ def infer_with_lora(
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
-        base_mode: str = 'meinamix_v11', extra_tags: Optional[List[str]] = None,
+        base_model: str = 'meinamix_v11', extra_tags: Optional[List[str]] = None,
 ):
     mock = _get_webui_lora_mock()
     client = _get_webui_client()
-    logging.info(f'Set base model {base_mode} ...')
-    client.util_set_model(base_mode)
+    logging.info(f'Set base model {base_model} ...')
+    client.util_set_model(base_model)
     lora_name = mock.mock_lora(lora_file)
     extra_tags = list(extra_tags or [])
     try:
@@ -200,7 +200,7 @@ def infer_with_workdir(
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
-        base_mode: str = 'meinamix_v11',
+        base_model: str = 'meinamix_v11',
 ):
     eval_dir = os.path.join(workdir, 'eval')
     os.makedirs(eval_dir, exist_ok=True)
@@ -260,7 +260,7 @@ def infer_with_workdir(
                 clip_skip=clip_skip,
                 lora_alpha=lora_alpha,
                 enable_adetailer=enable_adetailer,
-                base_mode=base_mode,
+                base_model=base_model,
                 extra_tags=[] if not bangumi_style_tag else [bangumi_style_tag],
             )
             for name, image in tqdm(pairs, desc='Save Images'):
