@@ -11,6 +11,7 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import download_archive_as_directory, download_file_to_file
 from huggingface_hub import hf_hub_url
+from imgutils.tagging import remove_underline
 from imgutils.validate import anime_rating
 from tqdm import tqdm
 
@@ -34,11 +35,7 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
     meta_info = json.loads(hf_fs.read_text(f'{repository}/meta.json'))
     step = meta_info['best_step']
     name = meta_info['name']
-    dataset_size = meta_info['dataset']['size']
-    bs = meta_info['train']['dataset']['bs']
-
     base_model_type = meta_info.get('base_model_type', 'SD1.5')
-    train_type = meta_info.get('train_type', 'Pivotal LoRA')
 
     if base_model_type == 'SD1.5':
         pass
@@ -110,15 +107,14 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
 
         hf_url = f'https://huggingface.co/{repository}'
         dataset_info = meta_info['dataset']
-        train_pretrained_model = meta_info['train']['model']["pretrained_model_name_or_path"]
         train_toml_url = hf_hub_url(repo_id=repository, repo_type='model', filename=f'train.toml')
         webhook = DiscordWebhook(
             url=os.environ['DC_MODEL_WEBHOOK'],
             content=textwrap.dedent(f"""
                 LoRA Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
                 * **Trigger word is `{name}`.**
-                * **Pruned core tags for this waifu are `{", ".join(meta_info["core_tags"])}`.** You can add them to the prompt when some features of waifu (e.g. hair color) are not stable.
-                * The base model used for training is [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}). Architecture is `{base_model_type}`.
+                * **Pruned core tags for this waifu are `{", ".join(map(remove_underline, meta_info["core_tags"]))}`.** You can add them to the prompt when some features of waifu (e.g. hair color) are not stable.
+                * The base model architecture is `{base_model_type}`.
                 * Dataset used for training is the `{dataset_info["name"]}` in [{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), which contains {plural_word(dataset_info["size"], "image")}.
                 * For more details in training, you can take a look at [training configuration file]({train_toml_url}).
                 * For more details in LoRA, you can download it, and read the metadata with a1111\'s webui.
