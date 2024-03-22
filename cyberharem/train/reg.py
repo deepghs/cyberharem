@@ -143,9 +143,8 @@ def default_reg_dataset(scale: Optional[int] = None) -> RegDataset:
 
 
 def bangumi_reg_dataset(bangumi_repo_id: str, select: str = 'normal') -> RegDataset:
-    bangumi_name = bangumi_repo_id.split('/')[-1]
     return RegDataset.initialize_reg_dataset(
-        reg_name=f'animereg_{bangumi_name}',
+        reg_name=f'animereg_{_name_safe(bangumi_repo_id)}',
         repo_id=bangumi_repo_id,
         archive_file=f'regular/{select}.zip',
     )
