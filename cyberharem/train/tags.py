@@ -4,6 +4,8 @@ import os
 import random
 from typing import Iterator, Tuple
 
+from imgutils.tagging import remove_underline
+
 from cyberharem.utils import repr_tags
 
 generic_words = [
@@ -29,7 +31,7 @@ def _full_body_words(name):
         ('safe', 1.1),
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
-        'full_body'
+        'full body'
     ], ['nsfw', *generic_neg_words], 42
 
 
@@ -39,7 +41,7 @@ def _portrait_words(name):
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
         'portrait',
-        'looking_at_viewer',
+        'looking at viewer',
     ], ['nsfw', *generic_neg_words], 42
 
 
@@ -49,8 +51,8 @@ def _profile_words(name):
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
         'profile',
-        'from_side',
-        'upper_body',
+        'from side',
+        'upper body',
     ], ['nsfw', *generic_neg_words], 42
 
 
@@ -66,10 +68,10 @@ def _shorts_words(name):
     return [
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
-        'bandeau', 'belt', 'coat', 'cowboy_shot', 'looking_at_viewer', 'midriff', 'navel', 'open_clothes',
-        'open_coat', 'short_shorts', 'shorts', 'smile', 'standing', 'stomach', 'strapless', 'long_sleeves',
-        'tube_top', 'wide_sleeves', ':d', 'crop_top', 'open_mouth',
-        'hand_on_hip', 'hand_up', 'simple_background', 'thighs', 'cleavage', 'jacket'
+        'bandeau', 'belt', 'coat', 'cowboy shot', 'looking at viewer', 'midriff', 'navel', 'open clothes',
+        'open coat', 'short shorts', 'shorts', 'smile', 'standing', 'stomach', 'strapless', 'long sleeves',
+        'tube top', 'wide sleeves', ':d', 'crop top', 'open mouth',
+        'hand on hip', 'hand up', 'simple background', 'thighs', 'cleavage', 'jacket'
     ], generic_neg_words, 42
 
 
@@ -77,10 +79,10 @@ def _china_dress_words(name):
     return [
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
-        'bare_shoulders', 'bead_bracelet', 'beads', 'china_dress', 'chinese_clothes', 'dress',
-        'jewelry', 'looking_at_viewer', 'sleeveless',
-        'sleeveless_dress', 'solo', 'bracelet', 'smile', 'medium_breasts',
-        'thighs', 'cowboy_shot', ':d', 'open_mouth'
+        'bare shoulders', 'bead bracelet', 'beads', 'china dress', 'chinese clothes', 'dress',
+        'jewelry', 'looking at viewer', 'sleeveless',
+        'sleeveless dress', 'solo', 'bracelet', 'smile', 'medium breasts',
+        'thighs', 'cowboy shot', ':d', 'open mouth'
     ], generic_neg_words, 42
 
 
@@ -206,7 +208,7 @@ def _sit_words(name):
         'sitting',
         'sitting on chair',
         'chair',
-        'cowboy_shot',
+        'cowboy shot',
         'looking at viewer'
     ], ['nsfw', *generic_neg_words], 42
 
@@ -217,7 +219,7 @@ def _squat_words(name):
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
         'squatting',
-        'cowboy_shot',
+        'cowboy shot',
         'looking at viewer'
     ], ['nsfw', *generic_neg_words], 42
 
@@ -230,7 +232,7 @@ def _kneel_words(name):
         'kneeling',
         'kneeling on one knee',
         'on one knee',
-        'cowboy_shot',
+        'cowboy shot',
         'looking at viewer',
     ], ['nsfw', *generic_neg_words], 42
 
@@ -241,7 +243,7 @@ def _jump_words(name):
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
         'jumping',
-        'cowboy_shot',
+        'cowboy shot',
         'looking at viewer',
     ], ['nsfw', *generic_neg_words], 42
 
@@ -251,8 +253,8 @@ def _crossed_arms_words(name):
         ('safe', 1.1),
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
-        'crossed_arms',
-        'cowboy_shot',
+        'crossed arms',
+        'cowboy shot',
         'looking at viewer',
     ], ['nsfw', *generic_neg_words], 42
 
@@ -274,7 +276,7 @@ def _smile_words(name):
         (name, _DEFAULT_NAME_WEIGHT),
         'smile',
         'happy',
-        'one_eye_closed',
+        'one eye closed',
         'portrait',
         'looking at viewer',
     ], generic_neg_words, 42
@@ -296,8 +298,8 @@ def _grin_words(name):
     return [
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
-        'evil_grin',
-        'evil_smile',
+        'evil grin',
+        'evil smile',
         'grin',
         'portrait',
         'looking at viewer',
@@ -362,7 +364,8 @@ def save_recommended_tags(character_name: str, clusters, workdir: str, base: int
     def _yielder() -> Iterator[Tuple[str, str, str, int]]:
         for item in clusters:
             base_name = f'pattern_{item["id"]}'
-            pos_words = [*generic_words, (character_name, _DEFAULT_NAME_WEIGHT), *item['tags']]
+            pos_words = [*generic_words, (character_name, _DEFAULT_NAME_WEIGHT),
+                         *map(remove_underline, item['tags'])]
             pos_prompt_ = repr_tags(pos_words)
             neg_prompt_ = repr_tags(generic_neg_words)
 
