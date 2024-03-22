@@ -7,8 +7,8 @@ from gchar.utils import GLOBAL_CONTEXT_SETTINGS
 from gchar.utils import print_version as _origin_print_version
 
 from .civitai import civitai_upload_from_hf
-from .huggingface import deploy_to_huggingface, publish_to_discord
-from ..infer.draw import _DEFAULT_INFER_MODEL
+from .discord import publish_to_discord
+from .huggingface import deploy_to_huggingface
 
 import_generic()
 
@@ -26,8 +26,6 @@ def cli():
               help='Work directory for experiment.', show_default=True)
 @click.option('--repository', '-r', 'repository', type=str, default=None,
               help='Repository to publish to.', show_default=True)
-@click.option('-m', '--pretrained_model', 'pretrained_model', type=str, default=_DEFAULT_INFER_MODEL,
-              help='Pretrained model for preview drawing.', show_default=True)
 @click.option('--width', 'width', type=int, default=832,
               help='Width of images.', show_default=True)
 @click.option('--height', 'height', type=int, default=1216,
@@ -36,13 +34,12 @@ def cli():
               help='Clip skip.', show_default=True)
 @click.option('-S', '--infer_steps', 'infer_steps', type=int, default=30,
               help='Steps of inference.', show_default=True)
-def huggingface(workdir: str, repository, pretrained_model, width, height, clip_skip, infer_steps):
+def huggingface(workdir: str, repository, width, height, clip_skip, infer_steps):
     logging.try_init_root(logging.INFO)
     deploy_to_huggingface(
         workdir=workdir,
         repository=repository,
         eval_cfgs={
-            'pretrained_model': pretrained_model,
             'clip_skip': clip_skip,
             'infer_steps': infer_steps,
             'width': width,
