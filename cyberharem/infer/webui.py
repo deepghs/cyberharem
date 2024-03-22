@@ -115,10 +115,12 @@ def infer_with_lora(
         firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
+        extra_tags: Optional[List[str]] = None,
 ):
     mock = _get_webui_lora_mock()
     client = _get_webui_client()
     lora_name = mock.mock_lora(lora_file)
+    extra_tags = list(extra_tags or [])
     try:
         logging.info(f'Preparing to infer {plural_word(len(df_tags), "image")} ...')
         suffix = f'<lora:{lora_name}:{lora_alpha:.2f}>'
@@ -126,7 +128,7 @@ def infer_with_lora(
         names = []
         for i, tag_item in enumerate(df_tags.to_dict('records')):
             prompt = tag_item['prompt'].replace('{', '').replace('}', '').replace('|', '')
-            prompts.append(f'{prompt}, {i}')
+            prompts.append(f'{prompt}, {", ".join([*extra_tags, str(i)])}')
             names.append(tag_item['name'])
 
         full_prompt = f'{{{"|".join(prompts)}}} {suffix}'
@@ -146,7 +148,8 @@ def infer_with_lora(
             if enable_adetailer:
                 adetailers = [
                     ADetailer(
-                        ad_model='mediapipe_face_mesh_eyes_only',
+                        ad_model='face_yolov8n.pt',
+                        # ad_model='mediapipe_face_mesh_eyes_only',
                         ad_prompt=f'best eyes, [PROMPT], {", ".join(map(remove_underline, eye_tags))}, '
                                   f'beautiful eyes, extremely detailed eyes, shiny eyes, lively eyes, livid eyes',
                         ad_denoising_strength=denoising_strength,
@@ -207,6 +210,7 @@ def infer_with_workdir(
     with open(os.path.join(workdir, 'meta.json')) as f:
         meta = json.load(f)
     trigger_name = meta['name']
+    bangumi_style_tag = meta['bangumi_style_name']
     core_tags = meta['core_tags']
     eye_tags = []
     for tag in core_tags:
@@ -252,6 +256,7 @@ def infer_with_workdir(
                 clip_skip=clip_skip,
                 lora_alpha=lora_alpha,
                 enable_adetailer=enable_adetailer,
+                extra_tags=[] if not bangumi_style_tag else [bangumi_style_tag],
             )
             for name, image in tqdm(pairs, desc='Save Images'):
                 param_text = image.info.get('parameters').replace(lora_name, trigger_name)
