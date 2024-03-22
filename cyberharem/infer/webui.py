@@ -210,7 +210,7 @@ def infer_with_workdir(
     with open(os.path.join(workdir, 'meta.json')) as f:
         meta = json.load(f)
     trigger_name = meta['name']
-    bangumi_style_tag = meta['bangumi_style_name']
+    bangumi_style_tag = meta.get('bangumi_style_name')
     core_tags = meta['core_tags']
     eye_tags = []
     for tag in core_tags:
