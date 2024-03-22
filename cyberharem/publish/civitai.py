@@ -1,6 +1,5 @@
 import json
 import logging
-import math
 import os.path
 import re
 from typing import Optional
@@ -12,9 +11,11 @@ from civitai.client import CivitAIClient
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import download_archive_as_directory, download_file_to_file
+from huggingface_hub import hf_hub_url
 from imgutils.data import load_image
 from imgutils.detect import detect_faces
 from imgutils.sd import get_sdmeta_from_image
+from imgutils.tagging import remove_underline
 from imgutils.validate import anime_rating
 from pycivitai import civitai_find_online
 from pycivitai.client import ModelNotFound, ModelVersionNotFound
@@ -47,10 +48,16 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
     if step not in meta_info['steps']:
         raise ValueError(f'Unknown step, one of {meta_info["steps"]!r} expected, but {step!r} given.')
 
+    with TemporaryDirectory() as td:
+        metrics_file = os.path.join(td, 'metrics.csv')
+        download_file_to_file(repo_id=repository, repo_type='model',
+                              file_in_repo='metrics.csv', local_file=metrics_file)
+        df_metrics = pd.read_csv(metrics_file)
+
+    step_info = df_metrics[df_metrics['step'] == step].to_dict('records')[0]
     name = meta_info['name']
     dataset_size = meta_info['dataset']['size']
-    bs = meta_info['train']['dataset']['bs']
-    epoch = int(math.ceil(step * bs / dataset_size))
+    epoch = step_info['epoch']
 
     with TemporaryDirectory() as td:
         download_archive_as_directory(
@@ -73,7 +80,6 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         lora_file = f'{name}.safetensors'
         lora_path = os.path.join(td, lora_file)
         pt_file = f'{name}.pt'
-        pt_path = os.path.join(td, pt_file)
 
         details_csv_file = os.path.join(td, 'details.csv')
         download_file_to_file(
@@ -152,18 +158,18 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             raise RuntimeError(f'Session not found in {civitai_session!r}.')
 
         dataset_info = meta_info['dataset']
-        train_pretrained_model = meta_info['train']['model']["pretrained_model_name_or_path"]
-        ds_res = meta_info["train"]["dataset"]["resolution"]
-        reg_res = meta_info["train"]["reg_dataset"]["resolution"]
         metrics_plot_url = client.upload_image(local_metrics_plot_png).original_url
+
         description_md = f"""
         * Due to Civitai's TOS, some images cannot be uploaded. **THE FULL PREVIEW IMAGES CAN BE FOUND ON [HUGGINGFACE](https://huggingface.co/{repository})**.
-        * **THIS MODEL HAS 2 FILES**. If you are using a1111's webui v1.6 or lower version, **<span style="color:#fa5252">YOU HAVE TO USE THEM TOGETHER!!!</span>**. If you are using webui v1.7+, just use the safetensors file like the common LoRA.
-        * **The pruned character tags are {markdown_strings.esc_format(", ".join(meta_info["core_tags"]))}. You can add them into prompts when core features (e.g. hair color) of character is not so stable**.
+        * For models version v1.5.1 or v2.0+, **you can simply use them on webui like other LoRAs, they are trained on kohya script.**
+        * For models version v1.5 or v1.4-, you have to use both 2 files to run it. see "How to use Pivotal Tuned models" in description for details.
+        * **The pruned character tags are {markdown_strings.esc_format(", ".join(map(remove_underline, meta_info['core_tags'])))}. You can add them into prompts when core features (e.g. hair color) of character is not so stable**.
         * Recommended weight of pt file is 0.7-1.1, weight of LoRA is 0.5-0.85. 
         * Images were generated using some fixed prompts and dataset-based clustered prompts. Random seeds were used, ruling out cherry-picking. **What you see here is what you can get.**
         * No specialized training was done for outfits. You can check our provided preview post to get the prompts corresponding to the outfits.
         * This model is trained with **{plural_word(dataset_size, "image")}**.
+        * Training configuration file is [here]({hf_hub_url(repo_id=repository, repo_type='model', filename=f'train.toml')}).
         * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.**
         Here is the overview of all the steps. You can try the other recommended steps in
         [huggingface repository - {markdown_strings.esc_format(repository)}](https://huggingface.co/{repository}).
@@ -171,6 +177,41 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         ![Step Overview]({metrics_plot_url})
 
         ## How to Use This Model
+
+        **This part is only for model version v1.5.1 or v2.0+.**
+
+        You can simply use it like other LoRAs. We trained this model with kohya scripts.
+
+        他のLoRAと同様に簡単に使用できます。このモデルはkohyaスクリプトで訓練されました。
+
+        다른 LoRA처럼 간단히 사용할 수 있습니다. 우리는 이 모델을 kohya 스크립트로 훈련했습니다.
+
+        您可以像其他LoRAs一样简单地使用它。我们使用kohya脚本对该模型进行了训练。
+
+        (Translated with ChatGPT)
+
+        If you are looking for model waifus and or interested in our technology, 
+        you can enter our discord server: https://discord.gg/AhExhbzxq9
+
+        ## How This Model Is Trained
+
+        * This model is **trained with [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)**,
+        the images are generated with [a1111\'s webui](AUTOMATIC1111/stable-diffusion-webui) 
+        and [API sdk](https://github.com/mix1009/sdwebuiapi).
+        * The [auto-training framework](https://github.com/deepghs/cyberharem) is maintained by 
+        [DeepGHS Team](https://huggingface.co/deepghs).
+        * Dataset used for training is the `{dataset_info["name"]}` in 
+        [{markdown_strings.esc_format(dataset_info["repository"])}](https://huggingface.co/datasets/{dataset_info["repository"]}),
+        which contains {plural_word(dataset_info["size"], "image")}.
+        * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.
+        * Training configuration file is [here]({hf_hub_url(repo_id=repository, repo_type='model', filename=f'train.toml')}).
+
+        For more training details and recommended steps, take a look at 
+        [huggingface repository - {markdown_strings.esc_format(repository)}](https://huggingface.co/{repository}).
+
+        ## How to Use Pivotal Tuned Models
+
+        **This part is only for model version v1.5 or v1.4-.**
 
         **<span style="color:#fa5252">THIS MODEL HAS TWO FILES. YOU NEED TO USE THEM TOGETHER IF YOU ARE USING WEBUI v1.6 OR LOWER VERSION!!!</span>**. 
         In this case, you need to download both `{pt_file}` and `{lora_file}`, 
@@ -198,27 +239,6 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         The trigger word is `{name}`, and the pruned tags are `{', '.join(meta_info["core_tags"])}`.
         **When some features (e.g. hair color) are not so stable at some times, 
         you can add these them into your prompt**.
-
-        ## How This Model Is Trained
-
-        * This model is trained with [HCP-Diffusion](https://github.com/7eu7d7/HCP-Diffusion).
-        * The [auto-training framework](https://github.com/deepghs/cyberharem) is maintained by 
-        [DeepGHS Team](https://huggingface.co/deepghs).
-        * The base model used for training is 
-        [{train_pretrained_model}](https://huggingface.co/{train_pretrained_model}).
-        * Dataset used for training is the `{dataset_info["name"]}` in 
-        [{markdown_strings.esc_format(dataset_info["repository"])}](https://huggingface.co/datasets/{dataset_info["repository"]}),
-        which contains {plural_word(dataset_info["size"], "image")}.
-        * Batch size is {meta_info["train"]["dataset"]["bs"]}, resolution is {ds_res}x{ds_res}, 
-        clustering into {plural_word(meta_info["train"]["dataset"]["num_bucket"], "bucket")}.
-        * Batch size for regularization dataset is {meta_info["train"]["reg_dataset"]["bs"]}, 
-        resolution is {reg_res}x{reg_res}, clustering into {plural_word(meta_info["train"]["reg_dataset"]["num_bucket"], "bucket")}.
-        * Trained for {plural_word(meta_info["train"]["train"]["train_steps"], "step")}, 
-        {plural_word(len(meta_info["steps"]), "checkpoint")} were saved and evaluated.
-        * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.
-        
-        For more training details and recommended steps, take a look at 
-        [huggingface repository - {markdown_strings.esc_format(repository)}](https://huggingface.co/{repository}).
 
         ## Why Some Preview Images Not Look Like Her
 
@@ -289,7 +309,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             category='character',
             type_='LORA',
             # checkpoint_type='Trained',  # use this line when uploading checkpoint
-            commercial_use=['Image'],  # your allowance of commercial use
+            commercial_use=['Image', 'RentCivit', 'Rent'],  # your allowance of commercial use
             allow_no_credit=True,
             allow_derivatives=True,
             allow_different_licence=True,
@@ -333,7 +353,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         # upload model files
         client.upload_models(
             model_version_id=version_info['id'],
-            model_files=[lora_path, pt_path],
+            model_files=[lora_path],
         )
 
         post_ids = []
