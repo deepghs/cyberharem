@@ -202,6 +202,9 @@ def infer_with_workdir(
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
         base_mode: str = 'meinamix_v11',
 ):
+    eval_dir = os.path.join(workdir, 'eval')
+    os.makedirs(eval_dir, exist_ok=True)
+
     df_steps = find_steps_in_workdir(workdir)
     logging.info(f'Available steps: {len(df_steps)}\n'
                  f'{df_steps}')
@@ -228,8 +231,6 @@ def infer_with_workdir(
         if is_eye_tag:
             eye_tags.append(tag)
 
-    eval_dir = os.path.join(workdir, 'eval')
-    os.makedirs(eval_dir, exist_ok=True)
     seed = toml.load(os.path.join(workdir, 'train.toml'))['Basics']['seed']
     for step_item in tqdm(df_steps.to_dict('records')):
         step = step_item['step']

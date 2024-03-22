@@ -2,7 +2,6 @@ import glob
 import json
 import logging
 import os.path
-import pathlib
 from typing import Optional, List
 
 import numpy as np
@@ -14,9 +13,6 @@ from sdeval.corrupt import AICorruptMetrics
 from sdeval.fidelity import CCIPMetrics
 from tqdm import tqdm
 
-from ..infer import draw_images_for_workdir
-from ..infer.draw import _DEFAULT_INFER_MODEL, _DEFAULT_INFER_CFG_FILE_LORA
-
 
 def list_steps(workdir) -> List[int]:
     ckpts_dir = os.path.join(workdir, 'ckpts')
@@ -26,13 +22,11 @@ def list_steps(workdir) -> List[int]:
     ]))
 
 
-def plt_metrics(df: pd.DataFrame, model_name: str, dataset_size: int, plot_file: str,
-                bs: int = 4, select: int = 5, fidelity_alpha: float = 3.0,
+def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int = 5, fidelity_alpha: float = 3.0,
                 bp_std_min: Optional[float] = 0.015, min_aic: float = 0.8, aic_interval: float = 0.05,
                 select_n: int = 3):
     # generate data calculation
     df = df.copy()
-    df['epoch'] = np.ceil(df['step'] * bs / dataset_size).astype(np.int32)
 
     ccip = np.array(df['ccip'])
     ccip_mean = ccip.mean()
@@ -142,19 +136,16 @@ def plt_metrics(df: pd.DataFrame, model_name: str, dataset_size: int, plot_file:
     return df, df_selected
 
 
-def eval_for_workdir(workdir: str, batch_size: int = 32,
-                     pretrained_model: str = _DEFAULT_INFER_MODEL, model_hash: Optional[str] = None,
-                     firstpass_width: int = 512, firstpass_height: int = 768,
-                     width: int = 832, height: int = 1216, cfg_scale: float = 7,
-                     infer_steps: int = 30, denoising_strength: float = 0.5, hires_steps: int = 20,
-                     lora_alpha: float = 0.8, clip_skip: int = 2, sample_method: str = 'DPM++ 2M Karras',
-                     select: int = 5, fidelity_alpha: float = 3.0,
-                     cfg_file: str = _DEFAULT_INFER_CFG_FILE_LORA, model_tag: str = 'lora'):
+def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha: float = 0.3):
+    from ..infer import find_steps_in_workdir, infer_with_workdir
+    df_steps = find_steps_in_workdir(workdir)
+    infer_with_workdir(workdir)
+
     logging.info(f'Evaluate for workdir {workdir!r} ...')
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
 
-    steps = list_steps(workdir)
+    steps = list(df_steps['step'])
     logging.info(f'Steps {steps!r} found.')
 
     features_path = os.path.join(workdir, 'features.npy')
@@ -166,38 +157,11 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
     eval_dir = os.path.join(workdir, 'eval')
     os.makedirs(eval_dir, exist_ok=True)
     tb_data = []
-    for step in tqdm(steps):
+    for step_item in tqdm(df_steps.to_dict('records')):
+        step, epoch, filename = step_item['step'], step_item['epoch'], step_item['filename']
         step_dir = os.path.join(eval_dir, str(step))
         os.makedirs(step_dir, exist_ok=True)
         step_metrics_file = os.path.join(step_dir, 'metrics.json')
-        if not os.path.exists(step_metrics_file):
-            logging.info(f'Drawing images with step {step!r} in workdir {workdir!r} ...')
-            drawings = draw_images_for_workdir(
-                workdir=workdir,
-                model_steps=step,
-                batch_size=batch_size,
-                pretrained_model=pretrained_model,
-                model_hash=model_hash,
-                firstpass_width=firstpass_width,
-                firstpass_height=firstpass_height,
-                width=width,
-                height=height,
-                cfg_scale=cfg_scale,
-                infer_steps=infer_steps,
-                denoising_strength=denoising_strength,
-                hires_steps=hires_steps,
-                model_alpha=lora_alpha,
-                clip_skip=clip_skip,
-                sample_method=sample_method,
-                cfg_file=cfg_file,
-                model_tag=model_tag,
-            )
-            logging.info(f'Saving images to {step_dir!r} ...')
-            for drawing in tqdm(drawings):
-                drawing.save(os.path.join(step_dir, f'{drawing.name}.png'))
-
-            pathlib.Path(step_metrics_file).touch()
-
         step_details_file = os.path.join(step_dir, 'details.csv')
         if not os.path.exists(step_details_file):
             png_files = natsorted(glob.glob(os.path.join(step_dir, '*.png')))
@@ -211,7 +175,10 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
             logging.info(f'Step {step!r}, CCIP Score: {ccip_score:.4f}, '
                          f'AI-Corrupt Score: {aic_score:.4f}, Bikini Plus Score: {bp_score:.4f}')
 
-            row = {'step': step, 'ccip': ccip_score, 'aic': aic_score, 'bp': bp_score}
+            row = {
+                'step': step, 'epoch': epoch, 'filename': filename,
+                'ccip': ccip_score, 'aic': aic_score, 'bp': bp_score,
+            }
             with open(step_metrics_file, 'w') as f:
                 json.dump(row, f, indent=4, ensure_ascii=False)
 
@@ -230,12 +197,11 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
     df = pd.DataFrame(tb_data)
     metrics_plot_file = os.path.join(eval_dir, 'metrics_plot.png')
     logging.info(f'Plotting metrics to {metrics_plot_file!r} ...')
+    select = select or min(len(steps) // 3, 5)
     df, df_selected = plt_metrics(
         df=df,
         model_name=meta_info['name'],
-        dataset_size=meta_info['dataset']['size'],
         plot_file=metrics_plot_file,
-        bs=meta_info['train']['dataset']['bs'],
         select=select,
         fidelity_alpha=fidelity_alpha,
     )
@@ -247,3 +213,4 @@ def eval_for_workdir(workdir: str, batch_size: int = 32,
     metrics_selected_csv_file = os.path.join(eval_dir, 'metrics_selected.csv')
     logging.info(f'Save selected metrics table to {metrics_selected_csv_file!r} ...')
     df_selected.to_csv(metrics_selected_csv_file, index=False)
+    logging.info(f'Selected steps:\n{df_selected}\n')
