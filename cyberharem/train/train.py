@@ -246,7 +246,6 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
         features_path = os.path.join(workdir, 'features.npy')
         logging.info(f'Extracting features from {train_dir!r}, and saving that to {features_path!r} ...')
         np.save(features_path, _extract_features_from_directory(train_dir))
-        quit()
 
         image_count = count_images_from_train_dir(train_dir)
         eps, save_interval = piecewise_ep(image_count)
