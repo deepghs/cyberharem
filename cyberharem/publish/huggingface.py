@@ -156,7 +156,7 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
 
             origin_lora_file = os.path.join(workdir, 'kohya', step_item['filename'])
             final_lora_file = os.path.join(step_dir, f'{name}.safetensors')
-            logging.info(f'No bundle required, just move lora file to {final_lora_file!r} ...')
+            logging.info(f'Copy lora file to {final_lora_file!r} ...')
             shutil.copyfile(origin_lora_file, final_lora_file)
 
             zip_file = os.path.join(step_dir, f'{name}.zip')
