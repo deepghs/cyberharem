@@ -58,7 +58,7 @@ def create_safe_toml(toml_file: str, dst_toml_file: str):
                 if any(word in {'path', 'file', 'dir', 'directory'} for word in words):
                     retval[key] = '******'
                 else:
-                    retval[key] = _recursion(d)
+                    retval[key] = _recursion(value)
             return retval
 
         else:
