@@ -191,7 +191,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         (Translated with ChatGPT)
 
         If you are looking for model waifus and or interested in our technology, 
-        you can enter our discord server: https://discord.gg/AhExhbzxq9
+        you can enter our [discord server](https://discord.gg/AhExhbzxq9).
 
         ## How This Model Is Trained
 
@@ -203,7 +203,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         * Dataset used for training is the `{dataset_info["name"]}` in 
         [{markdown_strings.esc_format(dataset_info["repository"])}](https://huggingface.co/datasets/{dataset_info["repository"]}),
         which contains {plural_word(dataset_info["size"], "image")}.
-        * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.
+        * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.**
         * Training configuration file is [here]({hf_hub_url(repo_id=repository, repo_type='model', filename=f'train.toml')}).
 
         For more training details and recommended steps, take a look at 
