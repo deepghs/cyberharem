@@ -128,7 +128,7 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
     return df, df_selected
 
 
-def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha: float = 0.3):
+def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha: float = 3.0):
     from ..infer import find_steps_in_workdir, infer_with_workdir
     df_steps = find_steps_in_workdir(workdir)
     infer_with_workdir(workdir)
