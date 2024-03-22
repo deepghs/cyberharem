@@ -43,7 +43,7 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
     df['bp_norm'] = bp_norm
 
     df['integrate'] = (fidelity_alpha ** 2 + 1) * (ccip_norm * bp_norm) / (fidelity_alpha ** 2 * bp_norm + ccip_norm)
-    df = df[['step', 'epoch', 'ccip', 'aic', 'bp', 'ccip_norm', 'bp_norm', 'integrate']]
+    df = df[['step', 'epoch', 'filename', 'ccip', 'aic', 'bp', 'ccip_norm', 'bp_norm', 'integrate']]
 
     # select best steps
     d = 1.0
