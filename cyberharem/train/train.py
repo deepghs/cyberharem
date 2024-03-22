@@ -243,6 +243,11 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                             dataset_name=dataset_name) as train_dir, \
             load_reg_dataset(bangumi_repo_id=meta['bangumi'], bangumi_prefix_tag=bangumi_style_tag,
                              use_reg=use_reg, latent_cache_id=latent_cache_id) as reg_dir:
+        features_path = os.path.join(workdir, 'features.npy')
+        logging.info(f'Extracting features from {train_dir!r}, and saving that to {features_path!r} ...')
+        np.save(features_path, _extract_features_from_directory(train_dir))
+        quit()
+
         image_count = count_images_from_train_dir(train_dir)
         eps, save_interval = piecewise_ep(image_count)
         logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
