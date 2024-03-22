@@ -2,7 +2,7 @@ import glob
 import json
 import logging
 import os.path
-from typing import Optional, List
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -12,14 +12,6 @@ from sdeval.controllability import BikiniPlusMetrics
 from sdeval.corrupt import AICorruptMetrics
 from sdeval.fidelity import CCIPMetrics
 from tqdm import tqdm
-
-
-def list_steps(workdir) -> List[int]:
-    ckpts_dir = os.path.join(workdir, 'ckpts')
-    return sorted(set([
-        int(os.path.splitext(os.path.basename(file))[0].split('-')[-1])
-        for file in glob.glob(os.path.join(ckpts_dir, 'unet-*.safetensors'))
-    ]))
 
 
 def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int = 5, fidelity_alpha: float = 3.0,
@@ -197,7 +189,7 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
     df = pd.DataFrame(tb_data)
     metrics_plot_file = os.path.join(eval_dir, 'metrics_plot.png')
     logging.info(f'Plotting metrics to {metrics_plot_file!r} ...')
-    select = select or min(len(steps) // 3, 5)
+    select = select or max(min(len(steps) // 3, 5), 3)
     df, df_selected = plt_metrics(
         df=df,
         model_name=meta_info['name'],

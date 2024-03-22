@@ -1,4 +1,8 @@
+import re
+
+import toml
 from hbutils.design import SingletonMark
+from hbutils.string import singular_form
 
 NOT_EXIST = SingletonMark('NOT_EXIST')
 IGNORE = SingletonMark('IGNORE')
@@ -41,3 +45,25 @@ def dict_merge(*objs: dict):
     for obj in objs:
         retval = _raw_dict_merge(retval, obj)
     return _remove_not_exist(retval)
+
+
+def create_safe_toml(toml_file: str, dst_toml_file: str):
+    data = toml.load(toml_file)
+
+    def _recursion(d):
+        if isinstance(d, dict):
+            retval = {}
+            for key, value in d.items():
+                words = list(map(singular_form, filter(bool, re.split(r'[\W_]', key.lower()))))
+                if any(word in {'path', 'file', 'dir', 'directory'} for word in words):
+                    retval[key] = '******'
+                else:
+                    retval[key] = _recursion(d)
+            return retval
+
+        else:
+            return d
+
+    data = _recursion(data)
+    with open(dst_toml_file, 'w') as f:
+        toml.dump(data, f)

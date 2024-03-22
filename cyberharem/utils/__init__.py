@@ -8,5 +8,5 @@ from .path import get_path_from_env
 from .session import get_requests_session, srequest
 from .tags import find_core_tags, load_tags_from_directory, repr_tags
 from .time import parse_time
-from .toml import dict_merge, IGNORE, NOT_EXIST
+from .toml import dict_merge, IGNORE, NOT_EXIST, create_safe_toml
 from .venv import get_exec_from_venv, get_python_exec_from_venv
