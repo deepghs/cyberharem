@@ -1,5 +1,4 @@
 git+https://github.com/deepghs/waifuc.git@main#egg=waifuc[video]
-git+https://github.com/narugo1992/HCP-Diffusion.git@main#egg=hcpdiff[lycoris]
 git+https://github.com/narugo1992/civitai_client.git@main
 dghs-imgutils>=0.4.1
 git+https://github.com/narugo1992/gchar.git@main
