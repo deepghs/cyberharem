@@ -13,6 +13,10 @@ on:
       game_name:
         description: 'Game Name'
         required: true
+      limit:
+        description: 'Game Name'
+        type: number
+        default: 500
       drop_multi:
         description: 'Drop Multi-Person Images'
         type: boolean
@@ -93,6 +97,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           CH_WAIFU_NAME: ${{ github.event.inputs.character_name }}
           CH_GAME_NAME: ${{ github.event.inputs.game_name }}
+          CH_LIMIT: ${{ github.event.inputs.limit }}
           CH_SAFE: '1'
         run: |
           python -m cyberharem.dataset.action

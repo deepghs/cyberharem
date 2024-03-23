@@ -18,7 +18,7 @@ if __name__ == '__main__':
     ch: Character = game_cls.get(os.environ['CH_WAIFU_NAME'])
     crawl_dataset_to_huggingface(
         ch,
-        limit=500,
+        limit=int(os.environ.get('CH_LIMIT') or 500),
         drop_multi=bool(os.environ.get('CH_DROP_MULTI')),
         remove_empty_repo=False,
         min_images=5,
