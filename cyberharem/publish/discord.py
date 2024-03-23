@@ -11,6 +11,7 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import download_archive_as_directory, download_file_to_file
 from huggingface_hub import hf_hub_url
+from imgutils.generic import classify_predict
 from imgutils.tagging import remove_underline
 from imgutils.validate import anime_rating
 from tqdm import tqdm
@@ -93,6 +94,14 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
             anime_rating(os.path.join(td, img_file))[0]
             for img_file in tqdm(df['image'], desc='Detecting rating')
         ]
+        df['rating_x'] = [
+            classify_predict(
+                os.path.join(td, img_file),
+                repo_id='deepghs/anime_dbrating',
+                model_name='mobilenetv3_large_100_v0_ls0.2',
+            )[0] for img_file in tqdm(df['image'], desc='Detecting rating X')
+        ]
+        df_backup = df.copy()
 
         df = df[df['ccip'] >= (metrics_info['ccip'] - 0.05)]
         df = df[df['bp'] >= (metrics_info['bp'] - 0.05)]
@@ -151,4 +160,50 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
             with open(model_file, 'rb') as f:
                 webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
         response = webhook.execute()
-        response.raise_for_status()
+        # response.raise_for_status()
+
+        ## Upload nsfw images
+        if os.environ.get('DC_MODEL_NSFW_WEBHOOK'):
+            df = df_backup.copy()
+            df = df[df['ccip'] >= (metrics_info['ccip'] - 0.15)]
+            df = df[df['bp'] >= (metrics_info['bp'] - 0.10)]
+            df = df[df['aic'] >= max(metrics_info['aic'] - 0.3, metrics_info['aic'] * 0.5)]
+            df['ccip_x'] = np.round(df['ccip'] * 30) / 30.0
+            df['face_x'] = np.round(df['face'] * 20) / 20.0
+            df = df.sort_values(by=['ccip_x', 'level', 'face_x'], ascending=False)
+
+            hf_url = f'https://huggingface.co/{repository}'
+            dataset_info = meta_info['dataset']
+            webhook = DiscordWebhook(
+                url=os.environ['DC_MODEL_NSFW_WEBHOOK'],
+                content=textwrap.dedent(f"""
+                           LoRA Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
+                           * **Trigger word is `{name}`.**
+                           * **Pruned core tags for this waifu are `{", ".join(map(remove_underline, meta_info["core_tags"]))}`.** You can add them to the prompt when some features of waifu (e.g. hair color) are not stable.
+                           * The base model architecture is `{base_model_type}`.
+                           * Dataset used for training is the `{dataset_info["name"]}` in [{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), which contains {plural_word(dataset_info["size"], "image")}.
+                       """).strip(),
+            )
+            webhook.execute()
+
+            upload_batch_size = 10
+            for type_ in ['sensitive', 'questionable', 'explicit']:
+                df_t = df[df['rating_x'] == type_]
+                if len(df_t) == 0:
+                    continue
+
+                batch = int(math.ceil(len(df_t) / upload_batch_size))
+                for batch_id in range(batch):
+                    webhook = DiscordWebhook(
+                        url=os.environ['DC_MODEL_NSFW_WEBHOOK'],
+                        content=textwrap.dedent(f"""
+                            {plural_word(len(df_t), 'image')} here for {type_} preview of `{meta_info['display_name']}`.
+                        """).strip() if batch_id == 0 else "",
+                    )
+
+                    for df_record in df_t[upload_batch_size * batch_id: upload_batch_size * (batch_id + 1)].to_dict(
+                            'records'):
+                        img_file = os.path.join(td, df_record['image'])
+                        with open(img_file, 'rb') as f:
+                            webhook.add_file(file=f.read(), filename=os.path.basename(img_file))
+                    webhook.execute()
