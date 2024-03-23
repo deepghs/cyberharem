@@ -171,7 +171,7 @@ class Scheduler:
                     data={
                         'character_name': task.character_name,
                         'game_name': task.game_name,
-                        'limit': 500,
+                        'limit': str(500),
                         'drop_multi': False,
                     }
                 )
