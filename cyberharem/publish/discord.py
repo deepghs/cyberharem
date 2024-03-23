@@ -31,7 +31,7 @@ def send_discord_publish_to_github_action(repository: str):
     )
 
 
-def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
+def publish_to_discord(repository: str, max_cnt: Optional[int] = None, nsfw_only: bool = False):
     hf_fs = get_hf_fs()
     meta_info = json.loads(hf_fs.read_text(f'{repository}/meta.json'))
     step = meta_info['best_step']
@@ -103,64 +103,67 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
         ]
         df_backup = df.copy()
 
-        df = df[df['ccip'] >= (metrics_info['ccip'] - 0.05)]
-        df = df[df['bp'] >= (metrics_info['bp'] - 0.05)]
-        df = df[df['aic'] >= max(metrics_info['aic'] - 0.3, metrics_info['aic'] * 0.5)]
+        # upload model information
+        if not nsfw_only:
+            df = df[df['ccip'] >= (metrics_info['ccip'] - 0.05)]
+            df = df[df['bp'] >= (metrics_info['bp'] - 0.05)]
+            df = df[df['aic'] >= max(metrics_info['aic'] - 0.3, metrics_info['aic'] * 0.5)]
 
-        df['ccip_x'] = np.round(df['ccip'] * 30) / 30.0
-        df['face_x'] = np.round(df['face'] * 20) / 20.0
-        df = df[df['rating'] != 'r18']
-        df = df.sort_values(by=['ccip_x', 'level', 'face_x'], ascending=False)
-        if max_cnt is not None:
-            df = df[:max_cnt]
+            df['ccip_x'] = np.round(df['ccip'] * 30) / 30.0
+            df['face_x'] = np.round(df['face'] * 20) / 20.0
+            df = df[df['rating'] != 'r18']
+            df = df.sort_values(by=['ccip_x', 'level', 'face_x'], ascending=False)
+            if max_cnt is not None:
+                df = df[:max_cnt]
 
-        hf_url = f'https://huggingface.co/{repository}'
-        dataset_info = meta_info['dataset']
-        train_toml_url = hf_hub_url(repo_id=repository, repo_type='model', filename=f'train.toml')
-        webhook = DiscordWebhook(
-            url=os.environ['DC_MODEL_WEBHOOK'],
-            content=textwrap.dedent(f"""
-                LoRA Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
-                * **Trigger word is `{name}`.**
-                * **Pruned core tags for this waifu are `{", ".join(map(remove_underline, meta_info["core_tags"]))}`.** You can add them to the prompt when some features of waifu (e.g. hair color) are not stable.
-                * The base model architecture is `{base_model_type}`.
-                * Dataset used for training is the `{dataset_info["name"]}` in [{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), which contains {plural_word(dataset_info["size"], "image")}.
-                * For more details in training, you can take a look at [training configuration file]({train_toml_url}).
-                * For more details in LoRA, you can download it, and read the metadata with a1111\'s webui.
-                * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.**
-            """).strip(),
-        )
-        with open(local_metrics_plot_png, 'rb') as f:
-            webhook.add_file(file=f.read(), filename=os.path.basename(local_metrics_plot_png))
-        webhook.execute()
-
-        upload_batch_size = 10
-        batch = int(math.ceil(len(df) / upload_batch_size))
-        for batch_id in range(batch):
+            hf_url = f'https://huggingface.co/{repository}'
+            dataset_info = meta_info['dataset']
+            train_toml_url = hf_hub_url(repo_id=repository, repo_type='model', filename=f'train.toml')
             webhook = DiscordWebhook(
                 url=os.environ['DC_MODEL_WEBHOOK'],
                 content=textwrap.dedent(f"""
-                    {plural_word(len(df), 'image')} here for preview.
-                """).strip() if batch_id == 0 else "",
+                    LoRA Model of `{meta_info['display_name']}` has been published to huggingface repository: {hf_url}.
+                    * **Trigger word is `{name}`.**
+                    * **Pruned core tags for this waifu are `{", ".join(map(remove_underline, meta_info["core_tags"]))}`.** You can add them to the prompt when some features of waifu (e.g. hair color) are not stable.
+                    * The base model architecture is `{base_model_type}`.
+                    * Dataset used for training is the `{dataset_info["name"]}` in [{dataset_info["repository"]}](https://huggingface.co/datasets/{dataset_info["repository"]}), which contains {plural_word(dataset_info["size"], "image")}.
+                    * For more details in training, you can take a look at [training configuration file]({train_toml_url}).
+                    * For more details in LoRA, you can download it, and read the metadata with a1111\'s webui.
+                    * **The step we auto-selected is {step} to balance the fidelity and controllability of the model.**
+                """).strip(),
             )
-
-            for df_record in df[upload_batch_size * batch_id: upload_batch_size * (batch_id + 1)].to_dict('records'):
-                img_file = os.path.join(td, df_record['image'])
-                with open(img_file, 'rb') as f:
-                    webhook.add_file(file=f.read(), filename=os.path.basename(img_file))
-
+            with open(local_metrics_plot_png, 'rb') as f:
+                webhook.add_file(file=f.read(), filename=os.path.basename(local_metrics_plot_png))
             webhook.execute()
 
-        # can not upload large files
-        webhook = DiscordWebhook(
-            url=os.environ['DC_MODEL_WEBHOOK'],
-            content=f'LoRA Model {"files" if len(model_files) > 1 else "file"} of `{meta_info["display_name"]}`'
-        )
-        for model_file in model_files:
-            with open(model_file, 'rb') as f:
-                webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
-        response = webhook.execute()
-        # response.raise_for_status()
+            upload_batch_size = 10
+            batch = int(math.ceil(len(df) / upload_batch_size))
+            for batch_id in range(batch):
+                webhook = DiscordWebhook(
+                    url=os.environ['DC_MODEL_WEBHOOK'],
+                    content=textwrap.dedent(f"""
+                        {plural_word(len(df), 'image')} here for preview.
+                    """).strip() if batch_id == 0 else "",
+                )
+
+                for df_record in df[upload_batch_size * batch_id: upload_batch_size * (batch_id + 1)].to_dict(
+                        'records'):
+                    img_file = os.path.join(td, df_record['image'])
+                    with open(img_file, 'rb') as f:
+                        webhook.add_file(file=f.read(), filename=os.path.basename(img_file))
+
+                webhook.execute()
+
+            # can not upload large files
+            webhook = DiscordWebhook(
+                url=os.environ['DC_MODEL_WEBHOOK'],
+                content=f'LoRA Model {"files" if len(model_files) > 1 else "file"} of `{meta_info["display_name"]}`'
+            )
+            for model_file in model_files:
+                with open(model_file, 'rb') as f:
+                    webhook.add_file(file=f.read(), filename=os.path.basename(model_file))
+            response = webhook.execute()
+            # response.raise_for_status()
 
         ## Upload nsfw images
         if os.environ.get('DC_MODEL_NSFW_WEBHOOK'):

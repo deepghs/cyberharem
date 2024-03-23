@@ -51,9 +51,11 @@ def huggingface(workdir: str, repository, width, height, clip_skip, infer_steps)
 @cli.command('hf_discord', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish hf model to discord.')
 @click.option('--repository', '-r', 'repository', type=str, default=None,
               help='Repository to publish to.', show_default=True)
-def hf_discord(repository):
+@click.option('--nsfw_only', '-N', 'nsfw_only', is_flag=True, type=bool, default=False,
+              help='Only upload images to nsfw channel.', show_default=True)
+def hf_discord(repository, nsfw_only: bool = False):
     logging.try_init_root(logging.INFO)
-    publish_to_discord(repository)
+    publish_to_discord(repository, nsfw_only=nsfw_only)
 
 
 @cli.command('civitai', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Publish to huggingface')
