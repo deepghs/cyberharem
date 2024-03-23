@@ -50,7 +50,9 @@ def _has_adetailer() -> bool:
 def _get_dynamic_prompts_name() -> Optional[str]:
     for name in _get_client_scripts():
         if 'dynamic' in name and 'prompts' in name:
+            logging.info(f'Dynamic prompts found, name: {name!r}')
             return name
+    logging.error('Dynamic prompts not found.')
     return None
 
 
