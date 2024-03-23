@@ -36,6 +36,24 @@ def set_webui_server(host="127.0.0.1", port=7860, baseurl=None, use_https=False,
     _get_client_scripts.cache_clear()
 
 
+@lru_cache()
+def _get_client_scripts() -> Set[str]:
+    client = _get_webui_client()
+    scripts = client.get_scripts()['txt2img']
+    return set(map(str.lower, scripts))
+
+
+def _has_adetailer() -> bool:
+    return 'adetailer' in _get_client_scripts()
+
+
+def _get_dynamic_prompts_name() -> Optional[str]:
+    for name in _get_client_scripts():
+        if 'dynamic' in name and 'prompts' in name:
+            return name
+    return None
+
+
 def _set_webui_server_from_env():
     webui_server = os.environ.get('CH_WEBUI_SERVER')
     if webui_server:
@@ -128,24 +146,6 @@ _set_webui_local_dir_with_env()
 
 def _get_webui_lora_mock() -> LoraMock:
     return _WEBUI_LORA_MOCK
-
-
-@lru_cache()
-def _get_client_scripts() -> Set[str]:
-    client = _get_webui_client()
-    scripts = client.get_scripts()['txt2img']
-    return set(map(str.lower, scripts))
-
-
-def _has_adetailer() -> bool:
-    return 'adetailer' in _get_client_scripts()
-
-
-def _get_dynamic_prompts_name() -> Optional[str]:
-    for name in _get_client_scripts():
-        if 'dynamic' in name and 'prompts' in name:
-            return name
-    return None
 
 
 def infer_with_lora(
