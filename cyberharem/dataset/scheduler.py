@@ -186,7 +186,7 @@ _DEFAULT_CONCURRENCY = 12
 _MAX_NEW_CREATE = 3
 
 _ALL_GAMES = [
-    'bluearchive',
+    # 'bluearchive',
     'genshin',
     'fgo',
     # 'girlsfrontline',
