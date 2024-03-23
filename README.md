@@ -13,6 +13,8 @@ CyberHarem Automated Waifu Training Pipeline
 
 (NOTE: This project is still work in progress. It has only been tested on A100 80G, ubuntu environment.)
 
+**(NOTE: HCP-Diffusion has been kicked out from CyberHarem. Now CyberHarem is based on kohya script and a41 webui.)**
+
 ## Install
 
 Clone and install this project
@@ -26,7 +28,10 @@ pip install -r requirements.txt
 This project works on HuggingFace. You should **set the namespace on HuggingFace before start using it**
 
 ```shell
+# set your huggingface username or organization name
 export CH_NAMESPACE=my_hf_username
+
+# set your huggingface token
 export HF_TOKEN=your_huggingface_token
 ```
 
@@ -144,81 +149,106 @@ crawl_base_to_huggingface(
 Then the bangumi-based dataset will be uploaded to `my_hf_username/illyasviel_von_einzbern_fatestaynightufotable`.
 Like this: https://huggingface.co/datasets/CyberHarem/illyasviel_von_einzbern_fatestaynightufotable .
 
-## Train P-LoRA
+## Train LoRA
 
-The training method we employ is pivotal tuning, which stores the trigger words of LoRA in an embedding file. The
-activation of LoRA is achieved by triggering the embedding file during use. We refer to this as P-LoRA.
+~~The training method we employ is pivotal tuning, which stores the trigger words of LoRA in an embedding file. The
+activation of LoRA is achieved by triggering the embedding file during use. We refer to this as P-LoRA.~~
 
-Before we start, we should init the configuration files of HCP framework
+That is all history, now we use kohya script to train common LoRAs.
 
-```shell
-hcpinit
-
-```
-
-You can train a P-LoRA with the dataset on huggingface
+You can train a LoRA with the dataset on huggingface
 
 ```python
-from cyberharem.train import train_plora
+from ditk import logging
 
-# workdir is the directory to save the trained loras
-workdir = train_plora(
-    ds_repo_id='CyberHarem/surtr_arknights',
+from cyberharem.train import train_lora, set_kohya_from_conda_dir, set_kohya_from_venv_dir
 
-    # how many ckeckpoints you want to keep
-    keep_ckpts=40,
+logging.try_init_root(logging.INFO)
 
-    # select a based model (this one is NAI)
-    pretrained_model='deepghs/animefull-latest',
+# if your kohya script is in conda
+set_kohya_from_conda_dir(
+    # name of the conda environment
+    conda_env_name='kohya',
 
-    bs=4,  # batch size
-    max_reg_bs=16,  # batch size of regularization dataset
-    train_resolution=720,  # resolution to train
-
-    # total steps to train will be auto calculated based on bs and your dataset's size
-    # approx: min(max(dataset_size * max_epochs / bs, min_steps), max(dataset_size * min_epochs / bs, max_steps))
-    min_epochs=10,
-    max_epochs=40,
-    min_steps=800,
-    max_steps=10000,
-
-    pt_lr=0.03,  # learning rate of embedding
-    unet_lr=1e-4,  # learning rate of unet (text encoder will not be trained)
-    unet_rank=0.01,  # rank of unet
+    # directory of kohya sd-script
+    kohya_directory='/my/path/sd-script',
 )
+
+# if your kohya script is in venv
+# set_kohya_from_venv_dir(
+#     # these should be a venv folder in this directory
+#     kohya_directory='/my/path/sd-script',
+# )
+
+if __name__ == '__main__':
+    workdir = train_lora(
+        ds_repo_id='CyberHarem/surtr_arknights',
+
+        # use your own template file
+        # this one is the default config template, you can just use it
+        template_file='ch_lora_sd15.toml',
+
+        # use reg dataset
+        use_reg=True,
+
+        # hyperparameters for training
+        bs=8,  # training batch size
+        unet_lr=0.0006,  # learning date of unet
+        te_lr=0.0006,  # learning rate of text encoder
+        train_te=False,  # do not train text encoder
+        dim=4,  # dim of lora
+        alpha=2,  # alpha of lora
+        resolution=720,  # resolution: 720x720
+        res_ratio=2.2,  # min_res: 720 // 2.2, max_res: 720 * 2.2
+    )
+
 ```
 
-Please note that this script takes about 28G GPU memory in maximum. We can run it on A100 80G, but maybe you cannot
+Please note that this script takes about 18G GPU memory in maximum. We can run it on A100 80G, but maybe you cannot
 run it on 2060. If OOM occurred, just lower the `bs` and `max_reg_bs`.
 
 ## Evaluate LoRA and Publish It To HuggingFace
 
 ```python
+from cyberharem.infer import set_webui_server, set_webui_local_dir
 from cyberharem.publish import deploy_to_huggingface
 
+# your a41 webui server
+set_webui_server('127.0.0.1', 10188)
+
+# your directory of a41 webui
+# these should have `models/Lora` inside
+set_webui_local_dir('/my/a41_webui/stable-diffusion-webui')
+
 deploy_to_huggingface(
-    workdir='runs/surtr_arknights',
+    workdir='runs/surtr_arknights',  # work directory of training
     eval_cfgs=dict(
-        # batch size to infer
-        # this number is for A100 80G
-        # please lower it if you do not have so much GPU memory
-        batch_size=32,
-
-        # model to create images
-        pretrained_model='Meina/MeinaMix_V11',
-        model_hash=None,  # fill this hash, or the images will not be referenced to the base model on civitai
-
-        # arguments for sd inference
-        firstpass_width=512,
-        firstpass_height=768,
-        width=832,
-        height=1216,
+        # basic infer arguments
+        base_model='meinamix_v11',  # use the base model in a41 webui
+        batch_size=64,  # we can use bs64 on A100 80G, lower this value if you cant
+        sampler_name='DPM++ 2M Karras',
         cfg_scale=7,
-        infer_steps=30,
-        sample_method='DPM++ 2M Karras',
+        steps=30,
+        firstphase_width=512,
+        firstphase_height=768,
+        clip_skip=2,
+
+        # hires fix
+        enable_hr=True,
+        hr_resize_x=832,
+        hr_resize_y=1216,
+        denoising_strength=0.6,
+        hr_second_pass_steps=20,
+        hr_upscaler='R-ESRGAN 4x+ Anime6B',
+
+        # adetailer, useful for fixing the eyes
+        enable_adetailer=True,
+
+        # weight of lora
         lora_alpha=0.8,
     )
 )
+
 ```
 
 Images will be created for steps evaluation. After that, best steps will be recommended, and all the information

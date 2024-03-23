@@ -1,4 +1,1 @@
-.PHONY: init
 
-init:
-	hcpinit

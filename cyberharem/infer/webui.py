@@ -112,7 +112,8 @@ def _get_dynamic_prompts_name() -> Optional[str]:
 def infer_with_lora(
         lora_file: str, eye_tags: List[str], df_tags: pd.DataFrame, seed: int,
         batch_size=64, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
-        firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
+        firstphase_width=512, firstphase_height=768,
+        enable_hr: bool = True, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
         base_model: str = 'meinamix_v11', extra_tags: Optional[List[str]] = None,
@@ -182,7 +183,7 @@ def infer_with_lora(
             hr_second_pass_steps=hr_second_pass_steps,
             hr_upscaler=hr_upscaler,
             seed=seed,
-            enable_hr=True,
+            enable_hr=enable_hr,
             override_settings={
                 'CLIP_stop_at_last_layers': clip_skip,
             },
@@ -197,7 +198,8 @@ def infer_with_lora(
 def infer_with_workdir(
         workdir: str,
         batch_size=64, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
-        firstphase_width=512, firstphase_height=768, hr_resize_x=832, hr_resize_y=1216,
+        firstphase_width=512, firstphase_height=768,
+        enable_hr: bool = True, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
         base_model: str = 'meinamix_v11',
@@ -252,6 +254,7 @@ def infer_with_workdir(
                 steps=steps,
                 firstphase_width=firstphase_width,
                 firstphase_height=firstphase_height,
+                enable_hr=enable_hr,
                 hr_resize_x=hr_resize_x,
                 hr_resize_y=hr_resize_y,
                 denoising_strength=denoising_strength,

@@ -128,10 +128,10 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
     return df, df_selected
 
 
-def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha: float = 3.0):
+def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha: float = 3.0, **kwargs):
     from ..infer import find_steps_in_workdir, infer_with_workdir
     df_steps = find_steps_in_workdir(workdir)
-    infer_with_workdir(workdir)
+    infer_with_workdir(workdir, **kwargs)
 
     logging.info(f'Evaluate for workdir {workdir!r} ...')
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
