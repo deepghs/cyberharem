@@ -158,6 +158,9 @@ That is all history, now we use kohya script to train common LoRAs.
 
 You can train a LoRA with the dataset on huggingface
 
+(PS: if you need to use reg dataset for training, please set the `REG_HOME` directory, this directory is used for reg
+dataset and latent cache management.)
+
 ```python
 from ditk import logging
 
@@ -211,6 +214,7 @@ Please note that this script takes about 18G GPU memory in maximum. We can run i
 run it on 2060. If OOM occurred, just lower the `bs` and `max_reg_bs`.
 
 Also, you can specify directory or environment information of kohya script, like the followings:
+
 * Set kohya in conda environment
 
 ```shell
@@ -227,7 +231,7 @@ export CH_KOHYA_VENV=venv
 unset CH_KOHYA_CONDA_ENV
 ```
 
-By using these variables, you do NOT have to specify them in your python code.  
+By using these variables, you do NOT have to specify them in your python code.
 
 ## Evaluate LoRA and Publish It To HuggingFace
 
@@ -285,6 +289,13 @@ deploy_to_huggingface(
 
 Images will be created for steps evaluation. After that, best steps will be recommended, and all the information
 (images, model files, data archives and LoRAs) will be pushed to model repository `my_hf_username/surtr_arknights`.
+
+Also, if you do not want to set webui settings in python code, just use the following environment variables
+
+```shell
+export CH_WEBUI_SERVER=http://127.0.0.1:10188
+export CH_WEBUI_DIR=/my/a41_webui/stable-diffusion-webui
+```
 
 ## Upload to CivitAI
 

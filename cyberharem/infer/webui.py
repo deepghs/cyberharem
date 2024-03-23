@@ -11,6 +11,7 @@ import pandas as pd
 import toml
 from hbutils.random import random_sha1_with_timestamp
 from hbutils.string import singular_form, plural_word
+from hbutils.system import urlsplit
 from imgutils.sd import parse_sdmeta_from_text
 from imgutils.tagging import remove_underline
 from tqdm import tqdm
@@ -33,6 +34,28 @@ def set_webui_server(host="127.0.0.1", port=7860, baseurl=None, use_https=False,
         **kwargs
     )
     _get_client_scripts.cache_clear()
+
+
+def _set_webui_server_from_env():
+    webui_server = os.environ.get('CH_WEBUI_SERVER')
+    if webui_server:
+        url = urlsplit(webui_server)
+        if ':' in url.host:
+            host, port = url.host.split(':', maxsplit=1)
+            port = int(port)
+        else:
+            host, port = url.host, 80
+
+        set_webui_server(
+            host=host,
+            port=port,
+            use_https=url.scheme == 'https',
+        )
+    else:
+        logging.info('No webui server settings found.')
+
+
+_set_webui_server_from_env()
 
 
 def _get_webui_client() -> WebUIApi:
@@ -82,9 +105,25 @@ _WEBUI_LORA_MOCK: Optional[LoraMock] = None
 
 
 def set_webui_local_dir(webui_local_dir: str):
-    global _WEBUI_LORA_MOCK
-    logging.info(f'Setting webui local directory {webui_local_dir!r} ...')
-    _WEBUI_LORA_MOCK = LocalLoraMock(webui_local_dir)
+    lora_dir = os.path.join(webui_local_dir, 'models', 'Lora')
+    if os.path.exists(lora_dir):
+        global _WEBUI_LORA_MOCK
+        logging.info(f'Setting webui local directory {webui_local_dir!r} ...')
+        _WEBUI_LORA_MOCK = LocalLoraMock(webui_local_dir)
+    else:
+        raise EnvironmentError(f'Lora directory not found in {webui_local_dir!r}, '
+                               f'please make sure this directory is a valid webui directory.')
+
+
+def _set_webui_local_dir_with_env():
+    webui_dir = os.environ.get('CH_WEBUI_DIR')
+    if webui_dir:
+        set_webui_local_dir(webui_dir)
+    else:
+        logging.info('No webui directory settings found.')
+
+
+_set_webui_local_dir_with_env()
 
 
 def _get_webui_lora_mock() -> LoraMock:
