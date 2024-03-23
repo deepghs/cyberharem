@@ -209,6 +209,15 @@ run it on 2060. If OOM occurred, just lower the `bs` and `max_reg_bs`.
 
 ## Evaluate LoRA and Publish It To HuggingFace
 
+We can automatically use a1111's webui to generate images, assess which LoRA step is the best, and publish them to the
+huggingface hub.
+
+NOTE:
+
+1. **[Dynamic Prompts Plugin](https://github.com/adieyal/sd-dynamic-prompts) is REQUIRED for image batch
+   generation!!!** Please install it before batch inference.
+2. Please start your webui with API mode, by using `--api` and `--nowebui` arguments.
+
 ```python
 from cyberharem.infer import set_webui_server, set_webui_local_dir
 from cyberharem.publish import deploy_to_huggingface
@@ -242,6 +251,7 @@ deploy_to_huggingface(
         hr_upscaler='R-ESRGAN 4x+ Anime6B',
 
         # adetailer, useful for fixing the eyes
+        # will be ignored when adetailer not installed
         enable_adetailer=True,
 
         # weight of lora
