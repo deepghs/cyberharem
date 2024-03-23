@@ -3,7 +3,7 @@
 CONDA    ?= $(shell which conda)
 
 WEBUI_SH     ?= $(shell readlink -f ${CH_WEBUI_DIR}/../webui.sh)
-WEBUI_SH_DIR ?= $(shell readlink -f ${CH_WEBUI_SH}/..)
+WEBUI_SH_DIR ?= $(shell readlink -f ${CH_WEBUI_DIR}/..)
 
 
 webui:
