@@ -187,7 +187,7 @@ def publish_to_discord(repository: str, max_cnt: Optional[int] = None):
             webhook.execute()
 
             upload_batch_size = 10
-            for type_ in ['sensitive', 'questionable', 'explicit']:
+            for type_ in ['questionable', 'explicit']:
                 df_t = df[df['rating_x'] == type_]
                 if len(df_t) == 0:
                     continue
