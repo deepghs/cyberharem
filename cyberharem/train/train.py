@@ -236,6 +236,9 @@ def count_images_from_train_dir(train_dir) -> int:
     return cnt
 
 
+TRAIN_MARK = 'v1.5.1'
+
+
 def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir: Optional[str] = None,
                template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
                seed: int = None, use_reg: bool = True, latent_cache_id: Optional[str] = None,
@@ -329,13 +332,14 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                         'repository': ds_repo_id,
                         'size': dataset_size,
                         'name': dataset_name,
+                        'version': meta['version'],
                     },
                     'core_tags': meta['core_tags'],
                     'bangumi': meta['bangumi'],
                     'name': name,
                     'bangumi_style_name': bangumi_style_tag if meta['bangumi'] else None,
                     'display_name': meta['display_name'],
-                    'version': meta['version'],
+                    'version': TRAIN_MARK,
                 }, f, indent=4, sort_keys=True, ensure_ascii=False)
 
             _run_kohya_train_command(workdir_cfg_file)

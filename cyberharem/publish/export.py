@@ -1,7 +1,5 @@
 from textwrap import dedent
 
-EXPORT_MARK = 'v1.5.1'
-
 _GITLFS = dedent("""
 *.7z filter=lfs diff=lfs merge=lfs -text
 *.arrow filter=lfs diff=lfs merge=lfs -text

@@ -21,7 +21,7 @@ from imgutils.sd import get_sdmeta_from_image
 from imgutils.tagging import remove_underline
 from tqdm import tqdm
 
-from .export import _GITLFS, EXPORT_MARK
+from .export import _GITLFS
 from ..eval import eval_for_workdir
 from ..infer import find_steps_in_workdir, find_tags_from_workdir
 from ..utils import get_hf_client, get_hf_fs, create_safe_toml
@@ -190,9 +190,10 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
         logging.info('Copying safe train toml file ...')
         create_safe_toml(os.path.join(workdir, 'train.toml'), train_toml_file)
 
+        from ..train.train import TRAIN_MARK
         meta_info['base_model_type'] = base_model_type
         meta_info['train_type'] = train_type
-        meta_info['version'] = EXPORT_MARK
+        meta_info['version'] = TRAIN_MARK
         meta_info['time'] = time.time()
         selected_steps = pd.read_csv(os.path.join(td, 'metrics_selected.csv'))['step'].tolist()
         best_step = selected_steps[0]
