@@ -144,12 +144,38 @@ def set_kohya_from_conda_dir(conda_env_name: str, kohya_directory: str,
         ], kohya_directory)
 
 
-def set_kohya_from_venv_dir(kohya_directory: str):
+def set_kohya_from_venv_dir(kohya_directory: str, venv_name: str = 'venv'):
     _set_kohya_command([
-        get_exec_from_venv(os.path.join(kohya_directory, 'venv'), exec_name='accelerate'),
+        get_exec_from_venv(os.path.join(kohya_directory, venv_name), exec_name='accelerate'),
         'launch', os.path.join(kohya_directory, 'train_network.py'),
         '--config_file', CFG_FILE,
     ], kohya_directory)
+
+
+def _auto_set_kohya_from_env():
+    kohya_dir = os.environ.get('CH_KOHYA_DIR')
+    if kohya_dir:
+        kohya_conda_env = os.environ.get('CH_KOHYA_CONDA_ENV')
+        if kohya_conda_env:
+            set_kohya_from_conda_dir(
+                conda_env_name=kohya_conda_env,
+                kohya_directory=kohya_dir,
+            )
+        else:
+            kohya_venv = os.environ.get('CH_KOHYA_VENV')
+            if kohya_venv:
+                set_kohya_from_venv_dir(
+                    kohya_directory=kohya_dir,
+                    venv_name=kohya_venv,
+                )
+            else:
+                logging.warning(f'Kohya directory {kohya_dir!r} detected, but cannot determine it is conda or venv. '
+                                f'Please explicitly set the environment variable CH_KOHYA_CONDA_ENV or CH_KOHYA_VENV.')
+    else:
+        logging.info('No local kohya settings found.')
+
+
+_auto_set_kohya_from_env()
 
 
 def _run_kohya_train_command(cfg_file: str):

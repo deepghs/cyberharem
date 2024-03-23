@@ -174,10 +174,13 @@ set_kohya_from_conda_dir(
     kohya_directory='/my/path/sd-script',
 )
 
-# if your kohya script is in venv
+# # if your kohya script is in venv
 # set_kohya_from_venv_dir(
 #     # these should be a venv folder in this directory
 #     kohya_directory='/my/path/sd-script',
+#    
+#     # name of venv, default is `venv`
+#     venv_name='venv',
 # )
 
 if __name__ == '__main__':
@@ -206,6 +209,25 @@ if __name__ == '__main__':
 
 Please note that this script takes about 18G GPU memory in maximum. We can run it on A100 80G, but maybe you cannot
 run it on 2060. If OOM occurred, just lower the `bs` and `max_reg_bs`.
+
+Also, you can specify directory or environment information of kohya script, like the followings:
+* Set kohya in conda environment
+
+```shell
+export CH_KOHYA_DIR=/my/path/sd-script
+export CH_KOHYA_CONDA_ENV=kohya
+unset CH_KOHYA_VENV
+```
+
+* Set kohya in venv
+
+```shell
+export CH_KOHYA_DIR=/my/path/sd-script
+export CH_KOHYA_VENV=venv
+unset CH_KOHYA_CONDA_ENV
+```
+
+By using these variables, you do NOT have to specify them in your python code.  
 
 ## Evaluate LoRA and Publish It To HuggingFace
 
