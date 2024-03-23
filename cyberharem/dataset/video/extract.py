@@ -8,7 +8,7 @@ import shutil
 import zipfile
 from contextlib import contextmanager
 from textwrap import dedent
-from typing import Iterator
+from typing import Iterator, Optional
 
 import numpy as np
 import pandas as pd
@@ -246,7 +246,8 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
 
 @contextmanager
 def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: bool = False,
-                        min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8):
+                        min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8,
+                        max_images_limit: Optional[int] = 50000):
     if no_extract:
         source = LocalSource(video_or_directory)
     else:
@@ -271,6 +272,15 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
         logging.info('Extract figures from videos ...')
         source.export(SaveExporter(src_dir, no_meta=True))
 
+        all_pngs = glob.glob(os.path.join(src_dir, '*.png'))
+        logging.info(f'{plural_word(len(all_pngs), "image")} in total.')
+        if max_images_limit is not None and len(all_pngs) > max_images_limit:
+            images_to_delete = random.sample(all_pngs, k=len(all_pngs) - max_images_limit)
+            logging.info(f'Max images limit ({max_images_limit}) exceed. '
+                         f'{plural_word(len(images_to_delete), "image")} going to be deleted.')
+            for file in tqdm(images_to_delete, desc='Deleting exceed images'):
+                os.remove(file)
+
         with TemporaryDirectory() as clu_dir:
             logging.info(f'Clustering from {src_dir!r} to {clu_dir!r} ...')
             ids = cluster_from_directory(src_dir, clu_dir, merge_threshold)
@@ -284,7 +294,7 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
 def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
                            repository: str, revision: str = 'main', no_extract: bool = False,
                            min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8,
-                           discord_publish: bool = True):
+                           max_images_limit: Optional[int] = 50000, discord_publish: bool = True):
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
@@ -292,7 +302,7 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
         hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)
 
     with extract_from_videos(video_or_directory, bangumi_name, no_extract,
-                             min_size, merge_threshold, preview_count) as dst_dir:
+                             min_size, merge_threshold, preview_count, max_images_limit) as dst_dir:
         upload_directory_as_directory(
             local_directory=dst_dir,
             repo_id=repository,

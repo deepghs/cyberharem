@@ -38,14 +38,18 @@ def cli():
               help='Min size of image.', show_default=True)
 @click.option('--no_extract', '-E', 'no_extract', is_flag=True, type=bool, default=False,
               help='No extraction from videos.', show_default=True)
+@click.option('--max_images_limit', 'max_images_limit', type=int, default=50000,
+              help='Max images limit, to prevent OOM.', show_default=True)
 def huggingface(video_or_directory: str, bangumi_name: str,
-                repository: str, revision: str = 'main', min_size: int = 320, no_extract: bool = False):
+                repository: str, revision: str = 'main', min_size: int = 320,
+                no_extract: bool = False, max_images_limit: int = 50000):
     logging.try_init_root(logging.INFO)
     rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))
     repository = repository or f"{get_global_bg_namespace()}/{rname}"
     extract_to_huggingface(
         video_or_directory, bangumi_name, repository, revision,
-        no_extract=no_extract, min_size=min_size
+        no_extract=no_extract, min_size=min_size,
+        max_images_limit=max_images_limit,
     )
 
 
