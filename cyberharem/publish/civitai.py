@@ -17,8 +17,8 @@ from imgutils.detect import detect_faces
 from imgutils.sd import get_sdmeta_from_image
 from imgutils.tagging import remove_underline
 from imgutils.validate import anime_rating
-from pycivitai import civitai_find_online
-from pycivitai.client import ModelNotFound, ModelVersionNotFound
+from pycivitai import civitai_find_online, civitai_search_online
+from pycivitai.client import ModelNotFound, ModelVersionNotFound, Model
 from tqdm import tqdm
 
 from cyberharem.utils import get_hf_fs
@@ -36,6 +36,33 @@ def _detect_face_value(image_file) -> float:
 
 def _extract_words_from_display_name(display_name: str):
     return [word.strip() for word in re.findall(r'[\w \'_]+', display_name)]
+
+
+def _name_safe(name_text):
+    return re.sub(r'[\W_]+', '_', name_text).strip('_')
+
+
+def _title_split(display_name):
+    matching = re.fullmatch(r'^\s*(?P<body>[\s\S]+?)\s*(\((?P<copyright>[^()]+)\))?\s*$', display_name)
+    return matching.group('body'), matching.group('copyright')
+
+
+def _find_model_via_display_name(display_name: str, creator: str) -> Optional[Model]:
+    body, cy = _title_split(display_name)
+    names = re.split('/', body)
+    names = [_name_safe(name).strip('_').lower() for name in names]
+
+    all_models = []
+    for name in names:
+        logging.info(f'Searching with {name!r} ...')
+        res = civitai_search_online(name, creator)
+        for model in sorted(res, key=lambda x: -x.model_id):
+            _, cr = _title_split(model.model_name)
+            if (not cy and not cr) or (cy and cr and _name_safe(cy).lower() == _name_safe(cr).lower()):
+                all_models.append(model)
+
+    all_models = sorted(all_models, key=lambda x: -x.model_id)
+    return None if not all_models else all_models[-1]
 
 
 def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_nsfw: bool = False,
@@ -299,7 +326,8 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
         tags = [*_extract_words_from_display_name(meta_info['display_name']), *meta_info['core_tags']]
         if not existing_model_id:
             try:
-                existing_model_id = civitai_find_online(meta_info['display_name'], creator=client.whoami.name).model_id
+                existing_model_id = _find_model_via_display_name(
+                    meta_info['display_name'], creator=client.whoami.name).model_id
             except ModelNotFound:
                 existing_model_id = None
 
