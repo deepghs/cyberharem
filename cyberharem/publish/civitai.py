@@ -62,7 +62,10 @@ def _find_model_via_display_name(display_name: str, creator: str) -> Optional[Mo
                 all_models.append(model)
 
     all_models = sorted(all_models, key=lambda x: -x.model_id)
-    return None if not all_models else all_models[-1]
+    if not all_models:
+        raise ModelNotFound
+    else:
+        return all_models[-1]
 
 
 def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_nsfw: bool = False,
