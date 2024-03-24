@@ -54,7 +54,7 @@ def _find_model_via_display_name(display_name: str, creator: str) -> Optional[Mo
 
     all_models = []
     for name in names:
-        logging.info(f'Searching with {name!r} ...')
+        logging.info(f'Searching from civitai with {name!r} of user {creator!r} ...')
         res = civitai_search_online(name, creator)
         for model in sorted(res, key=lambda x: -x.model_id):
             _, cr = _title_split(model.model_name)
@@ -328,6 +328,7 @@ def civitai_upload_from_hf(repository: str, step: Optional[int] = None, allow_ns
             try:
                 existing_model_id = _find_model_via_display_name(
                     meta_info['display_name'], creator=client.whoami.name).model_id
+                logging.info(f'Existing model {existing_model_id!r} found.')
             except ModelNotFound:
                 existing_model_id = None
 

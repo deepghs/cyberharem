@@ -75,9 +75,6 @@ def _set_webui_server_from_env():
         logging.info('No webui server settings found.')
 
 
-_set_webui_server_from_env()
-
-
 def _get_webui_client() -> WebUIApi:
     if _WEBUI_CLIENT:
         return _WEBUI_CLIENT
@@ -143,11 +140,15 @@ def _set_webui_local_dir_with_env():
         logging.info('No webui directory settings found.')
 
 
-_set_webui_local_dir_with_env()
-
-
 def _get_webui_lora_mock() -> LoraMock:
     return _WEBUI_LORA_MOCK
+
+
+def _auto_init():
+    if not _WEBUI_LORA_MOCK:
+        _set_webui_local_dir_with_env()
+    if not _WEBUI_CLIENT:
+        _set_webui_server_from_env()
 
 
 def infer_with_lora(
@@ -159,6 +160,7 @@ def infer_with_lora(
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
         base_model: str = 'meinamix_v11', extra_tags: Optional[List[str]] = None,
 ):
+    _auto_init()
     mock = _get_webui_lora_mock()
     client = _get_webui_client()
     logging.info(f'Set base model {base_model} ...')
@@ -245,6 +247,7 @@ def infer_with_workdir(
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
         base_model: str = 'meinamix_v11',
 ):
+    _auto_init()
     eval_dir = os.path.join(workdir, 'eval')
     os.makedirs(eval_dir, exist_ok=True)
 

@@ -175,9 +175,6 @@ def _auto_set_kohya_from_env():
         logging.info('No local kohya settings found.')
 
 
-_auto_set_kohya_from_env()
-
-
 def _run_kohya_train_command(cfg_file: str):
     if not _KOHYA_WORKDIR:
         raise EnvironmentError('Kohya work directory not assigned. '
@@ -236,6 +233,11 @@ def count_images_from_train_dir(train_dir) -> int:
     return cnt
 
 
+def _auto_init():
+    if not _KOHYA_WORKDIR:
+        _auto_set_kohya_from_env()
+
+
 TRAIN_MARK = 'v1.5.1'
 
 
@@ -245,6 +247,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
                dim: int = 4, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
                bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False):
+    _auto_init()
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
     dataset_size = meta['packages'][dataset_name]['size']
