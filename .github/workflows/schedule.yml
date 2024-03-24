@@ -11,8 +11,8 @@ on:
         description: 'Concurrency'
         type: number
         default: 6
-  schedule:
-    - cron: '*/20 * * * *'
+#  schedule:
+#    - cron: '*/20 * * * *'
 
 jobs:
   bangumibase_sync:
