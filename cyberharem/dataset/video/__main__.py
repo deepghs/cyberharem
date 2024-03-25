@@ -83,6 +83,7 @@ def hf_discord(repository: str):
 @click.option('--db_tag', 'db_tag', type=str, default=None,
               help='Danbooru tag for that.', show_default=True)
 def extract(source_repository, repository, character_ids, name, display_name, limit, no_ccip, db_tag):
+    logging.try_init_root(logging.INFO)
     ch_ids = sorted(map(int, filter(bool, map(str.strip, re.split(r'\s*,\s*', character_ids)))))
     crawl_base_to_huggingface(
         source_repository=source_repository,
