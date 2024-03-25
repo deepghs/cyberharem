@@ -81,6 +81,25 @@ def load_train_dataset(repo_id: str, prefix_tags: List[str] = None,
         yield td
 
 
+def _gender_predict(train_dir):
+    total, boys, girls = 0, 0, 0
+    for root, dirs, files in os.walk(train_dir):
+        for file in files:
+            src_file = os.path.join(root, file)
+            if is_txt_file(src_file):
+                origin_prompt = pathlib.Path(src_file).read_text().strip()
+                tags = re.split(r'\s*,\s*', origin_prompt)
+                is_girl = '1girl' in tags
+                is_boy = '1boy' in tags
+                total += 1
+                if is_girl and not is_boy:
+                    girls += 1
+                elif not is_girl and is_boy:
+                    boys += 1
+
+    return boys / total, girls / total
+
+
 _TRAIN_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -262,7 +281,6 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
     if os.path.exists(trained_flag_file) and not force_retrain:
         logging.info('Model already trained, skipped.')
         return workdir
-    save_recommended_tags(name, meta['clusters'], workdir)
 
     kohya_save_dir = os.path.abspath(os.path.join(workdir, 'kohya'))
     os.makedirs(kohya_save_dir, exist_ok=True)
@@ -282,6 +300,16 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
         features_path = os.path.join(workdir, 'features.npy')
         logging.info(f'Extracting features from {train_dir!r}, and saving that to {features_path!r} ...')
         np.save(features_path, _extract_features_from_directory(train_dir))
+
+        r_boy, r_girl = _gender_predict(train_dir)
+        if r_boy >= 0.7:
+            gender = 'boy'
+        elif r_girl >= 0.7:
+            gender = 'girl'
+        else:
+            gender = 'not_sure'
+        logging.info(f'Boy ratio: {r_boy:.3f}, girl ratio: {r_girl:.3f}, gender: {gender!r}.')
+        save_recommended_tags(name, meta['clusters'], workdir, gender=gender)
 
         image_count = count_images_from_train_dir(train_dir)
         eps, save_interval = piecewise_ep(image_count)
@@ -336,6 +364,11 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                         'size': dataset_size,
                         'name': dataset_name,
                         'version': meta['version'],
+                    },
+                    'gender': {
+                        'boy': r_boy,
+                        'girl': r_girl,
+                        'predict': gender,
                     },
                     'core_tags': meta['core_tags'],
                     'bangumi': meta['bangumi'],

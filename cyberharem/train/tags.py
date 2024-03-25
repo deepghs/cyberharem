@@ -102,6 +102,23 @@ def _bikini_words(name):
     ], generic_neg_words, 758691538
 
 
+def _male_swin_words(name):
+    return [
+        *generic_words,
+        (name, _DEFAULT_NAME_WEIGHT),
+        ('night', 1.1),
+        ('starry sky', 1.1),
+        'beach',
+        'beautiful detailed sky',
+        ('extremely detailed background', 1.2),
+        ('standing', 1.1),
+        'looking at viewer',
+        ('topless male', 1.3),
+        ('shorts', 1.2),
+        'light smile',
+    ], generic_neg_words, 758691538
+
+
 def _nude_words(name):
     return [
         'nsfw',
@@ -136,6 +153,24 @@ def _nude_stand_words(name):
         'nipples',
         ('pussy', 1.15),
         ('pussy juice', 1.3),
+        'looking at viewer',
+        ('embarrassed', 1.1),
+    ], generic_neg_words, 758691538
+
+
+def _nude_male_stand_words(name):
+    return [
+        'nsfw',
+        *generic_words,
+        (name, _DEFAULT_NAME_WEIGHT),
+        ('simple background', 1.1),
+        ('standing', 1.15),
+        ('nude', 1.4),
+        ('completely nude', 1.2),
+        'male focus',
+        'nipples',
+        ('penis', 1.15),
+        ('erection', 1.3),
         'looking at viewer',
         ('embarrassed', 1.1),
     ], generic_neg_words, 758691538
@@ -192,6 +227,33 @@ def _safe_suit_words(name):
         ('white shirt', 1.1),
         ('black skirt', 1.15),
         ('smoking', 1.2),
+        'handsome',
+    ], [
+        'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
+        'skin of legs', 'bare legs', 'bare skin', 'navel',
+        *generic_neg_words,
+    ], 42
+
+
+def _safe_shirt_words(name):
+    return [
+        *generic_words,
+        (name, _DEFAULT_NAME_WEIGHT),
+        ('shirt', 1.3),
+        ('tie', 1.2),
+        'handsome',
+    ], [
+        'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
+        'skin of legs', 'bare legs', 'bare skin', 'navel',
+        *generic_neg_words,
+    ], 42
+
+
+def _safe_uniform_words(name):
+    return [
+        *generic_words,
+        (name, _DEFAULT_NAME_WEIGHT),
+        ('military uniform', 1.3),
         'handsome',
     ], [
         'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
@@ -317,47 +379,78 @@ def _sex_words(name):
     ], generic_neg_words, 42
 
 
-EXTRAS = [
-    # basic
-    ('portrait', _portrait_words, 3),
-    ('full_body', _full_body_words, 2),
-    ('profile', _profile_words, 2),
-    ('free', _free_words, 2),
+def _get_all_pairs(gender: str):
+    extras = []
+    extras.extend([
+        # basic
+        ('portrait', _portrait_words, 3),
+        ('full_body', _full_body_words, 2),
+        ('profile', _profile_words, 2),
+        ('free', _free_words, 2),
+    ])
 
     # clothes
-    ('shorts', _shorts_words, 1),
-    ('maid', _safe_maid_words, 2),
-    ('miko', _safe_miko_words, 1),
-    ('yukata', _safe_yukata_words, 1),
-    ('suit', _safe_suit_words, 1),
-    ('china', _china_dress_words, 1),
-    ('bikini', _bikini_words, 3),
+    extras.append(('shorts', _shorts_words, 1))
+    if gender == 'girl':
+        extras.extend([
+            ('maid', _safe_maid_words, 2),
+            ('miko', _safe_miko_words, 1),
+            ('yukata', _safe_yukata_words, 1),
+        ])
+    if gender == 'boy':
+        extras.extend([
+            ('shirt', _safe_shirt_words, 2),
+            ('uniform', _safe_uniform_words, 3),
+        ])
+    extras.append(('suit', _safe_suit_words, 1))
+    if gender == 'girl':
+        extras.extend([
+            ('china', _china_dress_words, 1),
+            ('bikini', _bikini_words, 3),
+        ])
+    if gender == 'boy':
+        extras.extend([
+            ('swim', _male_swin_words, 3)
+        ])
 
     # posture
-    ('sit', _sit_words, 1),
-    ('squat', _squat_words, 1),
-    ('kneel', _kneel_words, 1),
-    ('jump', _jump_words, 1),
-    ('crossed_arms', _crossed_arms_words, 1),
+    extras.extend([
+        ('sit', _sit_words, 1),
+        ('squat', _squat_words, 1),
+        ('kneel', _kneel_words, 1),
+        ('jump', _jump_words, 1),
+        ('crossed_arms', _crossed_arms_words, 1),
+    ])
 
     # face
-    ('angry', _angry_words, 1),
-    ('smile', _smile_words, 1),
-    ('cry', _cry_words, 1),
-    ('grin', _grin_words, 1),
+    extras.extend([
+        ('angry', _angry_words, 1),
+        ('smile', _smile_words, 1),
+        ('cry', _cry_words, 1),
+        ('grin', _grin_words, 1),
+    ])
 
     # nsfw
-    ('n_lie', _nude_words, 2),
-    ('n_stand', _nude_stand_words, 3),
-    ('n_sex', _sex_words, 2),
-]
+    if gender == 'girl':
+        extras.extend([
+            ('n_lie', _nude_words, 2),
+            ('n_stand', _nude_stand_words, 3),
+            ('n_sex', _sex_words, 2),
+        ])
+    if gender == 'boy':
+        extras.extend([
+            ('n_stand', _nude_male_stand_words, 3),
+        ])
+
+    return extras
 
 
 def _random_seed():
     return random.randint(0, 1 << 31)
 
 
-def save_recommended_tags(character_name: str, clusters, workdir: str, base: int = 5, scale: int = 2):
+def save_recommended_tags(character_name: str, clusters, workdir: str,
+                          base: int = 5, scale: int = 2, gender: str = 'girl'):
     tags_dir = os.path.join(workdir, 'rtags')
     os.makedirs(tags_dir, exist_ok=True)
 
@@ -376,7 +469,7 @@ def save_recommended_tags(character_name: str, clusters, workdir: str, base: int
             else:
                 yield base_name, (pos_prompt_, neg_prompt_), _random_seed()
 
-        for name_, func_, repeats in EXTRAS:
+        for name_, func_, repeats in _get_all_pairs(gender):
             pos_words, neg_words, seed_ = func_(character_name)
             pos_prompt_ = repr_tags(pos_words)
             neg_prompt_ = repr_tags(neg_words)
