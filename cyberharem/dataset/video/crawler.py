@@ -68,6 +68,7 @@ def crawl_base_to_huggingface(
     source_meta_info = json.loads(hf_fs.read_text(f'datasets/{source_repository}/meta.json'))
     bangumi_name = source_meta_info['name']
     display_name = display_name or f'{"/".join(names)} ({bangumi_name})'
+    logging.info(f'Display name: {display_name!r}.')
     with TemporaryDirectory() as td:
         img_cnts = []
         for cid in ch_ids:
