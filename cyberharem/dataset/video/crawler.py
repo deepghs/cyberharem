@@ -4,16 +4,43 @@ import logging
 import os.path
 import re
 import zipfile
+from functools import lru_cache
 from typing import Optional, Union, List
 
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
 from unidecode import unidecode
 from waifuc.action import CCIPAction, FilterSimilarAction, RandomFilenameAction, TaggingAction
-from waifuc.source import EmptySource, LocalSource
+from waifuc.source import EmptySource, LocalSource, DanbooruSource
 
 from ..crawler import crawl_dataset_to_huggingface
 from ...utils import download_file, get_hf_fs, get_global_namespace
+
+
+@lru_cache()
+def _db_session():
+    s = DanbooruSource(['solo'])
+    s._refresh_session()
+    return s.session
+
+
+def _get_alias_tags(tag) -> List[str]:
+    session = _db_session()
+    resp = session.get(f'https://danbooru.donmai.us/wiki_pages/{tag}.json')
+    other_names = list(resp.json().get('other_names') or [])
+
+    exist_names = []
+    for name in other_names:
+        name = re.sub(r'\([^)]+\)', '', name)
+        if name not in exist_names:
+            exist_names.append(name)
+
+    res = []
+    for name in exist_names:
+        if not any((nitem in name and nitem != name) for nitem in exist_names):
+            res.append(name)
+
+    return res
 
 
 def crawl_base_to_huggingface(
@@ -23,10 +50,14 @@ def crawl_base_to_huggingface(
         no_r18: bool = False, bg_color: str = 'white', drop_multi: bool = True,
         repo_type: str = 'dataset', revision: str = 'main', path_in_repo: str = '.',
         skip_preprocess: bool = True, parallel: bool = True, standalone_ccip: bool = True,
-        keep_cnt_ratio: bool = True, private: bool = False,
+        keep_cnt_ratio: bool = True, private: bool = False, db_tag: Optional[str] = None,
 ):
     ch_ids = [ch_id] if isinstance(ch_id, int) else ch_id
     source = EmptySource()
+    names = list(filter(bool, map(str.strip, name.split('/'))))
+    if db_tag:
+        names.extend(_get_alias_tags(db_tag))
+    name = names[0]
     alphabet_name = re.sub(r'[\W_]+', '_', unidecode(name.lower())).strip('_').lower() + '_' + \
                     source_repository.split('/')[-1]
     if not repository:
@@ -36,7 +67,7 @@ def crawl_base_to_huggingface(
     hf_fs = get_hf_fs()
     source_meta_info = json.loads(hf_fs.read_text(f'datasets/{source_repository}/meta.json'))
     bangumi_name = source_meta_info['name']
-    display_name = display_name or f'{name} ({bangumi_name})'
+    display_name = display_name or f'{"/".join(names)} ({bangumi_name})'
     with TemporaryDirectory() as td:
         img_cnts = []
         for cid in ch_ids:

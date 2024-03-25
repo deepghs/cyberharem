@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       name:
-        description: 'Character Name'
+        description: 'Character Name (Multiple name seperated with /)'
         type: string
         required: true
       bangumi_repository:
@@ -35,6 +35,10 @@ on:
         description: 'No CCIP for Dataset'
         type: boolean
         default: false
+      db_tag:
+        description: 'Danbooru Tag (Only for finding aliases)'
+        type: str
+        default: ''
 
 jobs:
   bangumibase_extract:
@@ -129,6 +133,16 @@ jobs:
         shell: bash
         run: |
           echo 'CH_P_DISPLAY_NAME=' >> $GITHUB_ENV
+      - name: Set Danbooru Tag
+        if: ${{ github.event.inputs.db_tag != '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_DBTAG=--db_tag "${{ github.event.inputs.db_tag }}"' >> $GITHUB_ENV
+      - name: No Danbooru Tag
+        if: ${{ github.event.inputs.db_tag == '' }}
+        shell: bash
+        run: |
+          echo 'CH_P_DBTAG=' >> $GITHUB_ENV
       - name: Run Crawler
         shell: bash
         env:
@@ -141,4 +155,5 @@ jobs:
             --source_repository ${{ github.event.inputs.bangumi_repository }} \
             --name "${{ github.event.inputs.name }}" \
             --ch_id ${{ github.event.inputs.ch_id }} \
-            ${{ env.CH_P_LIMIT }} ${{ env.CH_P_REPO }} ${{ env.CH_P_NO_CCIP }} ${{ env.CH_P_DISPLAY_NAME }}
+            ${{ env.CH_P_LIMIT }} ${{ env.CH_P_REPO }} ${{ env.CH_P_NO_CCIP }} \
+            ${{ env.CH_P_DISPLAY_NAME }} ${{ env.CH_P_DBTAG }}

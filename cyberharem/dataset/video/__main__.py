@@ -77,7 +77,9 @@ def hf_discord(repository: str):
               help='Limit number of dataset.', show_default=True)
 @click.option('--no_ccip', 'no_ccip', is_flag=True, type=bool, default=False,
               help='Do not run CCIP on dataset.', show_default=True)
-def extract(source_repository, repository, character_ids, name, display_name, limit, no_ccip):
+@click.option('--db_tag', 'db_tag', type=str, default=None,
+              help='Danbooru tag for that.', show_default=True)
+def extract(source_repository, repository, character_ids, name, display_name, limit, no_ccip, db_tag):
     ch_ids = sorted(map(int, filter(bool, map(str.strip, re.split(r'\s*,\s*', character_ids)))))
     crawl_base_to_huggingface(
         source_repository=source_repository,
@@ -87,6 +89,7 @@ def extract(source_repository, repository, character_ids, name, display_name, li
         display_name=display_name,
         limit=limit,
         standalone_ccip=no_ccip,
+        db_tag=db_tag,
     )
 
 
