@@ -247,14 +247,14 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
 @contextmanager
 def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: bool = False,
                         min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8,
-                        max_images_limit: Optional[int] = 50000):
+                        max_images_limit: Optional[int] = 50000, all_frames: bool = False):
     if no_extract:
         source = LocalSource(video_or_directory)
     else:
         if os.path.isfile(video_or_directory):
-            source = VideoSource(video_or_directory)
+            source = VideoSource(video_or_directory, key_frames_only=not all_frames)
         elif os.path.isdir(video_or_directory):
-            source = VideoSource.from_directory(video_or_directory)
+            source = VideoSource.from_directory(video_or_directory, key_frames_only=not all_frames)
         else:
             raise TypeError(f'Unknown video - {video_or_directory!r}.')
 
@@ -294,7 +294,8 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
 def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
                            repository: str, revision: str = 'main', no_extract: bool = False,
                            min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8,
-                           max_images_limit: Optional[int] = 50000, discord_publish: bool = True):
+                           max_images_limit: Optional[int] = 50000, all_frames: bool = False,
+                           discord_publish: bool = True):
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
@@ -302,7 +303,7 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
         hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)
 
     with extract_from_videos(video_or_directory, bangumi_name, no_extract,
-                             min_size, merge_threshold, preview_count, max_images_limit) as dst_dir:
+                             min_size, merge_threshold, preview_count, max_images_limit, all_frames) as dst_dir:
         upload_directory_as_directory(
             local_directory=dst_dir,
             repo_id=repository,

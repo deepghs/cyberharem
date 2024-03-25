@@ -38,11 +38,13 @@ def cli():
               help='Min size of image.', show_default=True)
 @click.option('--no_extract', '-E', 'no_extract', is_flag=True, type=bool, default=False,
               help='No extraction from videos.', show_default=True)
+@click.option('--all_frames', '-A', 'all_frames', is_flag=True, type=bool, default=False,
+              help='Extract all frames, not only key frames.', show_default=True)
 @click.option('--max_images_limit', 'max_images_limit', type=int, default=50000,
               help='Max images limit, to prevent OOM.', show_default=True)
 def huggingface(video_or_directory: str, bangumi_name: str,
                 repository: str, revision: str = 'main', min_size: int = 320,
-                no_extract: bool = False, max_images_limit: int = 50000):
+                no_extract: bool = False, max_images_limit: int = 50000, all_frames: bool = False):
     logging.try_init_root(logging.INFO)
     rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))
     repository = repository or f"{get_global_bg_namespace()}/{rname}"
@@ -50,6 +52,7 @@ def huggingface(video_or_directory: str, bangumi_name: str,
         video_or_directory, bangumi_name, repository, revision,
         no_extract=no_extract, min_size=min_size,
         max_images_limit=max_images_limit,
+        all_frames=all_frames,
     )
 
 
