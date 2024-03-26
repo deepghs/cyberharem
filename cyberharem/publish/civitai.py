@@ -47,7 +47,7 @@ def _title_split(display_name):
     return matching.group('body'), matching.group('copyright')
 
 
-def _find_model_via_display_name(display_name: str, creator: str) -> Optional[Model]:
+def _find_model_via_display_name(display_name: str, creator: str) -> Model:
     body, cy = _title_split(display_name)
     names = re.split('/', body)
     names = [_name_safe(name).strip('_').lower() for name in names]
