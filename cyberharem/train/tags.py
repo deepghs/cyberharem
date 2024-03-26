@@ -75,6 +75,31 @@ def _shorts_words(name):
     ], generic_neg_words, 42
 
 
+def _shorts_male_words(name):
+    return [
+        *generic_words,
+        (name, _DEFAULT_NAME_WEIGHT),
+        'belt', 'coat', 'cowboy shot', 'looking at viewer', 'midriff', 'navel', 'open clothes',
+        'open coat', 'short shorts', 'shorts', 'smile', 'standing', 'stomach', 'strapless', 'long sleeves',
+        'tube top', 'wide sleeves', ':d', 'crop top', 'open mouth',
+        'hand on hip', 'hand up', 'simple background', 'thighs', 'cleavage', 'jacket'
+    ], generic_neg_words, 42
+
+
+def _jacket_male_words(name):
+    return [
+        *generic_words,
+        (name, _DEFAULT_NAME_WEIGHT),
+        'simple background',
+        ('black jacket', 1.2),
+        ('white hoodie', 1.1),
+        'open jacket',
+        'open clothes',
+        'hoodie',
+        'upper body',
+    ], generic_neg_words, 42
+
+
 def _china_dress_words(name):
     return [
         *generic_words,
@@ -102,7 +127,7 @@ def _bikini_words(name):
     ], generic_neg_words, 758691538
 
 
-def _male_swin_words(name):
+def _male_swim_words(name):
     return [
         *generic_words,
         (name, _DEFAULT_NAME_WEIGHT),
@@ -226,6 +251,24 @@ def _safe_suit_words(name):
         ('white gloves', 1.15),
         ('white shirt', 1.1),
         ('black skirt', 1.15),
+        ('smoking', 1.2),
+        'handsome',
+    ], [
+        'nsfw', 'sexy', 'underwear', 'bra', 'fishnet',
+        'skin of legs', 'bare legs', 'bare skin', 'navel',
+        *generic_neg_words,
+    ], 42
+
+
+def _safe_male_suit_words(name):
+    return [
+        *generic_words,
+        (name, _DEFAULT_NAME_WEIGHT),
+        ('black business suit', 1.4),
+        ('tie', 1.2),
+        ('sunglasses', 1.25),
+        ('white gloves', 1.15),
+        ('white shirt', 1.1),
         ('smoking', 1.2),
         'handsome',
     ], [
@@ -390,27 +433,30 @@ def _get_all_pairs(gender: str):
     ])
 
     # clothes
-    extras.append(('shorts', _shorts_words, 1))
     if gender == 'girl':
         extras.extend([
+            # safe
+            ('shorts', _shorts_words, 1),
             ('maid', _safe_maid_words, 2),
             ('miko', _safe_miko_words, 1),
             ('yukata', _safe_yukata_words, 1),
-        ])
-    if gender == 'boy':
-        extras.extend([
-            ('shirt', _safe_shirt_words, 2),
-            ('uniform', _safe_uniform_words, 3),
-        ])
-    extras.append(('suit', _safe_suit_words, 1))
-    if gender == 'girl':
-        extras.extend([
+            ('suit', _safe_suit_words, 1),
+
+            # r15
             ('china', _china_dress_words, 1),
             ('bikini', _bikini_words, 3),
         ])
     if gender == 'boy':
         extras.extend([
-            ('swim', _male_swin_words, 3)
+            # safe
+            ('short', _shorts_male_words, 1),
+            ('shirt', _safe_shirt_words, 2),
+            ('uniform', _safe_uniform_words, 3),
+            ('suit', _safe_male_suit_words, 2),
+            ('jacket', _jacket_male_words, 2),
+
+            # r15
+            ('swim', _male_swim_words, 3),
         ])
 
     # posture
