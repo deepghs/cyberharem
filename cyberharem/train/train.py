@@ -277,6 +277,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
 
     workdir = workdir or os.path.join('runs', name)
     os.makedirs(workdir, exist_ok=True)
+    last_attempt_file = os.path.join(workdir, 'last_attempt.json')
     trained_flag_file = os.path.join(workdir, '.trained')
     if os.path.exists(trained_flag_file) and not force_retrain:
         logging.info('Model already trained, skipped.')
@@ -315,6 +316,17 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
         eps, save_interval = piecewise_ep(image_count)
         logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
                      f'recommended epochs: {eps}, save interval: {save_interval}.')
+        if not dim and os.path.exists(last_attempt_file):
+            with open(last_attempt_file) as f:
+                last_attempt = json.load(f)
+            last_attempt_workdir = os.path.join(workdir, last_attempt['rel_workdir'])
+            if last_attempt['info']['reason'] == 'dim_too_low':
+                logging.info(f'Try find last dim from last attempt dir {last_attempt_workdir!r} ...')
+                last_attempt_cfg_file = os.path.join(last_attempt_workdir, 'train.toml')
+                last_dim = toml.load(last_attempt_cfg_file)['Network_setup']['network_dim']
+                logging.info(f'Last dim is {last_dim!r}.')
+                dim = int(last_dim * 1.5)
+                logging.info(f'Use new dim: {dim!r}.')
         if not dim:
             if image_count <= 100:
                 dim = 4

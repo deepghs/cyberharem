@@ -7,11 +7,12 @@ import shutil
 import time
 import zipfile
 from textwrap import dedent
-from typing import Optional
+from typing import Optional, Dict
 
 import numpy as np
 import pandas as pd
 from ditk import logging
+from hbutils.random import random_sha1_with_timestamp
 from hbutils.scale import size_to_bytes_str
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
@@ -60,8 +61,37 @@ def _init_model_repo(repository: str):
             )
 
 
+class CCIPTooLowError(Exception):
+    pass
+
+
+def _prepare_for_attempt_dir(workdir: str, info: Dict) -> str:
+    new_workdir = os.path.join(
+        os.path.dirname(workdir),
+        f'{os.path.basename(workdir)}_{random_sha1_with_timestamp()}'
+    )
+    logging.info(f'Moving workdir {workdir!r} to {new_workdir!r} ...')
+    shutil.move(workdir, new_workdir)
+
+    os.makedirs(workdir, exist_ok=True)
+    last_attempt_file = os.path.join(workdir, 'last_attempt.json')
+    logging.info(f'Writing information to last attempt file {last_attempt_file!r} ...')
+    with open(last_attempt_file, 'w') as f:
+        json.dump({
+            'workdir': os.path.abspath(new_workdir),
+            'rel_workdir': os.path.relpath(
+                os.path.abspath(new_workdir),
+                start=os.path.abspath(workdir),
+            ),
+            'info': info,
+        }, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+    return new_workdir
+
+
 def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
-                          steps_batch_size: int = 10, discord_publish: bool = True):
+                          steps_batch_size: int = 10, discord_publish: bool = True,
+                          ccip_check: Optional[float] = 0.8, move_when_check_failed: bool = True):
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
     base_model_type = meta_info.get('base_model_type', 'SD1.5')
@@ -69,6 +99,12 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
 
     logging.info('Starting evaluation before deployment ...')
     eval_for_workdir(workdir, **(eval_cfgs or {}))
+
+    df = pd.read_csv(os.path.join(workdir, 'eval', 'metrics_selected.csv'))
+    if ccip_check is not None and df['ccip'].max() < ccip_check:
+        if move_when_check_failed:
+            _prepare_for_attempt_dir(workdir, info={'reason': 'dim_too_low'})
+        raise CCIPTooLowError(f'CCIP too low, minimum {ccip_check:.3f} required, but {df["ccip"].max():.3f} found.')
 
     name = meta_info['name']
     ds_repo = meta_info['dataset']['repository']
