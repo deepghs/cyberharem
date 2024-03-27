@@ -264,7 +264,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
                seed: int = None, use_reg: bool = True, latent_cache_id: Optional[str] = None,
                bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
-               dim: int = 4, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
+               dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
                bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False):
     _auto_init()
     hf_fs = get_hf_fs()
@@ -315,6 +315,16 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
         eps, save_interval = piecewise_ep(image_count)
         logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
                      f'recommended epochs: {eps}, save interval: {save_interval}.')
+        if not dim:
+            if image_count <= 100:
+                dim = 4
+            elif image_count <= 200:
+                dim = 6
+            elif image_count <= 400:
+                dim = 8
+            else:
+                dim = 12
+            logging.info(f'Auto selected dim: {dim!r}.')
 
         seed = seed or random.randint(0, (1 << 30) - 1)
         with _use_toml_cfg_file(template_file, {
