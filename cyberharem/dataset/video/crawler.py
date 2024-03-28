@@ -7,6 +7,7 @@ import zipfile
 from functools import lru_cache
 from typing import Optional, Union, List
 
+from hbutils.collection import unique
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_url
 from unidecode import unidecode
@@ -57,6 +58,7 @@ def crawl_base_to_huggingface(
     names = list(filter(bool, map(str.strip, name.split('/'))))
     if db_tag:
         names.extend(_get_alias_tags(db_tag))
+    names = list(unique(names))
     name = names[0]
     alphabet_name = re.sub(r'[\W_]+', '_', unidecode(name.lower())).strip('_').lower() + '_' + \
                     source_repository.split('/')[-1]
