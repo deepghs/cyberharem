@@ -119,11 +119,14 @@ def _load_toml_file(file):
 
 
 @contextmanager
-def _use_toml_cfg_file(template_file: str, configs: dict) -> ContextManager[str]:
+def _use_toml_cfg_file(template_file: str, *configs: dict) -> ContextManager[str]:
     with TemporaryDirectory() as td:
         cfg_file = os.path.join(td, 'train_cfg.toml')
+        data = _load_toml_file(template_file)
+        for config in configs:
+            data = dict_merge(data, config)
         with open(cfg_file, 'w') as f:
-            toml.dump(dict_merge(_load_toml_file(template_file), configs), f)
+            toml.dump(data, f)
         yield cfg_file
 
 
@@ -303,9 +306,9 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
         np.save(features_path, _extract_features_from_directory(train_dir))
 
         r_boy, r_girl = _gender_predict(train_dir)
-        if r_boy >= 0.7:
+        if r_boy >= 0.7 or r_boy - r_girl >= 0.25:
             gender = 'boy'
-        elif r_girl >= 0.7:
+        elif r_girl >= 0.7 or r_girl - r_boy >= 0.25:
             gender = 'girl'
         else:
             gender = 'not_sure'
@@ -316,30 +319,36 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
         eps, save_interval = piecewise_ep(image_count)
         logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
                      f'recommended epochs: {eps}, save interval: {save_interval}.')
+        _last_toml_file, _last_lora_file = None, None
         if not dim and os.path.exists(last_attempt_file):
             with open(last_attempt_file) as f:
                 last_attempt = json.load(f)
             last_attempt_workdir = os.path.join(workdir, last_attempt['rel_workdir'])
-            if last_attempt['info']['reason'] == 'dim_too_low':
-                logging.info(f'Try find last dim from last attempt dir {last_attempt_workdir!r} ...')
-                last_attempt_cfg_file = os.path.join(last_attempt_workdir, 'train.toml')
-                last_dim = toml.load(last_attempt_cfg_file)['Network_setup']['network_dim']
-                logging.info(f'Last dim is {last_dim!r}.')
-                dim = int(last_dim * 1.5)
-                logging.info(f'Use new dim: {dim!r}.')
+
+            retry_reason = last_attempt['info']['reason']
+            if retry_reason == 'step_too_low':
+                from ..infer import find_steps_in_workdir
+                last_record = find_steps_in_workdir(last_attempt_workdir).to_dict('records')[-1]
+                _last_toml_file = os.path.join(last_attempt_workdir, 'train.toml')
+                _last_lora_file = last_record['file']
+                logging.info(f'Last attempt found as {last_attempt_workdir!r}, '
+                             f'steps: {last_record["step"]!r}, epoch: {last_record["epoch"]!r}, '
+                             f'lora file: {_last_lora_file!r}, go on training')
+
+            else:
+                logging.warning(f'Unknown retry reason: {retry_reason!r}, ignored.')
+
         if not dim:
             if image_count <= 100:
                 dim = 4
-            elif image_count <= 200:
-                dim = 6
             elif image_count <= 400:
-                dim = 8
+                dim = 6
             else:
-                dim = 12
+                dim = 8
             logging.info(f'Auto selected dim: {dim!r}.')
 
         seed = seed or random.randint(0, (1 << 30) - 1)
-        with _use_toml_cfg_file(template_file, {
+        with _use_toml_cfg_file(_last_toml_file or template_file, {
             'Basics': {
                 'pretrained_model_name_or_path': pretrained_model,
                 'train_data_dir': train_dir,
@@ -360,6 +369,7 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
                 'network_alpha': alpha,
                 'network_train_unet_only': not bool(train_te),
                 'network_train_text_encoder_only': False,
+                'network_weights': _last_lora_file if _last_toml_file else NOT_EXIST,
             },
             'Optimizer': {
                 'train_batch_size': bs,

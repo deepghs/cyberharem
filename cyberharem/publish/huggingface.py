@@ -18,7 +18,6 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import upload_directory_as_directory
 from huggingface_hub import CommitOperationAdd, hf_hub_url
-from imgutils.sd import get_sdmeta_from_image
 from imgutils.tagging import remove_underline
 from tqdm import tqdm
 
@@ -103,7 +102,9 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
     df = pd.read_csv(os.path.join(workdir, 'eval', 'metrics_selected.csv'))
     if ccip_check is not None and df['ccip'].max() < ccip_check:
         if move_when_check_failed:
-            _prepare_for_attempt_dir(workdir, info={'reason': 'dim_too_low'})
+            _prepare_for_attempt_dir(workdir, info={
+                'reason': 'step_too_low',
+            })
         raise CCIPTooLowError(f'CCIP too low, minimum {ccip_check:.3f} required, but {df["ccip"].max():.3f} found.')
 
     name = meta_info['name']
@@ -179,18 +180,18 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
             step_previews_dir = os.path.join(step_dir, 'previews')
             os.makedirs(step_previews_dir, exist_ok=True)
             logging.info(f'Copying images to {step_previews_dir!r} ...')
-            for png_file in glob.glob(os.path.join(workdir, 'eval', str(step), '*.png')):
+            for png_file in glob.glob(os.path.join(step_item['workdir'], 'eval', str(step), '*.png')):
                 shutil.copyfile(png_file, os.path.join(step_previews_dir, os.path.basename(png_file)))
             shutil.copyfile(
-                os.path.join(workdir, 'eval', str(step), 'metrics.json'),
+                os.path.join(step_item['workdir'], 'eval', str(step), 'metrics.json'),
                 os.path.join(step_dir, 'metrics.json'),
             )
             shutil.copyfile(
-                os.path.join(workdir, 'eval', str(step), 'details.csv'),
+                os.path.join(step_item['workdir'], 'eval', str(step), 'details.csv'),
                 os.path.join(step_dir, 'details.csv'),
             )
 
-            origin_lora_file = os.path.join(workdir, 'kohya', step_item['filename'])
+            origin_lora_file = os.path.join(step_item['workdir'], 'kohya', step_item['filename'])
             final_lora_file = os.path.join(step_dir, f'{name}.safetensors')
             logging.info(f'Copy lora file to {final_lora_file!r} ...')
             shutil.copyfile(origin_lora_file, final_lora_file)
@@ -327,12 +328,6 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
                   f'were generated for auto-testing.', file=f)
             print(f'', file=f)
             print(f'![Metrics Plot](metrics_plot.png)', file=f)
-            print(f'', file=f)
-
-            sample_meta = get_sdmeta_from_image(glob.glob(os.path.join(workdir, 'eval', '*', '*.png'))[0])
-            infer_pretrained_model = sample_meta.parameters['Model']
-            print(f'The base model used for generating preview images is '
-                  f'[{infer_pretrained_model}](https://huggingface.co/{infer_pretrained_model}).', file=f)
             print(f'', file=f)
 
             print(f'Here are the preview of the recommended steps:', file=f)

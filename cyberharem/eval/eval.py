@@ -146,11 +146,12 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
     bp_metrics = BikiniPlusMetrics()
     aic_metrics = AICorruptMetrics()
 
-    eval_dir = os.path.join(workdir, 'eval')
-    os.makedirs(eval_dir, exist_ok=True)
+    current_eval_dir = os.path.join(workdir, 'eval')
+    os.makedirs(current_eval_dir, exist_ok=True)
     tb_data = []
     for step_item in tqdm(df_steps.to_dict('records')):
         step, epoch, filename = step_item['step'], step_item['epoch'], step_item['filename']
+        eval_dir = os.path.join(step_item['workdir'], 'eval')
         step_dir = os.path.join(eval_dir, str(step))
         os.makedirs(step_dir, exist_ok=True)
         step_metrics_file = os.path.join(step_dir, 'metrics.json')
@@ -187,7 +188,7 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
         tb_data.append(row)
 
     df = pd.DataFrame(tb_data)
-    metrics_plot_file = os.path.join(eval_dir, 'metrics_plot.png')
+    metrics_plot_file = os.path.join(current_eval_dir, 'metrics_plot.png')
     logging.info(f'Plotting metrics to {metrics_plot_file!r} ...')
     select = select or max(min(len(steps) // 3, 5), 3)
     df, df_selected = plt_metrics(
@@ -198,11 +199,11 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
         fidelity_alpha=fidelity_alpha,
     )
 
-    metrics_csv_file = os.path.join(eval_dir, 'metrics.csv')
+    metrics_csv_file = os.path.join(current_eval_dir, 'metrics.csv')
     logging.info(f'Save metrics table to {metrics_csv_file!r} ...')
     df.to_csv(metrics_csv_file, index=False)
 
-    metrics_selected_csv_file = os.path.join(eval_dir, 'metrics_selected.csv')
+    metrics_selected_csv_file = os.path.join(current_eval_dir, 'metrics_selected.csv')
     logging.info(f'Save selected metrics table to {metrics_selected_csv_file!r} ...')
     df_selected.to_csv(metrics_selected_csv_file, index=False)
     logging.info(f'Selected steps:\n{df_selected}\n')

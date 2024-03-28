@@ -248,8 +248,6 @@ def infer_with_workdir(
         base_model: str = 'meinamix_v11',
 ):
     _auto_init()
-    eval_dir = os.path.join(workdir, 'eval')
-    os.makedirs(eval_dir, exist_ok=True)
 
     df_steps = find_steps_in_workdir(workdir)
     logging.info(f'Available steps: {len(df_steps)}\n'
@@ -280,6 +278,8 @@ def infer_with_workdir(
     seed = toml.load(os.path.join(workdir, 'train.toml'))['Basics']['seed']
     for step_item in tqdm(df_steps.to_dict('records')):
         step = step_item['step']
+        eval_dir = os.path.join(step_item['workdir'], 'eval')
+        os.makedirs(eval_dir, exist_ok=True)
         step_eval_dir = os.path.join(eval_dir, str(step))
         step_eval_infer_okay_file = os.path.join(step_eval_dir, '.inferred')
         if os.path.exists(step_eval_infer_okay_file):
