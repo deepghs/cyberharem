@@ -100,7 +100,7 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
     logging.info('Starting evaluation before deployment ...')
     eval_for_workdir(workdir, **(eval_cfgs or {}))
 
-    df = pd.read_csv(os.path.join(workdir, 'eval', 'metrics_selected.csv'))
+    df = pd.read_csv(os.path.join(workdir, 'eval', 'metrics.csv'))
     if ccip_check is not None and df['ccip'].max() < ccip_check:
         if force_upload_after_ckpts is None or len(df) < force_upload_after_ckpts:
             if move_when_check_failed:
