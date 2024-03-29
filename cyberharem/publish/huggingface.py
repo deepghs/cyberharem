@@ -91,7 +91,7 @@ def _prepare_for_attempt_dir(workdir: str, info: Dict) -> str:
 def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
                           steps_batch_size: int = 10, discord_publish: bool = True,
                           ccip_check: Optional[float] = 0.72, move_when_check_failed: bool = True,
-                          force_upload_after_ckpts: Optional[int] = 80):
+                          force_upload_after_ckpts: Optional[int] = 75):
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
     base_model_type = meta_info.get('base_model_type', 'SD1.5')
