@@ -90,7 +90,8 @@ def _prepare_for_attempt_dir(workdir: str, info: Dict) -> str:
 
 def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
                           steps_batch_size: int = 10, discord_publish: bool = True,
-                          ccip_check: Optional[float] = 0.75, move_when_check_failed: bool = True):
+                          ccip_check: Optional[float] = 0.75, move_when_check_failed: bool = True,
+                          force_upload_after_ckpts: Optional[int] = 100):
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
     base_model_type = meta_info.get('base_model_type', 'SD1.5')
@@ -101,11 +102,16 @@ def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_c
 
     df = pd.read_csv(os.path.join(workdir, 'eval', 'metrics_selected.csv'))
     if ccip_check is not None and df['ccip'].max() < ccip_check:
-        if move_when_check_failed:
-            _prepare_for_attempt_dir(workdir, info={
-                'reason': 'step_too_low',
-            })
-        raise CCIPTooLowError(f'CCIP too low, minimum {ccip_check:.3f} required, but {df["ccip"].max():.3f} found.')
+        if force_upload_after_ckpts is None or len(df) < force_upload_after_ckpts:
+            if move_when_check_failed:
+                _prepare_for_attempt_dir(workdir, info={
+                    'reason': 'step_too_low',
+                })
+            raise CCIPTooLowError(f'CCIP too low, minimum {ccip_check:.3f} required, but {df["ccip"].max():.3f} found.')
+        else:
+            logging.warning(f'CCIP still too low, minimum {ccip_check:.3f} required, '
+                            f'but {df["ccip"].max():.3f} found. '
+                            f'Still uploaded due to settings.')
 
     name = meta_info['name']
     ds_repo = meta_info['dataset']['repository']
