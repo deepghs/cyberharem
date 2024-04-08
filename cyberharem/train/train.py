@@ -265,7 +265,7 @@ TRAIN_MARK = 'v1.5.1'
 
 def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir: Optional[str] = None,
                template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
-               seed: int = None, use_reg: bool = True, latent_cache_id: Optional[str] = None,
+               seed: int = None, use_reg: Optional[bool] = None, latent_cache_id: Optional[str] = None,
                bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
                dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
                bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False):
@@ -298,119 +298,125 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
 
     train_prefix_tags = [name] if not meta['bangumi'] else [name, bangumi_style_tag]
     with load_train_dataset(repo_id=ds_repo_id, prefix_tags=train_prefix_tags,
-                            dataset_name=dataset_name) as train_dir, \
-            load_reg_dataset(bangumi_repo_id=meta['bangumi'], bangumi_prefix_tag=bangumi_style_tag,
-                             use_reg=use_reg, latent_cache_id=latent_cache_id) as reg_dir:
-        features_path = os.path.join(workdir, 'features.npy')
-        logging.info(f'Extracting features from {train_dir!r}, and saving that to {features_path!r} ...')
-        np.save(features_path, _extract_features_from_directory(train_dir))
-
-        r_boy, r_girl = _gender_predict(train_dir)
-        if r_boy >= 0.7 or r_boy - r_girl >= 0.25:
-            gender = 'boy'
-        elif r_girl >= 0.7 or r_girl - r_boy >= 0.25:
-            gender = 'girl'
-        else:
-            gender = 'not_sure'
-        logging.info(f'Boy ratio: {r_boy:.3f}, girl ratio: {r_girl:.3f}, gender: {gender!r}.')
-        save_recommended_tags(name, meta['clusters'], workdir, gender=gender)
-
+                            dataset_name=dataset_name) as train_dir:
         image_count = count_images_from_train_dir(train_dir)
-        eps, save_interval = piecewise_ep(image_count)
-        logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
-                     f'recommended epochs: {eps}, save interval: {save_interval}.')
-        _last_toml_file, _last_lora_file = None, None
-        if not dim and os.path.exists(last_attempt_file):
-            with open(last_attempt_file) as f:
-                last_attempt = json.load(f)
-            last_attempt_workdir = os.path.join(workdir, last_attempt['rel_workdir'])
-
-            retry_reason = last_attempt['info']['reason']
-            if retry_reason == 'step_too_low':
-                from ..infer import find_steps_in_workdir
-                last_record = find_steps_in_workdir(last_attempt_workdir).to_dict('records')[-1]
-                _last_toml_file = os.path.join(last_attempt_workdir, 'train.toml')
-                _last_lora_file = last_record['file']
-                logging.info(f'Last attempt found as {last_attempt_workdir!r}, '
-                             f'steps: {last_record["step"]!r}, epoch: {last_record["epoch"]!r}, '
-                             f'lora file: {_last_lora_file!r}, go on training')
-
+        if use_reg is None:
+            if image_count >= 300:
+                use_reg = False
             else:
-                logging.warning(f'Unknown retry reason: {retry_reason!r}, ignored.')
+                use_reg = True
 
-        if not dim:
-            if image_count <= 100:
-                dim = 4
-            elif image_count <= 400:
-                dim = 6
+        with load_reg_dataset(bangumi_repo_id=meta['bangumi'], bangumi_prefix_tag=bangumi_style_tag,
+                              use_reg=use_reg, latent_cache_id=latent_cache_id) as reg_dir:
+            features_path = os.path.join(workdir, 'features.npy')
+            logging.info(f'Extracting features from {train_dir!r}, and saving that to {features_path!r} ...')
+            np.save(features_path, _extract_features_from_directory(train_dir))
+
+            r_boy, r_girl = _gender_predict(train_dir)
+            if r_boy >= 0.7 or r_boy - r_girl >= 0.25:
+                gender = 'boy'
+            elif r_girl >= 0.7 or r_girl - r_boy >= 0.25:
+                gender = 'girl'
             else:
-                dim = 8
-            logging.info(f'Auto selected dim: {dim!r}.')
+                gender = 'not_sure'
+            logging.info(f'Boy ratio: {r_boy:.3f}, girl ratio: {r_girl:.3f}, gender: {gender!r}.')
+            save_recommended_tags(name, meta['clusters'], workdir, gender=gender)
 
-        seed = seed or random.randint(0, (1 << 30) - 1)
-        with _use_toml_cfg_file(_last_toml_file or template_file, {
-            'Basics': {
-                'pretrained_model_name_or_path': pretrained_model,
-                'train_data_dir': train_dir,
-                'reg_data_dir': reg_dir if reg_dir else NOT_EXIST,
-                'seed': seed,
-                'resolution': f'{resolution},{resolution}',
-                'max_train_steps': (1 << 31 - 1),
-                'max_train_epochs': eps,
-            },
-            'Save': {
-                'output_dir': kohya_save_dir,
-                'output_name': name,
-                'save_every_n_epochs': save_interval,
-                'save_every_n_steps': (1 << 31 - 1),
-            },
-            'Network_setup': {
-                'network_dim': dim,
-                'network_alpha': alpha,
-                'network_train_unet_only': not bool(train_te),
-                'network_train_text_encoder_only': False,
-                'network_weights': _last_lora_file if _last_toml_file else NOT_EXIST,
-            },
-            'Optimizer': {
-                'train_batch_size': bs,
-                'unet_lr': unet_lr,
-                'text_encoder_lr': te_lr,
-            },
-            'ARB': {
-                'min_bucket_reso': int(resolution // res_ratio),
-                'max_bucket_reso': int(resolution * res_ratio),
-            },
-            'Others': {
-                'training_comment': comment if comment else IGNORE,
-            }
-        }) as cfg_file:
-            workdir_cfg_file = os.path.abspath(os.path.join(workdir, 'train.toml'))
-            shutil.copy(cfg_file, workdir_cfg_file)
+            eps, save_interval = piecewise_ep(image_count)
+            logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
+                         f'recommended epochs: {eps}, save interval: {save_interval}.')
+            _last_toml_file, _last_lora_file = None, None
+            if not dim and os.path.exists(last_attempt_file):
+                with open(last_attempt_file) as f:
+                    last_attempt = json.load(f)
+                last_attempt_workdir = os.path.join(workdir, last_attempt['rel_workdir'])
 
-            with open(os.path.join(workdir, 'meta.json'), 'w', encoding='utf-8') as f:
-                json.dump({
-                    'base_model_type': 'SD1.5',
-                    'train_type': 'LoRA',
-                    'dataset': {
-                        'repository': ds_repo_id,
-                        'size': dataset_size,
-                        'name': dataset_name,
-                        'version': meta['version'],
-                    },
-                    'gender': {
-                        'boy': r_boy,
-                        'girl': r_girl,
-                        'predict': gender,
-                    },
-                    'core_tags': meta['core_tags'],
-                    'bangumi': meta['bangumi'],
-                    'name': name,
-                    'bangumi_style_name': bangumi_style_tag if meta['bangumi'] else None,
-                    'display_name': meta['display_name'],
-                    'version': TRAIN_MARK,
-                }, f, indent=4, sort_keys=True, ensure_ascii=False)
+                retry_reason = last_attempt['info']['reason']
+                if retry_reason == 'step_too_low':
+                    from ..infer import find_steps_in_workdir
+                    last_record = find_steps_in_workdir(last_attempt_workdir).to_dict('records')[-1]
+                    _last_toml_file = os.path.join(last_attempt_workdir, 'train.toml')
+                    _last_lora_file = last_record['file']
+                    logging.info(f'Last attempt found as {last_attempt_workdir!r}, '
+                                 f'steps: {last_record["step"]!r}, epoch: {last_record["epoch"]!r}, '
+                                 f'lora file: {_last_lora_file!r}, go on training')
 
-            _run_kohya_train_command(workdir_cfg_file)
+                else:
+                    logging.warning(f'Unknown retry reason: {retry_reason!r}, ignored.')
+
+            if not dim:
+                if image_count <= 100:
+                    dim = 4
+                elif image_count <= 400:
+                    dim = 6
+                else:
+                    dim = 8
+                logging.info(f'Auto selected dim: {dim!r}.')
+
+            seed = seed or random.randint(0, (1 << 30) - 1)
+            with _use_toml_cfg_file(_last_toml_file or template_file, {
+                'Basics': {
+                    'pretrained_model_name_or_path': pretrained_model,
+                    'train_data_dir': train_dir,
+                    'reg_data_dir': reg_dir if reg_dir else NOT_EXIST,
+                    'seed': seed,
+                    'resolution': f'{resolution},{resolution}',
+                    'max_train_steps': (1 << 31 - 1),
+                    'max_train_epochs': eps,
+                },
+                'Save': {
+                    'output_dir': kohya_save_dir,
+                    'output_name': name,
+                    'save_every_n_epochs': save_interval,
+                    'save_every_n_steps': (1 << 31 - 1),
+                },
+                'Network_setup': {
+                    'network_dim': dim,
+                    'network_alpha': alpha,
+                    'network_train_unet_only': not bool(train_te),
+                    'network_train_text_encoder_only': False,
+                    'network_weights': _last_lora_file if _last_toml_file else NOT_EXIST,
+                },
+                'Optimizer': {
+                    'train_batch_size': bs,
+                    'unet_lr': unet_lr,
+                    'text_encoder_lr': te_lr,
+                },
+                'ARB': {
+                    'min_bucket_reso': int(resolution // res_ratio),
+                    'max_bucket_reso': int(resolution * res_ratio),
+                },
+                'Others': {
+                    'training_comment': comment if comment else IGNORE,
+                }
+            }) as cfg_file:
+                workdir_cfg_file = os.path.abspath(os.path.join(workdir, 'train.toml'))
+                shutil.copy(cfg_file, workdir_cfg_file)
+
+                with open(os.path.join(workdir, 'meta.json'), 'w', encoding='utf-8') as f:
+                    json.dump({
+                        'base_model_type': 'SD1.5',
+                        'train_type': 'LoRA',
+                        'dataset': {
+                            'repository': ds_repo_id,
+                            'size': dataset_size,
+                            'name': dataset_name,
+                            'version': meta['version'],
+                        },
+                        'gender': {
+                            'boy': r_boy,
+                            'girl': r_girl,
+                            'predict': gender,
+                        },
+                        'core_tags': meta['core_tags'],
+                        'bangumi': meta['bangumi'],
+                        'name': name,
+                        'bangumi_style_name': bangumi_style_tag if meta['bangumi'] else None,
+                        'display_name': meta['display_name'],
+                        'version': TRAIN_MARK,
+                    }, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+                _run_kohya_train_command(workdir_cfg_file)
 
     pathlib.Path(trained_flag_file).touch()
     return workdir
