@@ -1,4 +1,5 @@
 import json
+import json
 import logging
 import math
 import os.path
@@ -57,17 +58,40 @@ def load_train_dataset(repo_id: str, prefix_tags: List[str] = None,
                        dataset_name: str = 'stage3-p480-1200', revision: str = 'main',
                        repo_type: RepoTypeTyping = 'dataset') -> ContextManager[str]:
     prefix_tags = list(prefix_tags or [])
+    hf_fs = get_hf_fs()
+    packages_info = json.loads(hf_fs.read_text(f'datasets/{repo_id}/meta.json'))['packages']
+    ds_info = packages_info[dataset_name]
+
     logging.info(f'Loading dataset from {repo_id}@{revision}, {dataset_name}, with prefix tags: {prefix_tags!r} ...')
     with TemporaryDirectory() as td:
-        subdir_name = '1_1girl'
-        ds_dir = os.path.join(td, subdir_name)
-        download_archive_as_directory(
-            repo_id=repo_id,
-            repo_type=repo_type,
-            revision=revision,
-            file_in_repo=f'dataset-{dataset_name}.zip',
-            local_directory=ds_dir,
-        )
+        if not ds_info.get('sub_sizes'):
+            logging.info(f'Simple dataset {dataset_name!r} with {plural_word(ds_info["size"], "image")} found.')
+            subdir_name = '1_1girl'
+            ds_dir = os.path.join(td, subdir_name)
+            download_archive_as_directory(
+                repo_id=repo_id,
+                repo_type=repo_type,
+                revision=revision,
+                file_in_repo=f'dataset-{dataset_name}.zip',
+                local_directory=ds_dir,
+            )
+
+        else:
+            logging.info(f'Nested dataset {dataset_name!r} with {ds_info["sub_sizes"]!r} found.')
+            download_archive_as_directory(
+                repo_id=repo_id,
+                repo_type=repo_type,
+                revision=revision,
+                file_in_repo=f'dataset-{dataset_name}.zip',
+                local_directory=td,
+            )
+
+            base_size = max(ds_info["sub_sizes"].values())
+            for head_name, head_size in ds_info["sub_sizes"].items():
+                src_dir = os.path.join(td, head_name)
+                repeats = int(round(base_size / head_size))
+                dst_dir = os.path.join(td, f'{repeats}_{head_name}')
+                shutil.move(src_dir, dst_dir)
 
         if prefix_tags:
             for root, dirs, files in os.walk(td):
