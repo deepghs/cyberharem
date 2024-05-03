@@ -293,7 +293,7 @@ def _auto_init():
 TRAIN_MARK = 'v1.5.1'
 
 
-def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir: Optional[str] = None,
+def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Optional[str] = None,
                template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
                seed: int = None, use_reg: Optional[bool] = False, latent_cache_id: Optional[str] = None,
                bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
@@ -302,6 +302,11 @@ def train_lora(ds_repo_id: str, dataset_name: str = 'stage3-p480-1200', workdir:
     _auto_init()
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
+    if dataset_name is None:
+        if 'stage3-p480-1200' in meta['packages']:
+            dataset_name = 'stage3-p480-1200'
+        else:
+            dataset_name = 'stage3-p180-1200'
     dataset_size = meta['packages'][dataset_name]['size']
     if re.fullmatch(r'^[a-z\\d_]+$', meta['name']):
         name = meta['name']
