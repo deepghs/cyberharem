@@ -9,7 +9,7 @@ import re
 import shutil
 import subprocess
 from contextlib import contextmanager
-from typing import ContextManager, Optional, List, Union
+from typing import ContextManager, Optional, List, Union, Dict
 
 import numpy as np
 import toml
@@ -53,10 +53,16 @@ def _extract_features_from_directory(dataset_dir):
     return np.stack(features)
 
 
+_DEFAULT_PLS = {
+    'head': 1.7,
+}
+
+
 @contextmanager
 def load_train_dataset(repo_id: str, prefix_tags: List[str] = None,
-                       dataset_name: str = 'stage3-p480-1200', revision: str = 'main',
-                       repo_type: RepoTypeTyping = 'dataset') -> ContextManager[str]:
+                       dataset_name: str = 'stage3-p480-1200', dataset_plus_times: Optional[Dict[str, float]] = None,
+                       revision: str = 'main', repo_type: RepoTypeTyping = 'dataset') -> ContextManager[str]:
+    dataset_plus_times = dict(dataset_plus_times or _DEFAULT_PLS)
     prefix_tags = list(prefix_tags or [])
     hf_fs = get_hf_fs()
     packages_info = json.loads(hf_fs.read_text(f'datasets/{repo_id}/meta.json'))['packages']
@@ -89,7 +95,7 @@ def load_train_dataset(repo_id: str, prefix_tags: List[str] = None,
             base_size = max(ds_info["sub_sizes"].values())
             for head_name, head_size in ds_info["sub_sizes"].items():
                 src_dir = os.path.join(td, head_name)
-                repeats = int(round(base_size / head_size))
+                repeats = int(round(base_size / head_size * dataset_plus_times.get(head_name, 1.0)))
                 dst_dir = os.path.join(td, f'{repeats}_{head_name}')
                 shutil.move(src_dir, dst_dir)
 
