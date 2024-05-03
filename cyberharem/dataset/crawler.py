@@ -14,11 +14,13 @@ from hbutils.system import TemporaryDirectory
 from hfutils.archive import archive_pack
 from hfutils.operate import upload_directory_as_directory, download_archive_as_directory
 from huggingface_hub import hf_hub_url
+from imgutils.validate import anime_portrait
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
     AlignMinSizeAction, MinSizeFilterAction, FilterAction, MinAreaFilterAction, SafetyAction, TagDropAction, \
-    TagOverlapDropAction, AlignMaxAreaAction, BlacklistedTagDropAction, TagRemoveUnderlineAction, ProcessAction
+    TagOverlapDropAction, AlignMaxAreaAction, BlacklistedTagDropAction, TagRemoveUnderlineAction, ProcessAction, \
+    CharacterEnhanceAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.model import ImageItem
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
@@ -54,13 +56,16 @@ def get_source(source, drop_multi: bool = False) -> BaseDataSource:
 
 
 def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
-                    no_monochrome_check: bool = False, drop_multi: bool = False, skip: bool = False) -> BaseDataSource:
+                    no_monochrome_check: bool = False, drop_multi: bool = False, skip: bool = False,
+                    tiny_mode: bool = False, tiny_repeats: int = 25) -> BaseDataSource:
     source: BaseDataSource = get_source(source, drop_multi)
     if not skip:
         actions = [
             AlignMaxAreaAction(4500),  # IMPORTANT!!! crawler will crash because of large image if remove this
-            ModeConvertAction('RGB', bg_color),
         ]
+        if tiny_mode:
+            actions.append(CharacterEnhanceAction(repeats=tiny_repeats))
+        actions.append(ModeConvertAction('RGB', bg_color))
         if not no_monochrome_check:
             actions.append(NoMonochromeAction())  # no monochrome, greyscale or sketch
         actions.append(SafetyAction())
@@ -78,8 +83,8 @@ def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
             FileOrderAction(),  # Rename files in order
             CCIPAction(min_val_count=15),  # CCIP, filter the character you may not want to see in dataset
             FilterSimilarAction('all', capacity=2000),  # filter duplicated images
-            MinSizeFilterAction(180),
-            MinAreaFilterAction(360),
+            MinSizeFilterAction(180 if not tiny_mode else 120),
+            MinAreaFilterAction(360 if not tiny_mode else 180),
             TaggingAction(force=True, character_threshold=1.01),
             RandomFilenameAction(ext='.png')
         ])
@@ -123,61 +128,35 @@ class UnescapeTagAction(ProcessAction):
         return ImageItem(item.image, {**item.meta, 'tags': tags})
 
 
-_SOURCES = {
-    'raw': ([
-                TaggingAction(force=False, character_threshold=1.01),
-            ], False),
-    'native': ([
-                   AlignMaxAreaAction(1800),
-                   TaggingAction(force=False, character_threshold=1.01),
-               ], True),
-    'stage3': ([
-                   ThreeStageSplitAction(split_person=False),
-                   FilterSimilarAction(),
-                   MinSizeFilterAction(180),
-                   MinAreaFilterAction(360),
-                   AlignMaxAreaAction(1800),
-                   TaggingAction(force=False, character_threshold=1.01),
-               ], True),
-    # 'stage3-eyes': [
-    #     ThreeStageSplitAction(split_person=False, split_eyes=True),
-    #     FilterSimilarAction(),
-    #     CustomMinSizeAction(280, 180),
-    #     TaggingAction(force=False, character_threshold=1.01),
-    # ]
-}
+class DirectorySepAction(ProcessAction):
+    def process(self, item: ImageItem) -> ImageItem:
+        type_, _ = anime_portrait(item.image)
+        if type_ == 'head':
+            subdir = 'head'
+        else:
+            subdir = 'others'
+        item.meta['filename'] = os.path.join(subdir, item.meta['filename'])
+        return item
 
-_DEFAULT_RESOLUTIONS = {
+
+_DEFAULT_NORMAL_RESOLUTIONS = {
     'raw': ('raw', True, [], 'Raw data with meta information (min edge aligned to 1400 if larger).'),
-    # 'pruned': ('native', True, [], 'Raw data with meta information, core character tags pruned.'),
-    # 'pruned-stage3': (
-    #     'stage3', True, [], '3-stage cropped raw data with meta information, core character tags pruned.'),
-    # 'raw-stage3-eyes': ('stage3-eyes', [], '3-stage cropped (with eye-focus) raw data with meta information.'),
-
-    # '384x512': ('native', (384, 512), '384x512 aligned dataset.'),
-    # '512x512': ('native', (512, 512), '512x512 aligned dataset.'),
-    # '512x704': ('native', (512, 704), '512x704 aligned dataset.'),
-    # '640x640': ('native', (640, 640), '640x640 aligned dataset.'),
-    # '640x880': ('native', (640, 880), '640x880 aligned dataset.'),
-
-    # 'stage3-640': ('stage3', 640, '3-stage cropped dataset with the shorter side not exceeding 640 pixels.'),
-    # '800': ('native', False, 800, 'dataset with the shorter side not exceeding 800 pixels.'),
-    # 'stage3-800': ('stage3', False, 800, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
-    # 'stage3-p480-800': ('stage3', False, [MinAreaFilterAction(480), AlignMinSizeAction(800)],
-    #                     '3-stage cropped dataset with the area not less than 480x480 pixels.'),
-
-    '1200': ('native', False, 1200, 'dataset with the shorter side not exceeding 1200 pixels.'),
-    # 'stage3-1200': ('stage3', False, 1200, '3-stage cropped dataset with the shorter side not exceeding 800 pixels.'),
-    'stage3-p480-1200': ('stage3', False, [MinAreaFilterAction(480), AlignMinSizeAction(1200)],
-                         '3-stage cropped dataset with the area not less than 480x480 pixels.'),
-    # 'stage3-1200': ('stage3', 1200, '3-stage cropped dataset with the shorter side not exceeding 1200 pixels.'),
-    # 'stage3-eyes-640': ('stage3-eyes', 640, '3-stage cropped (with eye-focus) dataset '
-    #                                         'with the shorter side not exceeding 640 pixels.'),
-    # 'stage3-eyes-800': ('stage3-eyes', 800, '3-stage cropped (with eye-focus) dataset '
-    #                                         'with the shorter side not exceeding 800 pixels.'),
+    'stage3-p480-1200': ('stage3', False, [
+        MinAreaFilterAction(480),
+        AlignMinSizeAction(1200),
+        DirectorySepAction(),
+    ], '3-stage cropped dataset with the area not less than 480x480 pixels.'),
+}
+_DEFAULT_TINY_RESOLUTIONS = {
+    'raw': ('raw', True, [], 'Raw data with meta information (min edge aligned to 1400 if larger).'),
+    'stage3-p180-1200': ('stage3', False, [
+        MinAreaFilterAction(180),
+        AlignMinSizeAction(1200),
+        DirectorySepAction(),
+    ], '3-stage cropped dataset with the area not less than 180x180 pixels.'),
 }
 
-DATASET_PVERSION = 'v1.5.1'
+DATASET_PVERSION = 'v1.6-alpha0'
 
 
 def crawl_dataset_to_huggingface(
@@ -188,7 +167,8 @@ def crawl_dataset_to_huggingface(
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 5,
         bangumi_source_repository: Optional[str] = None, remove_empty_repo: bool = True,
-        discord_publish: bool = True,
+        tiny_mode: bool = False, tiny_repeats: int = 60,
+        resolutions: Optional[dict] = None, discord_publish: bool = True,
 ):
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
@@ -221,7 +201,16 @@ def crawl_dataset_to_huggingface(
             repo_new_created = False
         hf_fs.write_text(f'datasets/{repository}/.git-ongoing', 'on-going mark')
 
-        origin_source = get_main_source(source, no_r18, bg_color, no_monochrome_check, drop_multi, skip_preprocess)
+        origin_source = get_main_source(
+            source=source,
+            no_r18=no_r18,
+            bg_color=bg_color,
+            no_monochrome_check=no_monochrome_check,
+            drop_multi=drop_multi,
+            skip=skip_preprocess,
+            tiny_mode=tiny_mode,
+            tiny_repeats=tiny_repeats,
+        )
         with TemporaryDirectory() as td, TemporaryDirectory() as upload_td:
             # save origin directory
             origin_dir = os.path.join(td, 'origin')
@@ -287,6 +276,23 @@ def crawl_dataset_to_huggingface(
 
             source_dir = os.path.join(td, 'source')
             os.makedirs(source_dir, exist_ok=True)
+            _SOURCES = {
+                'raw': ([
+                            TaggingAction(force=False, character_threshold=1.01),
+                        ], False),
+                'native': ([
+                               AlignMaxAreaAction(1800),
+                               TaggingAction(force=False, character_threshold=1.01),
+                           ], True),
+                'stage3': ([
+                               ThreeStageSplitAction(split_person=False),
+                               FilterSimilarAction(),
+                               MinSizeFilterAction(180 if not tiny_mode else 120),
+                               MinAreaFilterAction(360 if not tiny_mode else 180),
+                               AlignMaxAreaAction(1800),
+                               TaggingAction(force=False, character_threshold=1.01),
+                           ], True),
+            }
             for sname, (actions, need_prune) in _SOURCES.items():
                 with task_ctx(f'source/{sname}'):
                     if need_prune:
@@ -305,7 +311,7 @@ def crawl_dataset_to_huggingface(
             archive_dir = os.path.join(td, 'archives')
             os.makedirs(archive_dir, exist_ok=True)
 
-            resolutions = _DEFAULT_RESOLUTIONS
+            resolutions = resolutions or (_DEFAULT_NORMAL_RESOLUTIONS if not tiny_mode else _DEFAULT_TINY_RESOLUTIONS)
 
             ds_columns = ['Name', 'Images', 'Size', 'Download', 'Type', 'Description']
             ds_rows = []
@@ -320,7 +326,7 @@ def crawl_dataset_to_huggingface(
                         ox.attach(*actions).export(TextualInversionExporter(current_processed_dir))
                     else:
                         ox.attach(*actions).export(SaveExporter(current_processed_dir))
-                current_img_cnt = len(glob.glob(os.path.join(current_processed_dir, '*.png')))
+                current_img_cnt = len(glob.glob(os.path.join(current_processed_dir, '**', '*.png'), recursive=True))
                 zip_file = os.path.join(upload_td, f'dataset-{rname}.zip')
                 archive_pack('zip', directory=current_processed_dir, archive_file=zip_file, clear=True)
                 info_packages[rname] = {
