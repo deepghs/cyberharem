@@ -4,6 +4,7 @@ import os.path
 import random
 from typing import Union, Tuple, List, Optional
 
+import numpy as np
 import pandas as pd
 from ditk import logging
 from gchar.games import get_character
@@ -14,6 +15,7 @@ from hbutils.system import TemporaryDirectory
 from hfutils.archive import archive_pack
 from hfutils.operate import upload_directory_as_directory, download_archive_as_directory
 from huggingface_hub import hf_hub_url
+from imgutils.metrics import anime_dbaesthetic
 from imgutils.validate import anime_portrait
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
@@ -136,6 +138,21 @@ class DirectorySepAction(ProcessAction):
         else:
             subdir = 'others'
         item.meta['filename'] = os.path.join(subdir, item.meta['filename'])
+        return item
+
+
+class AestheticAction(ProcessAction):
+    def process(self, item: ImageItem) -> ImageItem:
+        level_, _ = anime_dbaesthetic(item.image)
+        if level_ == 'masterpiece':
+            tag = level_
+        else:
+            tag = f'{level_} quality'
+
+        item.meta['aesthetic'] = tag
+        if 'tags' not in item.meta:
+            item.meta['tags'] = {}
+        item.meta['tags'][tag] = 1000.0
         return item
 
 
@@ -279,11 +296,12 @@ def crawl_dataset_to_huggingface(
             _SOURCES = {
                 'raw': ([
                             TaggingAction(force=False, character_threshold=1.01),
+                            AestheticAction(),
                         ], False),
-                'native': ([
-                               AlignMaxAreaAction(1800),
-                               TaggingAction(force=False, character_threshold=1.01),
-                           ], True),
+                # 'native': ([
+                #                AlignMaxAreaAction(1800),
+                #                TaggingAction(force=False, character_threshold=1.01),
+                #            ], True),
                 'stage3': ([
                                ThreeStageSplitAction(split_person=False),
                                FilterSimilarAction(),
@@ -291,6 +309,7 @@ def crawl_dataset_to_huggingface(
                                MinAreaFilterAction(360 if not tiny_mode else 180),
                                AlignMaxAreaAction(1800),
                                TaggingAction(force=False, character_threshold=1.01),
+                               AestheticAction(),
                            ], True),
             }
             for sname, (actions, need_prune) in _SOURCES.items():
@@ -313,7 +332,6 @@ def crawl_dataset_to_huggingface(
 
             resolutions = resolutions or (_DEFAULT_NORMAL_RESOLUTIONS if not tiny_mode else _DEFAULT_TINY_RESOLUTIONS)
 
-            ds_columns = ['Name', 'Images', 'Size', 'Download', 'Type', 'Description']
             ds_rows = []
             info_packages = {}
             for rname, (sname, is_raw, actions, description) in resolutions.items():
@@ -327,11 +345,17 @@ def crawl_dataset_to_huggingface(
                     else:
                         ox.attach(*actions).export(SaveExporter(current_processed_dir))
                 current_img_cnt = len(glob.glob(os.path.join(current_processed_dir, '**', '*.png'), recursive=True))
+                current_img_cnt_maps = {}
+                for d in os.listdir(current_processed_dir):
+                    if os.path.isdir(os.path.join(current_processed_dir, d)):
+                        current_img_cnt_maps[d] = len(glob.glob(
+                            os.path.join(current_processed_dir, d, '**', '*.png'), recursive=True))
                 zip_file = os.path.join(upload_td, f'dataset-{rname}.zip')
                 archive_pack('zip', directory=current_processed_dir, archive_file=zip_file, clear=True)
                 info_packages[rname] = {
                     'filename': os.path.relpath(zip_file, upload_td),
                     'size': current_img_cnt,
+                    'sub_sizes': current_img_cnt_maps,
                     'package_size': os.path.getsize(zip_file),
                     'type': 'Waifuc-Raw' if is_raw else 'IMG+TXT',
                     'description': description,
@@ -342,14 +366,15 @@ def crawl_dataset_to_huggingface(
                     filename=os.path.relpath(zip_file, upload_td),
                 )
 
-                ds_rows.append((
-                    rname,
-                    current_img_cnt,
-                    size_to_bytes_str(os.path.getsize(zip_file), precision=2),
-                    f'[Download]({zip_download_url})',
-                    'Waifuc-Raw' if is_raw else 'IMG+TXT',
-                    description,
-                ))
+                ds_rows.append({
+                    'Name': rname,
+                    'Images': current_img_cnt,
+                    **{f'Images-{d}': cnt for d, cnt in current_img_cnt_maps.items()},
+                    'Size': size_to_bytes_str(os.path.getsize(zip_file), precision=2),
+                    'Download': f'[Download]({zip_download_url})',
+                    'Type': 'Waifuc-Raw' if is_raw else 'IMG+TXT',
+                    'Description': description,
+                })
 
             with open(os.path.join(upload_td, 'meta.json'), 'w', encoding='utf-8') as mf:
                 json.dump({
@@ -394,7 +419,8 @@ def crawl_dataset_to_huggingface(
 
                 print('## List of Packages', file=rf)
                 print(f'', file=rf)
-                ds_df = pd.DataFrame(columns=ds_columns, data=ds_rows)
+                ds_df = pd.DataFrame(data=ds_rows)
+                ds_df = ds_df.replace(np.NaN, '--')
                 print(ds_df.to_markdown(index=False), file=rf)
                 print('', file=rf)
 
