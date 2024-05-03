@@ -290,7 +290,7 @@ def _auto_init():
         _auto_set_kohya_from_env()
 
 
-TRAIN_MARK = 'v1.5.1'
+TRAIN_MARK = 'v1.6-alpha0'
 
 
 def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Optional[str] = None,
