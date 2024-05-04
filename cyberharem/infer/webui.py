@@ -3,6 +3,7 @@ import json
 import logging
 import os.path
 import pathlib
+import random
 import re
 from functools import lru_cache
 from typing import Optional, List, Set
@@ -317,3 +318,96 @@ def infer_with_workdir(
                 image.save(dst_image_file, pnginfo=sdmeta.pnginfo)
 
             pathlib.Path(step_eval_infer_okay_file).touch()
+
+
+def infer_for_scale(
+        workdir: str,
+        batch_size=64, sampler_name='DPM++ 2M Karras', cfg_scale=7, steps=30,
+        firstphase_width=512, firstphase_height=768,
+        enable_hr: bool = True, hr_resize_x=832, hr_resize_y=1216,
+        denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
+        clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
+        base_model: str = 'meinamix_v11', eval_cfgs: Optional[dict] = None,
+        max_n_steps: Optional[int] = None, infer_seed_count: int = 5,
+):
+    _auto_init()
+
+    from ..eval import eval_for_workdir
+    logging.info('Starting evaluation before deployment ...')
+    eval_for_workdir(workdir, **(eval_cfgs or {}))
+
+    eval_dir = os.path.join(workdir, 'eval')
+    df_selected_file = os.path.join(eval_dir, 'metrics_selected.csv')
+    df_selected_steps = pd.read_csv(df_selected_file)
+    if max_n_steps:
+        df_selected_steps = df_selected_steps[:max_n_steps]
+    logging.info(f'Steps to infer: {len(df_selected_steps)}\n'
+                 f'{df_selected_steps}')
+
+    df_steps = find_steps_in_workdir(workdir)
+    lora_files = {item['step']: item['file'] for item in df_steps.to_dict('records')}
+
+    df_tags = find_tags_from_workdir(workdir)
+    logging.info(f'Available prompts: {len(df_tags)}\n'
+                 f'{df_tags}')
+
+    with open(os.path.join(workdir, 'meta.json')) as f:
+        meta = json.load(f)
+    trigger_name = meta['name']
+    bangumi_style_tag = meta.get('bangumi_style_name')
+    core_tags = meta['core_tags']
+    eye_tags = []
+    for tag in core_tags:
+        is_eye_tag = False
+        for word in re.split(r'[\W_]+', tag):
+            if word:
+                if singular_form(word) == 'eye':
+                    is_eye_tag = True
+                    break
+            else:
+                continue
+        if is_eye_tag:
+            eye_tags.append(tag)
+
+    for step_item in tqdm(df_selected_steps.to_dict('records')):
+        step = step_item['step']
+        for i in range(infer_seed_count):
+            step_infer_dir = os.path.join(workdir, 'infer', 'raw', str(step), str(i))
+            os.makedirs(step_infer_dir, exist_ok=True)
+            step_eval_infer_okay_file = os.path.join(step_infer_dir, '.inferred')
+            if os.path.exists(step_eval_infer_okay_file):
+                logging.info(f'Step {step} already inferred for scale, skipped.')
+            else:
+                seed = random.randint(0, 1 << 30)
+                os.makedirs(step_infer_dir, exist_ok=True)
+                logging.info(f'Infer for step {step}, repeat #{i}, seed: {seed} ...')
+                pairs, lora_name = infer_with_lora(
+                    lora_file=lora_files[step],
+                    eye_tags=eye_tags,
+                    df_tags=df_tags,
+                    seed=seed,
+                    batch_size=batch_size,
+                    sampler_name=sampler_name,
+                    cfg_scale=cfg_scale,
+                    steps=steps,
+                    firstphase_width=firstphase_width,
+                    firstphase_height=firstphase_height,
+                    enable_hr=enable_hr,
+                    hr_resize_x=hr_resize_x,
+                    hr_resize_y=hr_resize_y,
+                    denoising_strength=denoising_strength,
+                    hr_second_pass_steps=hr_second_pass_steps,
+                    hr_upscaler=hr_upscaler,
+                    clip_skip=clip_skip,
+                    lora_alpha=lora_alpha,
+                    enable_adetailer=enable_adetailer,
+                    base_model=base_model,
+                    extra_tags=[] if not bangumi_style_tag else [bangumi_style_tag],
+                )
+                for name, image in tqdm(pairs, desc='Save Images'):
+                    param_text = image.info.get('parameters').replace(lora_name, trigger_name)
+                    sdmeta = parse_sdmeta_from_text(param_text)
+                    dst_image_file = os.path.join(step_infer_dir, f'{name}.png')
+                    image.save(dst_image_file, pnginfo=sdmeta.pnginfo)
+
+                pathlib.Path(step_eval_infer_okay_file).touch()
