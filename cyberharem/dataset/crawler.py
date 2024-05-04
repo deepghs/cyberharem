@@ -6,6 +6,7 @@ from typing import Union, Tuple, List, Optional
 
 import numpy as np
 import pandas as pd
+from PIL import Image
 from ditk import logging
 from gchar.games import get_character
 from gchar.games.base import Character
@@ -16,6 +17,7 @@ from hfutils.archive import archive_pack
 from hfutils.operate import upload_directory_as_directory, download_archive_as_directory
 from huggingface_hub import hf_hub_url
 from imgutils.metrics import anime_dbaesthetic
+from imgutils.restore import restore_with_nafnet
 from imgutils.validate import anime_portrait
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
@@ -57,6 +59,27 @@ def get_source(source, drop_multi: bool = False) -> BaseDataSource:
     return source
 
 
+class RestoreAction(ProcessAction):
+    def __init__(self, min_size: int, restore: bool = True):
+        self.min_size = min_size
+        self.restore = restore
+
+    def process(self, item: ImageItem) -> ImageItem:
+        image = item.image
+        if self.restore:
+            image = restore_with_nafnet(image)
+        if image.width * image.height <= self.min_size ** 2:
+            r = (self.min_size ** 2 / (image.width * image.height)) ** 0.5
+            image = image.resize((int(image.width * r), int(image.height * r)), resample=Image.LANCZOS)
+
+        return ImageItem(image, item.meta)
+
+
+class EmptyAction(ProcessAction):
+    def process(self, item: ImageItem) -> ImageItem:
+        return item
+
+
 def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
                     no_monochrome_check: bool = False, drop_multi: bool = False, skip: bool = False,
                     tiny_mode: bool = False, tiny_repeats: int = 25) -> BaseDataSource:
@@ -87,6 +110,7 @@ def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
             FilterSimilarAction('all', capacity=2000),  # filter duplicated images
             MinSizeFilterAction(180 if not tiny_mode else 120),
             MinAreaFilterAction(360 if not tiny_mode else 180),
+            RestoreAction(720) if tiny_mode else EmptyAction(),
             TaggingAction(force=True, character_threshold=1.01),
             RandomFilenameAction(ext='.png')
         ])
@@ -305,6 +329,7 @@ def crawl_dataset_to_huggingface(
                 'stage3': ([
                                ThreeStageSplitAction(split_person=False),
                                FilterSimilarAction(),
+                               RestoreAction(720, restore=False) if not tiny_mode else EmptyAction(),
                                MinSizeFilterAction(180 if not tiny_mode else 120),
                                MinAreaFilterAction(360 if not tiny_mode else 180),
                                AlignMaxAreaAction(1800),
