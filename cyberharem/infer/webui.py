@@ -376,7 +376,7 @@ def infer_for_scale(
             os.makedirs(step_infer_dir, exist_ok=True)
             step_eval_infer_okay_file = os.path.join(step_infer_dir, '.inferred')
             if os.path.exists(step_eval_infer_okay_file):
-                logging.info(f'Step {step} already inferred for scale, skipped.')
+                logging.info(f'Step {step}, repeat #{i} already inferred for scale, skipped.')
             else:
                 seed = random.randint(0, 1 << 30)
                 os.makedirs(step_infer_dir, exist_ok=True)

@@ -32,7 +32,7 @@ torch<2.1,>=2
 pyanimeinfo>=0.0.2
 hfutils>=0.0.6
 filelock
-sdeval>=0.0.4
+git+https://github.com/deepghs/sdeval.git@main
 safetensors
 markdown_strings
 discord-webhook
