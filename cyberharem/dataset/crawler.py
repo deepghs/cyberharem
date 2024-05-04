@@ -394,7 +394,7 @@ def crawl_dataset_to_huggingface(
                 ds_rows.append({
                     'Name': rname,
                     'Images': current_img_cnt,
-                    **{f'Images-{d}': cnt for d, cnt in current_img_cnt_maps.items()},
+                    **{f'Images-{d}': str(cnt) for d, cnt in current_img_cnt_maps.items()},
                     'Size': size_to_bytes_str(os.path.getsize(zip_file), precision=2),
                     'Download': f'[Download]({zip_download_url})',
                     'Type': 'Waifuc-Raw' if is_raw else 'IMG+TXT',
