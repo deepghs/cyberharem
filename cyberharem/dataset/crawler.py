@@ -23,8 +23,7 @@ from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
     AlignMinSizeAction, MinSizeFilterAction, FilterAction, MinAreaFilterAction, SafetyAction, TagDropAction, \
-    TagOverlapDropAction, AlignMaxAreaAction, BlacklistedTagDropAction, TagRemoveUnderlineAction, ProcessAction, \
-    CharacterEnhanceAction
+    TagOverlapDropAction, AlignMaxAreaAction, BlacklistedTagDropAction, TagRemoveUnderlineAction, ProcessAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.model import ImageItem
 from waifuc.source import GcharAutoSource, BaseDataSource, LocalSource
@@ -82,15 +81,13 @@ class EmptyAction(ProcessAction):
 
 def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
                     no_monochrome_check: bool = False, drop_multi: bool = False, skip: bool = False,
-                    tiny_mode: bool = False, tiny_repeats: int = 25) -> BaseDataSource:
+                    tiny_scale: float = 1.0, min_resolution: Optional[int] = None) -> BaseDataSource:
     source: BaseDataSource = get_source(source, drop_multi)
     if not skip:
         actions = [
             AlignMaxAreaAction(4500),  # IMPORTANT!!! crawler will crash because of large image if remove this
+            ModeConvertAction('RGB', bg_color)
         ]
-        if tiny_mode:
-            actions.append(CharacterEnhanceAction(repeats=tiny_repeats))
-        actions.append(ModeConvertAction('RGB', bg_color))
         if not no_monochrome_check:
             actions.append(NoMonochromeAction())  # no monochrome, greyscale or sketch
         actions.append(SafetyAction())
@@ -108,9 +105,9 @@ def get_main_source(source, no_r18: bool = False, bg_color: str = 'white',
             FileOrderAction(),  # Rename files in order
             CCIPAction(min_val_count=15),  # CCIP, filter the character you may not want to see in dataset
             FilterSimilarAction('all', capacity=2000),  # filter duplicated images
-            MinSizeFilterAction(180 if not tiny_mode else 120),
-            MinAreaFilterAction(360 if not tiny_mode else 180),
-            RestoreAction(720) if tiny_mode else EmptyAction(),
+            MinSizeFilterAction(int(180 * (tiny_scale ** 0.5))),
+            MinAreaFilterAction(int(360 * tiny_scale)),
+            RestoreAction(min_resolution) if min_resolution is not None else EmptyAction(),
             TaggingAction(force=True, character_threshold=1.01),
             RandomFilenameAction(ext='.png')
         ])
@@ -180,23 +177,6 @@ class AestheticAction(ProcessAction):
         return item
 
 
-_DEFAULT_NORMAL_RESOLUTIONS = {
-    'raw': ('raw', True, [], 'Raw data with meta information (min edge aligned to 1400 if larger).'),
-    'stage3-p480-1200': ('stage3', False, [
-        MinAreaFilterAction(480),
-        AlignMinSizeAction(1200),
-        DirectorySepAction(),
-    ], '3-stage cropped dataset with the area not less than 480x480 pixels.'),
-}
-_DEFAULT_TINY_RESOLUTIONS = {
-    'raw': ('raw', True, [], 'Raw data with meta information (min edge aligned to 1400 if larger).'),
-    'stage3-p180-1200': ('stage3', False, [
-        MinAreaFilterAction(180),
-        AlignMinSizeAction(1200),
-        DirectorySepAction(),
-    ], '3-stage cropped dataset with the area not less than 180x180 pixels.'),
-}
-
 DATASET_PVERSION = 'v1.6-alpha0'
 
 
@@ -208,8 +188,7 @@ def crawl_dataset_to_huggingface(
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 5,
         bangumi_source_repository: Optional[str] = None, remove_empty_repo: bool = True,
-        tiny_mode: bool = False, tiny_repeats: int = 60,
-        resolutions: Optional[dict] = None, discord_publish: bool = True,
+        tiny_scale: Optional[float] = 0.5, min_resolution: Optional[int] = None, discord_publish: bool = True,
 ):
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
@@ -249,8 +228,7 @@ def crawl_dataset_to_huggingface(
             no_monochrome_check=no_monochrome_check,
             drop_multi=drop_multi,
             skip=skip_preprocess,
-            tiny_mode=tiny_mode,
-            tiny_repeats=tiny_repeats,
+            min_resolution=min_resolution,
         )
         with TemporaryDirectory() as td, TemporaryDirectory() as upload_td:
             # save origin directory
@@ -318,24 +296,25 @@ def crawl_dataset_to_huggingface(
             source_dir = os.path.join(td, 'source')
             os.makedirs(source_dir, exist_ok=True)
             _SOURCES = {
-                'raw': ([
-                            TaggingAction(force=False, character_threshold=1.01),
-                            AestheticAction(),
-                        ], False),
-                # 'native': ([
-                #                AlignMaxAreaAction(1800),
-                #                TaggingAction(force=False, character_threshold=1.01),
-                #            ], True),
-                'stage3': ([
-                               ThreeStageSplitAction(split_person=False),
-                               FilterSimilarAction(),
-                               RestoreAction(720, restore=False) if not tiny_mode else EmptyAction(),
-                               MinSizeFilterAction(180 if not tiny_mode else 120),
-                               MinAreaFilterAction(360 if not tiny_mode else 180),
-                               AlignMaxAreaAction(1800),
-                               TaggingAction(force=False, character_threshold=1.01),
-                               AestheticAction(),
-                           ], True),
+                'raw': (
+                    [
+                        TaggingAction(force=False, character_threshold=1.01),
+                        AestheticAction(),
+                    ], False
+                ),
+                'stage3': (
+                    [
+                        ThreeStageSplitAction(split_person=False),
+                        FilterSimilarAction(),
+                        RestoreAction(min_resolution,
+                                      restore=False) if min_resolution is not None else EmptyAction(),
+                        MinSizeFilterAction(int(180 * (tiny_scale ** 0.5))),
+                        MinAreaFilterAction(int(360 * tiny_scale)),
+                        AlignMaxAreaAction(1800),
+                        TaggingAction(force=False, character_threshold=1.01),
+                        AestheticAction(),
+                    ], True
+                ),
             }
             for sname, (actions, need_prune) in _SOURCES.items():
                 with task_ctx(f'source/{sname}'):
@@ -355,7 +334,23 @@ def crawl_dataset_to_huggingface(
             archive_dir = os.path.join(td, 'archives')
             os.makedirs(archive_dir, exist_ok=True)
 
-            resolutions = resolutions or (_DEFAULT_NORMAL_RESOLUTIONS if not tiny_mode else _DEFAULT_TINY_RESOLUTIONS)
+            _DEFAULT_NORMAL_RESOLUTIONS = {
+                'raw': ('raw', True, [], 'Raw data with meta information (min edge aligned to 1400 if larger).'),
+                'stage3-p480-1200': ('stage3', False, [
+                    MinAreaFilterAction(480),
+                    AlignMinSizeAction(1200),
+                    DirectorySepAction(),
+                ], '3-stage cropped dataset with the area not less than 480x480 pixels.'),
+            }
+            _DEFAULT_TINY_RESOLUTIONS = {
+                'raw': ('raw', True, [], 'Raw data with meta information (min edge aligned to 1400 if larger).'),
+                'stage3-p180-1200': ('stage3', False, [
+                    MinAreaFilterAction(180),
+                    AlignMinSizeAction(1200),
+                    DirectorySepAction(),
+                ], '3-stage cropped dataset with the area not less than 180x180 pixels.'),
+            }
+            resolutions = _DEFAULT_NORMAL_RESOLUTIONS if tiny_scale >= 0.75 else _DEFAULT_TINY_RESOLUTIONS
 
             ds_rows = []
             info_packages = {}
