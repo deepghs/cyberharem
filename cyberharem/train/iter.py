@@ -6,14 +6,14 @@ from typing import Optional, Union
 from waifuc.action import CharacterEnhanceAction
 from waifuc.source import BaseDataSource, LocalSource
 
-from ..utils import get_global_namespace
+from ..utils import get_global_namespace, get_hf_client
 
 
 def train_iter(
         origin_source: Union[str, BaseDataSource], name: str, display_name: str,
         repository: Optional[str] = None, revision: str = 'main', workdir: Optional[str] = None,
         template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
-        seed: int = None, use_reg: Optional[bool] = False, latent_cache_id: Optional[str] = None,
+        seed: int = None, use_reg: Optional[bool] = True, latent_cache_id: Optional[str] = None,
         bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
         dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
         bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False,
@@ -23,6 +23,7 @@ def train_iter(
         discord_publish: bool = True, origin_enhance: bool = True, origin_enhance_repeats: int = 60,
 ):
     workdir = workdir or os.path.join('runs', name)
+    hf_client = get_hf_client()
 
     if isinstance(origin_source, str):
         origin_source = LocalSource(origin_source)
@@ -44,6 +45,7 @@ def train_iter(
         logging.info(f'------------- Round #{round_id} -------------')
         round_workdir = os.path.join(workdir, f'round_{round_id}')
         os.makedirs(round_workdir, exist_ok=True)
+        round_revision = f'{revision}-r{round_id}'
 
         if round_id == 0:
             logging.info('Making original dataset ...')
@@ -63,7 +65,6 @@ def train_iter(
             last_infer_selected = os.path.join(last_round_workdir, 'infer', 'selected')
 
             logging.info(f'Try making dataset for round #{round_id}')
-            round_revision = f'{revision}-r{round_id}'
             crawl_dataset_to_huggingface(
                 source=LocalSource(last_infer_selected),
                 name=name,
@@ -110,9 +111,15 @@ def train_iter(
         )
 
         from ..publish import deploy_to_huggingface
+        logging.info('Deploy to huggingface ...')
         deploy_to_huggingface(
             workdir=round_workdir,
             repository=repository,
             ccip_check=None,
             discord_publish=discord_publish,
+            revision=revision,
         )
+        logging.info(f'Backup for round #{round_id} ...')
+        if hf_client.revision_exists(repository=repository, repo_type='model', revision=round_revision):
+            hf_client.delete_branch(repository=repository, repo_type='model', revision=round_revision)
+            hf_client.create_branch(repository=repository, repo_type='model', branch=round_revision, revision=revision)
