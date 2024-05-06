@@ -1,5 +1,6 @@
 import logging
 import os.path
+import shutil
 from typing import Optional, Union
 
 from waifuc.source import BaseDataSource, LocalSource
@@ -9,15 +10,18 @@ from ..utils import get_global_namespace
 
 def train_iter(
         origin_source: Union[str, BaseDataSource], name: str, display_name: str,
-        repository: Optional[str] = None, workdir: Optional[str] = None,
+        repository: Optional[str] = None, revision: str = 'main', workdir: Optional[str] = None,
         template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
         seed: int = None, use_reg: Optional[bool] = False, latent_cache_id: Optional[str] = None,
         bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
         dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
         bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False,
-        tiny_scale: Optional[float] = 0.5, min_resolution: int = 720, rounds: int=5
+        tiny_scale: Optional[float] = 0.5, min_resolution: int = 720, train_rounds: int = 5,
+        pattern_top_n: int = 1, top_n: int = 30, fidelity_alpha: float = 2.0,
+        round_image_init_weight: float = 0.95, round_image_weight_decrease: float = 0.7,
+        discord_publish: bool = True,
 ):
-    workdir = os.path.join('runs', name)
+    workdir = workdir or os.path.join('runs', name)
 
     if isinstance(origin_source, str):
         origin_source = LocalSource(origin_source)
@@ -31,21 +35,76 @@ def train_iter(
 
     from ..dataset.crawler import crawl_dataset_to_huggingface
 
-
-    logging.info('Making original dataset ...')
-    crawl_dataset_to_huggingface(
-        source=origin_source,
-        name=name,
-        display_name=display_name,
-        repository=repository,
-        tiny_scale=tiny_scale,
-        min_resolution=min_resolution,
-        revision='main'
-    )
-
-    for round_id in range(rounds):
+    for round_id in range(train_rounds):
         round_workdir = os.path.join(workdir, f'round_{round_id}')
-        if round_id:
-            pass
-        pass
+        if round_id == 0:
+            logging.info('Making original dataset ...')
+            crawl_dataset_to_huggingface(
+                source=origin_source,
+                name=name,
+                display_name=display_name,
+                repository=repository,
+                tiny_scale=tiny_scale,
+                min_resolution=min_resolution,
+                revision=revision,
+            )
+        else:
+            last_round_workdir = os.path.join(workdir, f'round_{round_id - 1}')
+            from ..eval.infer import eval_for_infer_raw
+            eval_for_infer_raw(last_round_workdir, pattern_top_n, top_n, fidelity_alpha)
+            last_infer_selected = os.path.join(last_round_workdir, 'infer', 'selected')
 
+            logging.info(f'Try making dataset for round #{round_id}')
+            round_revision = f'{revision}-r{round_id}'
+            crawl_dataset_to_huggingface(
+                source=last_infer_selected,
+                name=name,
+                display_name=display_name,
+                repository=repository,
+                tiny_scale=tiny_scale,
+                min_resolution=min_resolution,
+                revision=round_revision,
+            )
+
+            logging.info('Copying last features file ...')
+            shutil.copy(
+                os.path.join(last_round_workdir, 'features.npy'),
+                os.path.join(round_workdir, 'features.npy'),
+            )
+
+        from .train import train_lora
+        pre_rounds = list(range(round_id, 0))
+        train_lora(
+            ds_repo_id=repository,
+            dataset_name='stage3-p180-1200',
+            workdir=round_workdir,
+            template_file=template_file,
+            pretrained_model=pretrained_model,
+            seed=seed,
+            use_reg=use_reg,
+            latent_cache_id=latent_cache_id,
+            bs=bs,
+            unet_lr=unet_lr,
+            te_lr=te_lr,
+            train_te=train_te,
+            dim=dim,
+            alpha=alpha,
+            resolution=resolution,
+            res_ratio=res_ratio,
+            bangumi_style_tag=bangumi_style_tag,
+            comment=comment,
+            force_retrain=force_retrain,
+            ds_attach_revisions=[f'r{r}' for r in pre_rounds],
+            ds_mls={
+                f'r{r}': round_image_init_weight * (round_image_weight_decrease ** ir)
+                for ir, r in enumerate(pre_rounds)
+            },
+        )
+
+        from ..publish import deploy_to_huggingface
+        deploy_to_huggingface(
+            workdir=round_workdir,
+            repository=repository,
+            ccip_check=None,
+            discord_publish=discord_publish,
+        )

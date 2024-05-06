@@ -16,8 +16,7 @@ import toml
 from hbutils.design import SingletonMark
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
-from hfutils.operate import download_archive_as_directory
-from hfutils.operate.base import RepoTypeTyping, get_hf_fs
+from hfutils.operate.base import get_hf_fs
 from huggingface_hub import hf_hub_download
 from imgutils.metrics import ccip_extract_feature
 from tqdm.auto import tqdm
@@ -60,54 +59,11 @@ _DEFAULT_PLS = {
 
 @contextmanager
 def load_train_dataset(repo_id: str, prefix_tags: List[str] = None,
-                       dataset_name: str = 'stage3-p480-1200', dataset_plus_times: Optional[Dict[str, float]] = None,
-                       revision: str = 'main', repo_type: RepoTypeTyping = 'dataset') -> ContextManager[str]:
-    dataset_plus_times = dict(dataset_plus_times or _DEFAULT_PLS)
-    prefix_tags = list(prefix_tags or [])
-    hf_fs = get_hf_fs()
-    packages_info = json.loads(hf_fs.read_text(f'datasets/{repo_id}/meta.json'))['packages']
-    ds_info = packages_info[dataset_name]
-
-    logging.info(f'Loading dataset from {repo_id}@{revision}, {dataset_name}, with prefix tags: {prefix_tags!r} ...')
-    with TemporaryDirectory() as td:
-        if not ds_info.get('sub_sizes'):
-            logging.info(f'Simple dataset {dataset_name!r} with {plural_word(ds_info["size"], "image")} found.')
-            subdir_name = '1_1girl'
-            ds_dir = os.path.join(td, subdir_name)
-            download_archive_as_directory(
-                repo_id=repo_id,
-                repo_type=repo_type,
-                revision=revision,
-                file_in_repo=f'dataset-{dataset_name}.zip',
-                local_directory=ds_dir,
-            )
-
-        else:
-            logging.info(f'Nested dataset {dataset_name!r} with {ds_info["sub_sizes"]!r} found.')
-            download_archive_as_directory(
-                repo_id=repo_id,
-                repo_type=repo_type,
-                revision=revision,
-                file_in_repo=f'dataset-{dataset_name}.zip',
-                local_directory=td,
-            )
-
-            base_size = max(ds_info["sub_sizes"].values())
-            for head_name, head_size in ds_info["sub_sizes"].items():
-                src_dir = os.path.join(td, head_name)
-                repeats = int(round(base_size / head_size * dataset_plus_times.get(head_name, 1.0)))
-                dst_dir = os.path.join(td, f'{repeats}_{head_name}')
-                shutil.move(src_dir, dst_dir)
-
-        if prefix_tags:
-            for root, dirs, files in os.walk(td):
-                for file in files:
-                    src_file = os.path.join(root, file)
-                    if is_txt_file(src_file):
-                        origin_prompt = pathlib.Path(src_file).read_text().strip()
-                        with open(src_file, 'w') as f:
-                            f.write(f'{", ".join(prefix_tags)}, {origin_prompt}')
-
+                       dataset_name: str = 'stage3-p480-1200', revision: str = 'main',
+                       attach_revisions: Optional[List[str]] = None,
+                       mls: Optional[Dict[str, float]] = None) -> ContextManager[str]:
+    from .dataset import multi_dataset_from_repo
+    with multi_dataset_from_repo(repo_id, prefix_tags, dataset_name, revision, attach_revisions, mls) as td:
         yield td
 
 
@@ -298,7 +254,8 @@ def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Opt
                seed: int = None, use_reg: Optional[bool] = False, latent_cache_id: Optional[str] = None,
                bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
                dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
-               bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False):
+               bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False,
+               ds_attach_revisions: Optional[List[str]] = None, ds_mls: Optional[Dict[str, float]] = None):
     _auto_init()
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
@@ -332,8 +289,13 @@ def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Opt
     latent_cache_id = latent_cache_id or file_sha256(pretrained_model)
 
     train_prefix_tags = [name] if not meta['bangumi'] else [name, bangumi_style_tag]
-    with load_train_dataset(repo_id=ds_repo_id, prefix_tags=train_prefix_tags,
-                            dataset_name=dataset_name) as train_dir:
+    with load_train_dataset(
+            repo_id=ds_repo_id,
+            prefix_tags=train_prefix_tags,
+            dataset_name=dataset_name,
+            attach_revisions=ds_attach_revisions,
+            mls=ds_mls,
+    ) as train_dir:
         image_count = count_images_from_train_dir(train_dir)
         if use_reg is None:
             if image_count >= 300:
@@ -440,6 +402,7 @@ def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Opt
                             'size': dataset_size,
                             'name': dataset_name,
                             'version': meta['version'],
+                            'image_count': image_count,
                         },
                         'gender': {
                             'boy': r_boy,
