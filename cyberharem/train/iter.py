@@ -38,6 +38,8 @@ def train_iter(
     for round_id in range(train_rounds):
         logging.info(f'------------- Round #{round_id} -------------')
         round_workdir = os.path.join(workdir, f'round_{round_id}')
+        os.makedirs(round_workdir, exist_ok=True)
+
         if round_id == 0:
             logging.info('Making original dataset ...')
             crawl_dataset_to_huggingface(
