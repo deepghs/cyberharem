@@ -46,6 +46,9 @@ def train_iter(
         round_workdir = os.path.join(workdir, f'round_{round_id}')
         os.makedirs(round_workdir, exist_ok=True)
         round_revision = f'{revision}-r{round_id}'
+        trained_flag_file = os.path.join(round_workdir, '.trained')
+        if os.path.exists(trained_flag_file):
+            logging.info(f'Round #{round_id} already trained, skipped.')
 
         if round_id == 0:
             logging.info('Making original dataset ...')
