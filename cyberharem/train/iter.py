@@ -64,6 +64,12 @@ def train_iter(
             )
         else:
             last_round_workdir = os.path.join(workdir, f'round_{round_id - 1}')
+
+            from ..infer import infer_for_scale
+            logging.info('Inferring for scales ...')
+            infer_for_scale(last_round_workdir)
+
+            logging.info('Eval and select best images ...')
             from ..eval.infer import eval_for_infer_raw
             eval_for_infer_raw(last_round_workdir, pattern_top_n, top_n, fidelity_alpha)
             last_infer_selected = os.path.join(last_round_workdir, 'infer', 'selected')
