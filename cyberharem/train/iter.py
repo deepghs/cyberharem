@@ -3,6 +3,7 @@ import os.path
 import shutil
 from typing import Optional, Union
 
+from waifuc.action import CharacterEnhanceAction
 from waifuc.source import BaseDataSource, LocalSource
 
 from ..utils import get_global_namespace
@@ -19,7 +20,7 @@ def train_iter(
         tiny_scale: Optional[float] = 0.5, min_resolution: int = 720, train_rounds: int = 5,
         pattern_top_n: int = 1, top_n: int = 30, fidelity_alpha: float = 2.0,
         round_image_init_weight: float = 0.95, round_image_weight_decrease: float = 0.7,
-        discord_publish: bool = True,
+        discord_publish: bool = True, origin_enhance: bool = True, origin_enhance_repeats: int = 60,
 ):
     workdir = workdir or os.path.join('runs', name)
 
@@ -29,6 +30,10 @@ def train_iter(
         pass
     else:
         raise TypeError(f'Unknown origin_source type, str or BaseDataSource expected but {origin_source!r} found.')
+    if origin_enhance:
+        origin_source = origin_source.attach(
+            CharacterEnhanceAction(repeats=origin_enhance_repeats)
+        )
 
     repository = repository or f'{get_global_namespace()}/{name}'
     logging.info(f'Repository: {repository!r}, name: {name!r}, display_name: {display_name!r}.')
