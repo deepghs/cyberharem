@@ -219,6 +219,8 @@ def crawl_dataset_to_huggingface(
             repo_new_created = True
         else:
             repo_new_created = False
+        if not hf_client.revision_exists(repo_id=repository, repo_type=repo_type, revision=revision):
+            hf_client.create_branch(repo_id=repository, repo_type=repo_type, branch=revision, exist_ok=True)
         hf_fs.write_text(f'datasets/{repository}/.git-ongoing', 'on-going mark')
 
         origin_source = get_main_source(
@@ -276,7 +278,12 @@ def crawl_dataset_to_huggingface(
                     os.makedirs(os.path.dirname(dst_file), exist_ok=True)
                     image = PaddingAlignAction((512, 704)).process(ImageItem(image)).image
                     image.save(dst_file)
-                    img_files.append(os.path.relpath(dst_file, upload_td))
+                    img_files.append(hf_hub_url(
+                        repo_id=repository,
+                        repo_type=repo_type,
+                        filename=os.path.relpath(dst_file, upload_td),
+                        revision=revision,
+                    ))
                 tgs_rows.append([
                     i, clu_size,
                     *[f'![]({img_files[i_]})' for i_ in range(n_img_samples)],
@@ -384,6 +391,7 @@ def crawl_dataset_to_huggingface(
                     repo_id=repository,
                     repo_type=repo_type,
                     filename=os.path.relpath(zip_file, upload_td),
+                    revision=revision,
                 )
 
                 ds_rows.append({
