@@ -36,6 +36,7 @@ def train_iter(
     from ..dataset.crawler import crawl_dataset_to_huggingface
 
     for round_id in range(train_rounds):
+        logging.info(f'------------- Round #{round_id} -------------')
         round_workdir = os.path.join(workdir, f'round_{round_id}')
         if round_id == 0:
             logging.info('Making original dataset ...')
@@ -57,7 +58,7 @@ def train_iter(
             logging.info(f'Try making dataset for round #{round_id}')
             round_revision = f'{revision}-r{round_id}'
             crawl_dataset_to_huggingface(
-                source=last_infer_selected,
+                source=LocalSource(last_infer_selected),
                 name=name,
                 display_name=display_name,
                 repository=repository,
