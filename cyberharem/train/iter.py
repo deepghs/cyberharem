@@ -60,6 +60,7 @@ def train_iter(
                 tiny_scale=tiny_scale,
                 min_resolution=min_resolution,
                 revision=revision,
+                discord_publish=discord_publish,
             )
         else:
             last_round_workdir = os.path.join(workdir, f'round_{round_id - 1}')
@@ -76,6 +77,7 @@ def train_iter(
                 tiny_scale=tiny_scale,
                 min_resolution=min_resolution,
                 revision=round_revision,
+                discord_publish=False,
             )
 
             logging.info('Copying last features file ...')
