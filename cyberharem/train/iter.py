@@ -49,6 +49,7 @@ def train_iter(
         trained_flag_file = os.path.join(round_workdir, '.trained')
         if os.path.exists(trained_flag_file):
             logging.info(f'Round #{round_id} already trained, skipped.')
+            continue
 
         if round_id == 0:
             logging.info('Making original dataset ...')
