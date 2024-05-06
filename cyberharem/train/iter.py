@@ -15,7 +15,7 @@ def train_iter(
         bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
         dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
         bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False,
-        tiny_scale: Optional[float] = 0.5, min_resolution: int = 720,
+        tiny_scale: Optional[float] = 0.5, min_resolution: int = 720, rounds: int=5
 ):
     workdir = os.path.join('runs', name)
 
@@ -42,4 +42,10 @@ def train_iter(
         min_resolution=min_resolution,
         revision='main'
     )
+
+    for round_id in range(rounds):
+        round_workdir = os.path.join(workdir, f'round_{round_id}')
+        if round_id:
+            pass
+        pass
 
