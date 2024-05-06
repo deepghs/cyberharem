@@ -127,4 +127,4 @@ def train_iter(
         logging.info(f'Backup for round #{round_id} ...')
         if hf_client.revision_exists(repository=repository, repo_type='model', revision=round_revision):
             hf_client.delete_branch(repository=repository, repo_type='model', revision=round_revision)
-            hf_client.create_branch(repository=repository, repo_type='model', branch=round_revision, revision=revision)
+        hf_client.create_branch(repository=repository, repo_type='model', branch=round_revision, revision=revision)
