@@ -222,6 +222,7 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
         select=select,
         fidelity_alpha=fidelity_alpha,
         ccip_distance_mode=ccip_distance_mode,
+        ccip_model=ccip_model,
     )
 
     metrics_csv_file = os.path.join(current_eval_dir, 'metrics.csv')
