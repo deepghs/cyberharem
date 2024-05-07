@@ -1,5 +1,6 @@
 import logging
 import os.path
+import pathlib
 import shutil
 from typing import Optional, Union
 
@@ -147,5 +148,6 @@ def train_iter(
             if hf_client.revision_exists(repo_id=repository, repo_type='model', revision=round_revision):
                 hf_client.delete_branch(repo_id=repository, repo_type='model', revision=round_revision)
             hf_client.create_branch(repo_id=repository, repo_type='model', branch=round_revision, revision=revision)
+            pathlib.Path(published_flag_file).touch()
         else:
             logging.info(f'Round #{round_id} already published, skipped.')
