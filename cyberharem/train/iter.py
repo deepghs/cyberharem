@@ -94,7 +94,7 @@ def train_iter(
             )
 
         from .train import train_lora
-        pre_rounds = list(range(round_id, 0))
+        pre_rounds = list(range(round_id, 0, -1))
         train_lora(
             ds_repo_id=repository,
             dataset_name='stage3-p180-1200',
