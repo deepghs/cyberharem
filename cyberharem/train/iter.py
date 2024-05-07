@@ -146,7 +146,7 @@ def train_iter(
             )
             logging.info(f'Backup for round #{round_id} ...')
             if hf_client.revision_exists(repo_id=repository, repo_type='model', revision=round_revision):
-                hf_client.delete_branch(repo_id=repository, repo_type='model', revision=round_revision)
+                hf_client.delete_branch(repo_id=repository, repo_type='model', branch=round_revision)
             hf_client.create_branch(repo_id=repository, repo_type='model', branch=round_revision, revision=revision)
             pathlib.Path(published_flag_file).touch()
         else:
