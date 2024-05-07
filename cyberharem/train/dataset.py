@@ -73,6 +73,7 @@ def datasets_arrange(dst_dir: str, groups: Dict[Union[Tuple[str, ...], str], Uni
             logging.warning(f'Group {group_name!r} will be ignored due to the low weight.')
             shutil.rmtree(os.path.join(dst_dir, group_name))
         else:
+            repeats = max(repeats, 1)
             new_name = f'{repeats}_{group_name}'
             logging.info(f'Group {group_name!r} --> {new_name!r} ({plural_word(image_count, "image")})')
             shutil.move(os.path.join(dst_dir, group_name), os.path.join(dst_dir, new_name))
