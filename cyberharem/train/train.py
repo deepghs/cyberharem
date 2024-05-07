@@ -255,6 +255,7 @@ def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Opt
                bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
                dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
                bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False,
+               eps: Optional[int] = None, save_interval: Optional[int] = None,
                ds_attach_revisions: Optional[List[str]] = None, ds_mls: Optional[Dict[str, float]] = None):
     _auto_init()
     hf_fs = get_hf_fs()
@@ -322,7 +323,10 @@ def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Opt
             logging.info(f'Boy ratio: {r_boy:.3f}, girl ratio: {r_girl:.3f}, gender: {gender!r}.')
             save_recommended_tags(name, meta['clusters'], workdir, gender=gender)
 
-            eps, save_interval = piecewise_ep(image_count)
+            if eps is None:
+                eps, save_interval = piecewise_ep(image_count)
+            elif save_interval is None:
+                save_interval = max(int(round(eps / 20)), 1)
             logging.info(f'{plural_word(image_count, "word")} detected in training dataset, '
                          f'recommended epochs: {eps}, save interval: {save_interval}.')
             _last_toml_file, _last_lora_file = None, None

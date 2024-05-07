@@ -68,7 +68,7 @@ def train_iter(
 
             from ..infer import infer_for_scale
             logging.info('Inferring for scales ...')
-            infer_for_scale(last_round_workdir)
+            infer_for_scale(last_round_workdir, infer_seed_count=8, max_n_steps=3)
 
             logging.info('Eval and select best images ...')
             from ..eval.infer import eval_for_infer_raw
@@ -115,6 +115,8 @@ def train_iter(
             bangumi_style_tag=bangumi_style_tag,
             comment=comment,
             force_retrain=force_retrain,
+            eps=10,
+            save_interval=1,
             ds_attach_revisions=[f'r{r}' for r in pre_rounds],
             ds_mls={
                 f'r{r}': round_image_init_weight * (round_image_weight_decrease ** ir)
