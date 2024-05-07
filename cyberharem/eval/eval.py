@@ -178,7 +178,7 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
             aic_score = aic_score_seq.mean().item()
             bp_score_seq = bp_metrics.score(png_files, mode='seq')
             bp_score = bp_score_seq.mean().item()
-            logging.info(f'Step {step!r}, CCIP Score: {ccip_score:.4f}, '
+            logging.info(f'Step {step!r}, CCIP {"Score" if not ccip_distance_mode else "Distance"}: {ccip_score:.4f}, '
                          f'AI-Corrupt Score: {aic_score:.4f}, Bikini Plus Score: {bp_score:.4f}')
 
             row = {
