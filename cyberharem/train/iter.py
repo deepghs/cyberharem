@@ -46,102 +46,106 @@ def train_iter(
         round_workdir = os.path.join(workdir, f'round_{round_id}')
         os.makedirs(round_workdir, exist_ok=True)
         round_revision = f'{revision}-r{round_id}'
+
         trained_flag_file = os.path.join(round_workdir, '.trained')
-        if os.path.exists(trained_flag_file):
-            logging.info(f'Round #{round_id} already trained, skipped.')
-            continue
+        if not os.path.exists(trained_flag_file):
+            if round_id == 0:
+                logging.info('Making original dataset ...')
+                crawl_dataset_to_huggingface(
+                    source=origin_source,
+                    name=name,
+                    display_name=display_name,
+                    repository=repository,
+                    tiny_scale=tiny_scale,
+                    min_resolution=min_resolution,
+                    revision=revision,
+                    discord_publish=discord_publish,
+                )
+            else:
+                last_round_workdir = os.path.join(workdir, f'round_{round_id - 1}')
 
-        if round_id == 0:
-            logging.info('Making original dataset ...')
-            crawl_dataset_to_huggingface(
-                source=origin_source,
-                name=name,
-                display_name=display_name,
-                repository=repository,
-                tiny_scale=tiny_scale,
-                min_resolution=min_resolution,
-                revision=revision,
-                discord_publish=discord_publish,
-            )
-        else:
-            last_round_workdir = os.path.join(workdir, f'round_{round_id - 1}')
+                from ..infer import infer_for_scale
+                logging.info('Inferring for scales ...')
+                infer_for_scale(last_round_workdir, infer_seed_count=8, max_n_steps=3)
 
-            from ..infer import infer_for_scale
-            logging.info('Inferring for scales ...')
-            infer_for_scale(last_round_workdir, infer_seed_count=8, max_n_steps=3)
+                logging.info('Eval and select best images ...')
+                from ..eval.infer import eval_for_infer_raw
+                eval_for_infer_raw(last_round_workdir, pattern_top_n, top_n, fidelity_alpha)
+                last_infer_selected = os.path.join(last_round_workdir, 'infer', 'selected')
 
-            logging.info('Eval and select best images ...')
-            from ..eval.infer import eval_for_infer_raw
-            eval_for_infer_raw(last_round_workdir, pattern_top_n, top_n, fidelity_alpha)
-            last_infer_selected = os.path.join(last_round_workdir, 'infer', 'selected')
+                logging.info(f'Try making dataset for round #{round_id}')
+                crawl_dataset_to_huggingface(
+                    source=LocalSource(last_infer_selected),
+                    name=name,
+                    display_name=display_name,
+                    repository=repository,
+                    tiny_scale=tiny_scale,
+                    min_resolution=min_resolution,
+                    revision=round_revision,
+                    discord_publish=False,
+                )
 
-            logging.info(f'Try making dataset for round #{round_id}')
-            crawl_dataset_to_huggingface(
-                source=LocalSource(last_infer_selected),
-                name=name,
-                display_name=display_name,
-                repository=repository,
-                tiny_scale=tiny_scale,
-                min_resolution=min_resolution,
-                revision=round_revision,
-                discord_publish=False,
-            )
+                logging.info('Copying last features file ...')
+                shutil.copy(
+                    os.path.join(last_round_workdir, 'features.npy'),
+                    os.path.join(round_workdir, 'features.npy'),
+                )
 
-            logging.info('Copying last features file ...')
-            shutil.copy(
-                os.path.join(last_round_workdir, 'features.npy'),
-                os.path.join(round_workdir, 'features.npy'),
-            )
-
-        from .train import train_lora
-        pre_rounds = list(range(round_id, 0, -1))
-        group_weights = {
-            f'r{r}': round_image_init_weight * (round_image_weight_decrease ** ir)
-            for ir, r in enumerate(pre_rounds)
-        }
-        train_lora(
-            ds_repo_id=repository,
-            dataset_name='stage3-p180-1200',
-            workdir=round_workdir,
-            template_file=template_file,
-            pretrained_model=pretrained_model,
-            seed=seed,
-            use_reg=use_reg,
-            latent_cache_id=latent_cache_id,
-            bs=bs,
-            unet_lr=unet_lr,
-            te_lr=te_lr,
-            train_te=train_te,
-            dim=dim,
-            alpha=alpha,
-            resolution=resolution,
-            res_ratio=res_ratio,
-            bangumi_style_tag=bangumi_style_tag,
-            comment=comment,
-            force_retrain=force_retrain,
-            eps=10,
-            save_interval=1,
-            ds_attach_revisions=[f'r{r}' for r in pre_rounds],
-            group_weights={
-                'origin': 1.3 * sum(group_weights.values()) if round_id > 0 else 1.0,
-                **group_weights,
-            },
-            group_attached_tags={
-                f'r{r}': ['reference']
+            from .train import train_lora
+            pre_rounds = list(range(round_id, 0, -1))
+            group_weights = {
+                f'r{r}': round_image_init_weight * (round_image_weight_decrease ** ir)
                 for ir, r in enumerate(pre_rounds)
             }
-        )
+            train_lora(
+                ds_repo_id=repository,
+                dataset_name='stage3-p180-1200',
+                workdir=round_workdir,
+                template_file=template_file,
+                pretrained_model=pretrained_model,
+                seed=seed,
+                use_reg=use_reg,
+                latent_cache_id=latent_cache_id,
+                bs=bs,
+                unet_lr=unet_lr,
+                te_lr=te_lr,
+                train_te=train_te,
+                dim=dim,
+                alpha=alpha,
+                resolution=resolution,
+                res_ratio=res_ratio,
+                bangumi_style_tag=bangumi_style_tag,
+                comment=comment,
+                force_retrain=force_retrain,
+                eps=10,
+                save_interval=1,
+                ds_attach_revisions=[f'r{r}' for r in pre_rounds],
+                group_weights={
+                    'origin': 1.3 * sum(group_weights.values()) if round_id > 0 else 1.0,
+                    **group_weights,
+                },
+                group_attached_tags={
+                    f'r{r}': ['reference']
+                    for ir, r in enumerate(pre_rounds)
+                }
+            )
+        else:
+            logging.info(f'Round #{round_id} already trained, skipped.')
 
-        from ..publish import deploy_to_huggingface
-        logging.info('Deploy to huggingface ...')
-        deploy_to_huggingface(
-            workdir=round_workdir,
-            repository=repository,
-            ccip_check=None,
-            discord_publish=discord_publish,
-            revision=revision,
-        )
-        logging.info(f'Backup for round #{round_id} ...')
-        if hf_client.revision_exists(repo_id=repository, repo_type='model', revision=round_revision):
-            hf_client.delete_branch(repo_id=repository, repo_type='model', revision=round_revision)
-        hf_client.create_branch(repo_id=repository, repo_type='model', branch=round_revision, revision=revision)
+        published_flag_file = os.path.join(round_workdir, '.published')
+        if not os.path.exists(published_flag_file):
+            from ..publish import deploy_to_huggingface
+            logging.info('Deploy to huggingface ...')
+            deploy_to_huggingface(
+                workdir=round_workdir,
+                repository=repository,
+                ccip_check=None,
+                discord_publish=discord_publish,
+                revision=revision,
+            )
+            logging.info(f'Backup for round #{round_id} ...')
+            if hf_client.revision_exists(repo_id=repository, repo_type='model', revision=round_revision):
+                hf_client.delete_branch(repo_id=repository, repo_type='model', revision=round_revision)
+            hf_client.create_branch(repo_id=repository, repo_type='model', branch=round_revision, revision=revision)
+        else:
+            logging.info(f'Round #{round_id} already published, skipped.')
