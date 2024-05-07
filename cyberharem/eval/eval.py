@@ -86,6 +86,7 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
     axes[0, 0].set_ylabel('CCIP Score' if not ccip_distance_mode else 'CCIP Distance')
     axes[0, 0].set_title('Fidelity' if not ccip_distance_mode else 'Difference')
     if ccip_distance_mode:
+        axes[0, 0].set_ylim([0.0, max(df['ccip'].max() * 1.1, df['ccip'].max() + 0.01)])
         ccip_threshold = ccip_default_threshold(model=ccip_model)
         axes[0, 0].axhspan(0.0, ccip_threshold * 0.3, facecolor='#dbf7c2')
         axes[0, 0].axhspan(ccip_threshold * 0.3, ccip_threshold * 0.6, facecolor='#f4f7c2')
