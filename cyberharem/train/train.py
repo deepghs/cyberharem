@@ -58,12 +58,24 @@ _DEFAULT_PLS = {
 
 
 @contextmanager
-def load_train_dataset(repo_id: str, prefix_tags: List[str] = None,
-                       dataset_name: str = 'stage3-p480-1200', revision: str = 'main',
-                       attach_revisions: Optional[List[str]] = None,
-                       mls: Optional[Dict[str, float]] = None) -> ContextManager[str]:
-    from .dataset import multi_dataset_from_repo
-    with multi_dataset_from_repo(repo_id, prefix_tags, dataset_name, revision, attach_revisions, mls) as td:
+def load_train_dataset(
+        repo_id: str, prefix_tags: List[str] = None,
+        dataset_name: str = 'stage3-p480-1200', revision: str = 'main',
+        attach_revisions: Optional[List[str]] = None,
+        group_weights: Optional[Dict[str, float]] = None,
+        group_attached_tags: Optional[Dict[str, List[str]]] = None,
+) -> ContextManager[str]:
+    from .dataset import arrange_dataset_from_repo
+    with arrange_dataset_from_repo(
+            repo_id=repo_id,
+            prefix_tags=prefix_tags,
+            dataset_name=dataset_name,
+            revision=revision,
+            attach_revisions=attach_revisions,
+            main_group_name='origin',
+            group_weights=group_weights,
+            group_attached_tags=group_attached_tags,
+    ) as td:
         yield td
 
 
@@ -249,14 +261,18 @@ def _auto_init():
 TRAIN_MARK = 'v1.6-alpha0'
 
 
-def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Optional[str] = None,
-               template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
-               seed: int = None, use_reg: Optional[bool] = False, latent_cache_id: Optional[str] = None,
-               bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
-               dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
-               bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False,
-               eps: Optional[int] = None, save_interval: Optional[int] = None,
-               ds_attach_revisions: Optional[List[str]] = None, ds_mls: Optional[Dict[str, float]] = None):
+def train_lora(
+        ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Optional[str] = None,
+        template_file: str = 'ch_lora_sd15.toml', pretrained_model: str = None,
+        seed: int = None, use_reg: Optional[bool] = False, latent_cache_id: Optional[str] = None,
+        bs: int = 8, unet_lr: float = 0.0006, te_lr: float = 0.0006, train_te: bool = False,
+        dim: Optional[int] = None, alpha: int = 2, resolution: int = 720, res_ratio: float = 2.2,
+        bangumi_style_tag: str = 'anime_style', comment: str = None, force_retrain: bool = False,
+        eps: Optional[int] = None, save_interval: Optional[int] = None,
+        ds_attach_revisions: Optional[List[str]] = None,
+        group_weights: Optional[Dict[str, float]] = None,
+        group_attached_tags: Optional[Dict[str, List[str]]] = None,
+):
     _auto_init()
     hf_fs = get_hf_fs()
     meta = json.loads(hf_fs.read_text(f'datasets/{ds_repo_id}/meta.json'))
@@ -295,7 +311,8 @@ def train_lora(ds_repo_id: str, dataset_name: Optional[str] = None, workdir: Opt
             prefix_tags=train_prefix_tags,
             dataset_name=dataset_name,
             attach_revisions=ds_attach_revisions,
-            mls=ds_mls,
+            group_weights=group_weights,
+            group_attached_tags=group_attached_tags,
     ) as train_dir:
         image_count = count_images_from_train_dir(train_dir)
         if use_reg is None:

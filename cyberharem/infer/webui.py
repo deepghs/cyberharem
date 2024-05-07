@@ -213,7 +213,7 @@ def infer_with_lora(
 
         result = client.txt2img(
             prompt=full_prompt,
-            negative_prompt='(worst quality, low quality:1.40), (zombie, sketch, interlocked fingers, comic:1.10), (full body:1.10), lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, white border, (english text, chinese text:1.05), (censored, mosaic censoring, bar censor:1.20)',
+            negative_prompt='(worst quality, low quality:1.40), (zombie, sketch, interlocked fingers, comic:1.10), (reference:1.10), lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, white border, (english text, chinese text:1.05), (censored, mosaic censoring, bar censor:1.20)',
             alwayson_scripts=scripts,
             batch_size=batch_size,
             sampler_name=sampler_name,
@@ -327,7 +327,7 @@ def infer_for_scale(
         enable_hr: bool = True, hr_resize_x=832, hr_resize_y=1216,
         denoising_strength=0.6, hr_second_pass_steps=20, hr_upscaler='R-ESRGAN 4x+ Anime6B',
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
-        base_model: str = 'meinamix_v11', eval_cfgs: Optional[dict] = None,
+        base_model: str = 'nai', eval_cfgs: Optional[dict] = None,
         max_n_steps: Optional[int] = None, infer_seed_count: int = 5,
 ):
     _auto_init()

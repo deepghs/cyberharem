@@ -16,9 +16,12 @@ _DEFAULT_MULS = {
 }
 
 
-def datasets_arrange(dst_dir: str, groups: Dict[Union[Tuple[str, ...], str], Union[str, Tuple[str, List[str]]]],
-                     mls: Optional[Dict[str, float]] = None):
-    mls = {**_DEFAULT_MULS, **dict(mls or {})}
+def datasets_arrange(
+        dst_dir: str,
+        groups: Dict[Union[Tuple[str, ...], str], Union[str, Tuple[str, List[str]]]],
+        group_weights: Optional[Dict[str, float]] = None,
+):
+    group_weights = {**_DEFAULT_MULS, **dict(group_weights or {})}
 
     image_counts = {}
     for group_tags, group_info in groups.items():
@@ -65,7 +68,7 @@ def datasets_arrange(dst_dir: str, groups: Dict[Union[Tuple[str, ...], str], Uni
         group_tags = group_name.split(',')
         group_times = 1.0
         for tag in group_tags:
-            group_times *= mls.get(tag, 1.0)
+            group_times *= group_weights.get(tag, 1.0)
 
         raw_repeats = group_times * max_count / image_count
         repeats = 0 if raw_repeats < 0.35 else int(round(raw_repeats))
@@ -80,41 +83,16 @@ def datasets_arrange(dst_dir: str, groups: Dict[Union[Tuple[str, ...], str], Uni
 
 
 @contextmanager
-def single_dataset_from_repo(repo_id: str, prefix_tags: List[str] = None,
-                             dataset_name: str = 'stage3-p480-1200', revision: str = 'main',
-                             mls: Optional[Dict[str, float]] = None):
-    with TemporaryDirectory() as origin_dir:
-        prefix_tags = list(prefix_tags or [])
-        logging.info(f'Loading dataset from {repo_id}@{revision}, {dataset_name}, '
-                     f'with prefix tags: {prefix_tags!r} ...')
-        download_archive_as_directory(
-            repo_id=repo_id,
-            repo_type='dataset',
-            revision=revision,
-            file_in_repo=f'dataset-{dataset_name}.zip',
-            local_directory=origin_dir,
-        )
-
-        groups = {}
-        for group_name in os.listdir(origin_dir):
-            if os.path.isdir(os.path.join(origin_dir, group_name)):
-                group_tags = tuple(group_name.split(','))
-                groups[group_tags] = (
-                    os.path.join(origin_dir, group_name),
-                    prefix_tags,
-                )
-
-        with TemporaryDirectory() as dst_dir:
-            datasets_arrange(dst_dir, groups, mls=mls)
-            yield dst_dir
-
-
-@contextmanager
-def multi_dataset_from_repo(repo_id: str, prefix_tags: List[str] = None,
-                            dataset_name: str = 'stage3-p480-1200', revision: str = 'main',
-                            attach_revisions: Optional[List[str]] = None,
-                            mls: Optional[Dict[str, float]] = None):
+def arrange_dataset_from_repo(
+        repo_id: str, prefix_tags: List[str] = None,
+        dataset_name: str = 'stage3-p480-1200', revision: str = 'main',
+        attach_revisions: Optional[List[str]] = None,
+        main_group_name: Optional[str] = 'origin',
+        group_weights: Optional[Dict[str, float]] = None,
+        group_attached_tags: Optional[Dict[str, List[str]]] = None,
+):
     attach_revisions = list(attach_revisions or [])
+    group_attached_tags = dict(group_attached_tags or {})
     prefix_tags = list(prefix_tags or [])
     with TemporaryDirectory() as origin_dir:
         logging.info(f'Loading dataset from {repo_id}@{revision}, {dataset_name}, '
@@ -131,9 +109,15 @@ def multi_dataset_from_repo(repo_id: str, prefix_tags: List[str] = None,
         for group_name in os.listdir(base_branch_dir):
             if os.path.isdir(os.path.join(base_branch_dir, group_name)):
                 group_tags = tuple(group_name.split(','))
+                if main_group_name:
+                    group_tags = tuple([main_group_name, *group_tags])
+                tags_to_attach = [*prefix_tags]
+                for tag in group_tags:
+                    if group_attached_tags.get(tag):
+                        tags_to_attach.extend(list(group_attached_tags[tag] or []))
                 groups[group_tags] = (
                     os.path.join(base_branch_dir, group_name),
-                    prefix_tags,
+                    tags_to_attach,
                 )
 
         for attached_revision in attach_revisions:
@@ -151,11 +135,15 @@ def multi_dataset_from_repo(repo_id: str, prefix_tags: List[str] = None,
             for group_name in os.listdir(branch_dir):
                 if os.path.isdir(os.path.join(branch_dir, group_name)):
                     group_tags = tuple([attached_revision, *group_name.split(',')])
+                    tags_to_attach = [*prefix_tags]
+                    for tag in group_tags:
+                        if group_attached_tags.get(tag):
+                            tags_to_attach.extend(list(group_attached_tags[tag] or []))
                     groups[group_tags] = (
                         os.path.join(branch_dir, group_name),
-                        prefix_tags,
+                        tags_to_attach,
                     )
 
         with TemporaryDirectory() as dst_dir:
-            datasets_arrange(dst_dir, groups, mls=mls)
+            datasets_arrange(dst_dir, groups, group_weights=group_weights)
             yield dst_dir
