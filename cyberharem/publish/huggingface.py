@@ -134,7 +134,8 @@ def deploy_to_huggingface(
              pd.read_csv(os.path.join(workdir, 'eval', 'metrics.csv')).to_dict('records')}
 
     def _make_table_for_steps(stps, cur_path='.'):
-        columns = ['Step', 'Epoch', 'CCIP', 'AI Corrupt', 'Bikini Plus', 'Score', 'Download', *rtag_names]
+        columns = ['Step', 'Epoch', 'CCIP' if not ccip_distance_mode else 'C-Diff',
+                   'AI Corrupt', 'Bikini Plus', 'Score', 'Download', *rtag_names]
 
         v_data = []
         for s in stps:
