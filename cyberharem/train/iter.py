@@ -95,6 +95,10 @@ def train_iter(
 
         from .train import train_lora
         pre_rounds = list(range(round_id, 0, -1))
+        group_weights = {
+            f'r{r}': round_image_init_weight * (round_image_weight_decrease ** ir)
+            for ir, r in enumerate(pre_rounds)
+        }
         train_lora(
             ds_repo_id=repository,
             dataset_name='stage3-p180-1200',
@@ -119,8 +123,8 @@ def train_iter(
             save_interval=1,
             ds_attach_revisions=[f'r{r}' for r in pre_rounds],
             group_weights={
-                f'r{r}': round_image_init_weight * (round_image_weight_decrease ** ir)
-                for ir, r in enumerate(pre_rounds)
+                'origin': 1.3 * sum(group_weights.values()) if round_id > 0 else 1.0,
+                **group_weights,
             },
             group_attached_tags={
                 f'r{r}': ['reference']
