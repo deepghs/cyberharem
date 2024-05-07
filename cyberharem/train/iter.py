@@ -22,6 +22,7 @@ def train_iter(
         pattern_top_n: int = 1, top_n: int = 30, fidelity_alpha: float = 2.0,
         round_image_init_weight: float = 0.95, round_image_weight_decrease: float = 0.7,
         discord_publish: bool = True, origin_enhance: bool = True, origin_enhance_repeats: int = 25,
+        ccip_distance_mode: bool = True,
 ):
     workdir = workdir or os.path.join('runs', name)
     hf_client = get_hf_client()
@@ -67,7 +68,12 @@ def train_iter(
 
                 from ..infer import infer_for_scale
                 logging.info('Inferring for scales ...')
-                infer_for_scale(last_round_workdir, infer_seed_count=8, max_n_steps=3)
+                infer_for_scale(
+                    last_round_workdir,
+                    infer_seed_count=8,
+                    max_n_steps=3,
+                    ccip_distance_mode=ccip_distance_mode,
+                )
 
                 logging.info('Eval and select best images ...')
                 from ..eval.infer import eval_for_infer_raw
@@ -143,6 +149,7 @@ def train_iter(
                 ccip_check=None,
                 discord_publish=discord_publish,
                 revision=revision,
+                ccip_distance_mode=ccip_distance_mode,
             )
             logging.info(f'Backup for round #{round_id} ...')
             if hf_client.revision_exists(repo_id=repository, repo_type='model', revision=round_revision):

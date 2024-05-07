@@ -329,12 +329,13 @@ def infer_for_scale(
         clip_skip: int = 2, lora_alpha: float = 0.8, enable_adetailer: bool = True,
         base_model: str = 'nai', eval_cfgs: Optional[dict] = None,
         max_n_steps: Optional[int] = None, infer_seed_count: int = 5,
+        ccip_distance_mode: bool = False
 ):
     _auto_init()
 
     from ..eval import eval_for_workdir
     logging.info('Starting evaluation before deployment ...')
-    eval_for_workdir(workdir, **(eval_cfgs or {}))
+    eval_for_workdir(workdir, ccip_distance_mode=ccip_distance_mode, **(eval_cfgs or {}))
 
     eval_dir = os.path.join(workdir, 'eval')
     df_selected_file = os.path.join(eval_dir, 'metrics_selected.csv')

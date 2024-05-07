@@ -88,17 +88,21 @@ def _prepare_for_attempt_dir(workdir: str, info: Dict) -> str:
     return new_workdir
 
 
-def deploy_to_huggingface(workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
-                          steps_batch_size: int = 10, discord_publish: bool = True,
-                          ccip_check: Optional[float] = 0.72, move_when_check_failed: bool = True,
-                          force_upload_after_ckpts: Optional[int] = 75, revision: str = 'main'):
+def deploy_to_huggingface(
+        workdir: str, repository: Optional[str] = None, eval_cfgs: Optional[dict] = None,
+        steps_batch_size: int = 10, discord_publish: bool = True,
+        ccip_check: Optional[float] = 0.72, move_when_check_failed: bool = True,
+        force_upload_after_ckpts: Optional[int] = 75,
+        ccip_distance_mode: bool = False,
+        revision: str = 'main'
+):
     with open(os.path.join(workdir, 'meta.json'), 'r') as f:
         meta_info = json.load(f)
     base_model_type = meta_info.get('base_model_type', 'SD1.5')
     train_type = meta_info.get('train_type', 'LoRA')
 
     logging.info('Starting evaluation before deployment ...')
-    eval_for_workdir(workdir, **(eval_cfgs or {}))
+    eval_for_workdir(workdir, ccip_distance_mode=ccip_distance_mode, **(eval_cfgs or {}))
 
     df = pd.read_csv(os.path.join(workdir, 'eval', 'metrics.csv'))
     if ccip_check is not None and df['ccip'].max() < ccip_check:

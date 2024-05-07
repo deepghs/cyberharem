@@ -16,14 +16,17 @@ from tqdm import tqdm
 
 def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int = 5, fidelity_alpha: float = 3.0,
                 bp_std_min: Optional[float] = 0.015, min_aic: float = 0.8, aic_interval: float = 0.05,
-                select_n: int = 3):
+                select_n: int = 3, distance_mode: bool = False):
     # generate data calculation
     df = df.copy()
 
     ccip = np.array(df['ccip'])
     ccip_mean = ccip.mean()
     ccip_std = ccip.std()
-    ccip_norm = np.clip(((ccip - ccip_mean) / ccip_std) * 0.2 + 0.6, a_min=1e-6, a_max=1.0)
+    if distance_mode:
+        ccip_norm = np.clip((-(ccip - ccip_mean) / ccip_std) * 0.2 + 0.6, a_min=1e-6, a_max=1.0)
+    else:
+        ccip_norm = np.clip(((ccip - ccip_mean) / ccip_std) * 0.2 + 0.6, a_min=1e-6, a_max=1.0)
     df['ccip_norm'] = ccip_norm
 
     bp = np.array(df['bp'])
@@ -58,7 +61,15 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
     aic_steps = df_aic['step'].tolist()
     aic_failed_steps = df[~df['step'].isin(aic_steps)]['step'].tolist()
 
-    df_selected = df_aic.sort_values(by=['integrate', 'ccip', 'aic', 'bp'], ascending=False)[:select]
+    df_selected = df_aic.sort_values(
+        by=['integrate', 'ccip', 'aic', 'bp'],
+        ascending=[
+            False,
+            False if not distance_mode else True,
+            False,
+            False
+        ]
+    )[:select]
     selected_steps = df_selected['step'].tolist()
     aic_unselected_steps = sorted(set(aic_steps) - set(selected_steps))
     best_step = selected_steps[0]
@@ -70,8 +81,8 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
 
     axes[0, 0].plot(df['step'], df['ccip'])
     axes[0, 0].set_xlabel('Steps')
-    axes[0, 0].set_ylabel('CCIP Score')
-    axes[0, 0].set_title('Fidelity')
+    axes[0, 0].set_ylabel('CCIP Score' if not distance_mode else 'CCIP Distance')
+    axes[0, 0].set_title('Fidelity' if not distance_mode else 'Difference')
     axes[0, 0].grid()
 
     axes[0, 1].plot(df['step'], df['bp'])
@@ -128,7 +139,8 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
     return df, df_selected
 
 
-def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha: float = 3.0, **kwargs):
+def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha: float = 3.0,
+                     ccip_distance_mode: bool = False, **kwargs):
     from ..infer import find_steps_in_workdir, infer_with_workdir
     df_steps = find_steps_in_workdir(workdir)
     infer_with_workdir(workdir, **kwargs)
@@ -159,7 +171,8 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
         if not os.path.exists(step_details_file):
             png_files = natsorted(glob.glob(os.path.join(step_dir, '*.png')))
             png_filenames = [os.path.relpath(f, step_dir) for f in png_files]
-            ccip_score_seq = ccip_metrics.score(png_files, mode='seq')
+            ccip_score_seq = ccip_metrics.score(
+                png_files, algo='same' if not ccip_distance_mode else 'diff', mode='seq')
             ccip_score = ccip_score_seq.mean().item()
             aic_score_seq = aic_metrics.score(png_files, mode='seq')
             aic_score = aic_score_seq.mean().item()
@@ -197,6 +210,7 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
         plot_file=metrics_plot_file,
         select=select,
         fidelity_alpha=fidelity_alpha,
+        distance_mode=ccip_distance_mode,
     )
 
     metrics_csv_file = os.path.join(current_eval_dir, 'metrics.csv')
