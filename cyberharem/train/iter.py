@@ -20,7 +20,7 @@ def train_iter(
         tiny_scale: Optional[float] = 0.5, min_resolution: int = 720, train_rounds: int = 5,
         pattern_top_n: int = 1, top_n: int = 30, fidelity_alpha: float = 2.0,
         round_image_init_weight: float = 0.95, round_image_weight_decrease: float = 0.7,
-        discord_publish: bool = True, origin_enhance: bool = True, origin_enhance_repeats: int = 60,
+        discord_publish: bool = True, origin_enhance: bool = True, origin_enhance_repeats: int = 35,
 ):
     workdir = workdir or os.path.join('runs', name)
     hf_client = get_hf_client()
