@@ -6,6 +6,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from imgutils.metrics import ccip_default_threshold
 from matplotlib import pyplot as plt
 from natsort import natsorted
 from sdeval.controllability import BikiniPlusMetrics
@@ -16,14 +17,15 @@ from tqdm import tqdm
 
 def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int = 5, fidelity_alpha: float = 3.0,
                 bp_std_min: Optional[float] = 0.015, min_aic: float = 0.8, aic_interval: float = 0.05,
-                select_n: int = 3, distance_mode: bool = False):
+                select_n: int = 3, ccip_distance_mode: bool = False,
+                ccip_model: str = 'ccip-caformer-24-randaug-pruned'):
     # generate data calculation
     df = df.copy()
 
     ccip = np.array(df['ccip'])
     ccip_mean = ccip.mean()
     ccip_std = ccip.std()
-    if distance_mode:
+    if ccip_distance_mode:
         ccip_norm = np.clip((-(ccip - ccip_mean) / ccip_std) * 0.2 + 0.6, a_min=1e-6, a_max=1.0)
     else:
         ccip_norm = np.clip(((ccip - ccip_mean) / ccip_std) * 0.2 + 0.6, a_min=1e-6, a_max=1.0)
@@ -65,7 +67,7 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
         by=['integrate', 'ccip', 'aic', 'bp'],
         ascending=[
             False,
-            False if not distance_mode else True,
+            False if not ccip_distance_mode else True,
             False,
             False
         ]
@@ -81,8 +83,14 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
 
     axes[0, 0].plot(df['step'], df['ccip'])
     axes[0, 0].set_xlabel('Steps')
-    axes[0, 0].set_ylabel('CCIP Score' if not distance_mode else 'CCIP Distance')
-    axes[0, 0].set_title('Fidelity' if not distance_mode else 'Difference')
+    axes[0, 0].set_ylabel('CCIP Score' if not ccip_distance_mode else 'CCIP Distance')
+    axes[0, 0].set_title('Fidelity' if not ccip_distance_mode else 'Difference')
+    if ccip_distance_mode:
+        ccip_threshold = ccip_default_threshold(model=ccip_model)
+        axes[0, 0].axhspan(0.0, ccip_threshold * 0.3, facecolor='#dbf7c2')
+        axes[0, 0].axhspan(ccip_threshold * 0.3, ccip_threshold * 0.6, facecolor='#f4f7c2')
+        axes[0, 0].axhspan(ccip_threshold * 0.6, ccip_threshold, facecolor='#f7e4c2')
+        axes[0, 0].axhspan(ccip_threshold, 1.0, facecolor='#f7c7c2')
     axes[0, 0].grid()
 
     axes[0, 1].plot(df['step'], df['bp'])
@@ -131,8 +139,10 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
 
     plt.suptitle(f'Model of {model_name!r} (alpha={fidelity_alpha})\n'
                  f'Selected Steps: {selected_steps!r}\n'
-                 f'Best Step: {best_step}, CCIP: {best_step_info["ccip"]:.3f}, '
-                 f'B-P: {best_step_info["bp"]:.3f}, AI-C: {best_step_info["aic"]:.3f}')
+                 f'Best Step: {best_step}, '
+                 f'{"CCIP" if not ccip_distance_mode else "C-Dist"}: {best_step_info["ccip"]:.3f}, '
+                 f'B-P: {best_step_info["bp"]:.3f}, '
+                 f'AI-C: {best_step_info["aic"]:.3f}')
     plt.savefig(plot_file, dpi=150)
     plt.cla()
 
@@ -140,7 +150,8 @@ def plt_metrics(df: pd.DataFrame, model_name: str, plot_file: str, select: int =
 
 
 def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha: float = 3.0,
-                     ccip_distance_mode: bool = False, **kwargs):
+                     ccip_distance_mode: bool = False, ccip_model: str = 'ccip-caformer-24-randaug-pruned',
+                     **kwargs):
     from ..infer import find_steps_in_workdir, infer_with_workdir
     df_steps = find_steps_in_workdir(workdir)
     infer_with_workdir(workdir, **kwargs)
@@ -154,7 +165,7 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
 
     features_path = os.path.join(workdir, 'features.npy')
     logging.info(f'Loading features from {features_path!r} ...')
-    ccip_metrics = CCIPMetrics(None, feats=np.load(features_path))
+    ccip_metrics = CCIPMetrics(None, feats=np.load(features_path), model=ccip_model)
     bp_metrics = BikiniPlusMetrics()
     aic_metrics = AICorruptMetrics()
 
@@ -210,7 +221,7 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
         plot_file=metrics_plot_file,
         select=select,
         fidelity_alpha=fidelity_alpha,
-        distance_mode=ccip_distance_mode,
+        ccip_distance_mode=ccip_distance_mode,
     )
 
     metrics_csv_file = os.path.join(current_eval_dir, 'metrics.csv')
