@@ -9,15 +9,17 @@ from ditk import logging
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import download_file_to_file, upload_directory_as_directory
-from huggingface_hub import HfFileSystem, hf_hub_download
+from huggingface_hub import HfFileSystem, hf_hub_download, HfApi
 from imgutils.metrics import ccip_merge
 from tqdm import tqdm
 from waifuc.source import DanbooruSource
 from waifuc.utils import srequest
 
 hf_fs = HfFileSystem(token=os.environ.get('HF_TOKEN'))
+hf_client = HfApi(token=os.environ.get('HF_TOKEN'))
 
 SRC_REPO = 'deepghs/character_index'
+SPACE_REPO = 'deepghs/danbooru_character_search'
 
 
 @lru_cache()
@@ -116,6 +118,7 @@ def runit():
             path_in_repo='index',
             message=f'Making index, containing {plural_word(len(tag_infos), "character tag")}'
         )
+        hf_client.restart_space(repo_id=SPACE_REPO)
 
 
 if __name__ == '__main__':
