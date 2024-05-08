@@ -83,7 +83,7 @@ def _get_antecedent_tags(tag) -> List[str]:
 
 
 def runit():
-    tags = list(list_character_tags())[:10]
+    tags = list(list_character_tags())
     tag_set = set(tags)
 
     embs = []
