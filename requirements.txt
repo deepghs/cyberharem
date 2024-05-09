@@ -38,3 +38,4 @@ markdown_strings
 discord-webhook
 toml>=0.10.2
 webuiapi
+accelerate

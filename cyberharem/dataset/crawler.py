@@ -17,7 +17,7 @@ from hfutils.archive import archive_pack
 from hfutils.operate import upload_directory_as_directory, download_archive_as_directory
 from huggingface_hub import hf_hub_url
 from imgutils.metrics import anime_dbaesthetic
-from imgutils.restore import restore_with_nafnet
+from imgutils.restore import restore_with_scunet
 from imgutils.validate import anime_portrait
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
@@ -66,7 +66,7 @@ class RestoreAction(ProcessAction):
     def process(self, item: ImageItem) -> ImageItem:
         image = item.image
         if self.restore:
-            image = restore_with_nafnet(image)
+            image = restore_with_scunet(image)
         if image.width * image.height <= self.min_size ** 2:
             r = (self.min_size ** 2 / (image.width * image.height)) ** 0.5
             image = image.resize((int(image.width * r), int(image.height * r)), resample=Image.LANCZOS)
