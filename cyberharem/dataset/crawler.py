@@ -188,7 +188,7 @@ def crawl_dataset_to_huggingface(
         no_monochrome_check: bool = False, repo_type: str = 'dataset', revision: str = 'main',
         path_in_repo: str = '.', private: bool = False, n_img_samples: int = 5,
         bangumi_source_repository: Optional[str] = None, remove_empty_repo: bool = True,
-        tiny_scale: Optional[float] = 0.5, min_resolution: Optional[int] = None, discord_publish: bool = True,
+        tiny_scale: Optional[float] = 1.0, min_resolution: Optional[int] = None, discord_publish: bool = True,
 ):
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
