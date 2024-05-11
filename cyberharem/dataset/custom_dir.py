@@ -3,7 +3,7 @@ from typing import Optional
 
 from ditk import logging
 from hbutils.system import TemporaryDirectory
-from hfutils.operate import download_archive_as_directory,
+from hfutils.operate import download_archive_as_directory
 from hfutils.utils import parse_hf_fs_path
 from waifuc.source import LocalSource
 
