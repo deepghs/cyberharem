@@ -1,4 +1,4 @@
-name: Test Script
+name: Custom Dir Make
 
 permissions:
   contents: write
@@ -7,18 +7,32 @@ on:
   #  push:
   workflow_dispatch:
     inputs:
-      character_name:
-        description: 'Character Name'
+      name:
+        description: 'Character Name (As Tag)'
+        type: string
         required: true
-      game_name:
-        description: 'Game Name'
+      display_name:
+        description: 'Display Name'
+        type: string
+        required: true
+      origin_package:
+        description: 'Origin Data Package'
+        type: string
         required: true
       limit:
-        description: 'Max Number Limit'
+        description: 'Limit of Dataset'
         type: number
         default: 500
       drop_multi:
         description: 'Drop Multi-Person Images'
+        type: boolean
+        default: false
+      repo_id:
+        description: 'Repository ID'
+        type: string
+        default: ''
+      private:
+        description: 'Use Private Repository'
         type: boolean
         default: false
 #  schedule:
@@ -89,15 +103,27 @@ jobs:
         shell: bash
         run: |
           echo 'CH_DROP_MULTI=' >> $GITHUB_ENV
+      - name: Use Private Repo
+        if: ${{ github.event.inputs.private == 'true' }}
+        shell: bash
+        run: |
+          echo 'CH_PRIVATE=1' >> $GITHUB_ENV
+      - name: Not Use Private Repo
+        if: ${{ github.event.inputs.private == 'false' }}
+        shell: bash
+        run: |
+          echo 'CH_PRIVATE=' >> $GITHUB_ENV
       - name: Run Crawler
         shell: bash
         env:
           CI: 'true'
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          CH_WAIFU_NAME: ${{ github.event.inputs.character_name }}
-          CH_GAME_NAME: ${{ github.event.inputs.game_name }}
-          CH_LIMIT: ${{ github.event.inputs.limit }}
           CH_SAFE: '1'
+          CH_NAME: ${{ github.event.inputs.name }}
+          CH_DISPLAY_NAME: ${{ github.event.inputs.display_name }}
+          CH_REPO_ID: ${{ github.event.inputs.repo_id }}
+          CH_LIMIT: ${{ github.event.inputs.limit }}
+          CH_ORIGIN_PACKAGE: ${{ github.event.inputs.origin_package }}
         run: |
-          python -m cyberharem.dataset.action
+          python -m cyberharem.dataset.custom_dir
