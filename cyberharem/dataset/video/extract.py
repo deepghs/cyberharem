@@ -16,7 +16,7 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import upload_directory_as_directory
 from imgutils.data import load_image
-from imgutils.metrics import ccip_extract_feature, ccip_batch_differences, ccip_default_threshold
+from imgutils.metrics import ccip_extract_feature, ccip_batch_differences, ccip_default_threshold, anime_dbaesthetic
 from natsort import natsorted
 from sklearn.cluster import OPTICS
 from tqdm.auto import tqdm
@@ -46,6 +46,21 @@ class UnescapeTagAction(ProcessAction):
         tags = dict(item.meta.get('tags') or {})
         tags = {tag.replace('\\', ''): score for tag, score in tags.items()}
         return ImageItem(item.image, {**item.meta, 'tags': tags})
+
+
+class AestheticAction(ProcessAction):
+    def process(self, item: ImageItem) -> ImageItem:
+        level_, _ = anime_dbaesthetic(item.image)
+        if level_ == 'masterpiece':
+            tag = level_
+        else:
+            tag = f'{level_} quality'
+
+        item.meta['aesthetic'] = tag
+        if 'tags' not in item.meta:
+            item.meta['tags'] = {}
+        item.meta['tags'][tag] = 1000.0
+        return item
 
 
 def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.85, clu_min_samples: int = 5,
@@ -175,6 +190,7 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
         logging.info('Creating regular normal dataset ...')
         reg_source.attach(
             TaggingAction(force=False, character_threshold=1.01),
+            AestheticAction(),
             TagOverlapDropAction(),
             UnescapeTagAction(),
             BlacklistedTagDropAction(),
