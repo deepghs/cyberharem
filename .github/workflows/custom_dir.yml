@@ -35,6 +35,10 @@ on:
         description: 'Use Private Repository'
         type: boolean
         default: false
+      bangumi_repository:
+        description: 'Bangumi Repository'
+        type: string
+        required: false
 #  schedule:
 #    - cron: '30 16 * * *'
 #    - cron: '30 8 * * *'
@@ -125,5 +129,6 @@ jobs:
           CH_REPO_ID: ${{ github.event.inputs.repo_id }}
           CH_LIMIT: ${{ github.event.inputs.limit }}
           CH_ORIGIN_PACKAGE: ${{ github.event.inputs.origin_package }}
+          CH_BANGUMI_REPO: ${{ github.event.inputs.bangumi_repository }}
         run: |
           python -m cyberharem.dataset.custom_dir

@@ -17,7 +17,8 @@ logger.disabled = True
 
 def crawl_with_custom_hf_dir(name: str, display_name: str, repo_id: str, origin_package_path: str,
                              repo_type: str = 'dataset', revision: str = 'main',
-                             drop_multi: bool = False, limit: Optional[int] = 500, private: bool = False):
+                             drop_multi: bool = False, limit: Optional[int] = 500,
+                             bangumi_source_repository: Optional[str] = None, private: bool = False):
     with TemporaryDirectory() as td:
         parsed = parse_hf_fs_path(origin_package_path)
         download_archive_as_directory(
@@ -39,6 +40,7 @@ def crawl_with_custom_hf_dir(name: str, display_name: str, repo_id: str, origin_
             limit=limit or None,
             drop_multi=drop_multi,
             private=private,
+            bangumi_source_repository=bangumi_source_repository,
         )
 
 
@@ -53,4 +55,5 @@ if __name__ == '__main__':
         drop_multi=bool(os.environ.get('CH_DROP_MULTI')),
         limit=ch_limit,
         private=bool(os.environ.get('CH_PRIVATE')),
+        bangumi_source_repository=os.environ.get('CH_BANGUMI_REPO') or None,
     )
