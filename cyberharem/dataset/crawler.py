@@ -44,10 +44,13 @@ def get_source(source, drop_multi: bool = False) -> BaseDataSource:
             max_preset_limit=None,
             preset_sites=(
                 'zerochan',
-                'anime_pictures',
+                # 'anime_pictures',
                 # 'danbooru',
             ),
-            blacklist_sites=('lolibooru',),
+            blacklist_sites=(
+                'lolibooru',
+                'anime_pictures',
+            ),
             min_size=1200,
         )
     elif isinstance(source, BaseDataSource):
