@@ -17,18 +17,25 @@ from hbutils.system import TemporaryDirectory
 from hfutils.operate import upload_directory_as_directory
 from imgutils.data import load_image
 from imgutils.metrics import ccip_extract_feature, ccip_batch_differences, ccip_default_threshold, anime_dbaesthetic
+from imgutils.validate import anime_real
 from natsort import natsorted
 from sklearn.cluster import OPTICS
 from tqdm.auto import tqdm
 from waifuc.action import PaddingAlignAction, PersonSplitAction, FaceCountAction, MinSizeFilterAction, \
     NoMonochromeAction, FilterSimilarAction, HeadCountAction, FileOrderAction, TaggingAction, RandomFilenameAction, \
-    TagOverlapDropAction, BlacklistedTagDropAction, TagRemoveUnderlineAction, ProcessAction
+    TagOverlapDropAction, BlacklistedTagDropAction, TagRemoveUnderlineAction, ProcessAction, FilterAction
 from waifuc.action.filter import MinAreaFilterAction
 from waifuc.export import SaveExporter, TextualInversionExporter
 from waifuc.model import ImageItem
 from waifuc.source import VideoSource, BaseDataSource, LocalSource, EmptySource
 
 from ...utils import number_to_tag, get_hf_client, get_hf_fs
+
+
+class NoRealImageAction(FilterAction):
+    def check(self, item: ImageItem) -> bool:
+        type_, score = anime_real(item.image)
+        return type_ == 'anime'
 
 
 class ListFeatImageSource(BaseDataSource):
@@ -276,6 +283,7 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
 
         source = source.attach(
             NoMonochromeAction(),
+            NoRealImageAction(),
             PersonSplitAction(keep_original=False, level='n'),
             FaceCountAction(1, level='n'),
             HeadCountAction(1, level='n'),
