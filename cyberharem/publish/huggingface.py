@@ -243,7 +243,15 @@ def deploy_to_huggingface(
         meta_info['train_type'] = train_type
         meta_info['version'] = TRAIN_MARK
         meta_info['time'] = time.time()
-        selected_steps = pd.read_csv(os.path.join(td, 'metrics_selected.csv'))['step'].tolist()
+        df_selected = pd.read_csv(os.path.join(workdir, 'eval', 'metrics_selected.csv'))
+        selected_steps = df_selected['step'].tolist()
+        best_lora_filename = df_selected[df_selected['step'] == selected_steps]['filename'].tolist()[0]
+        best_lora_path = os.path.join(workdir, 'kohya', best_lora_filename)
+        dst_lora_file_in_pool = os.path.join('loras', f'{name}.safetensors')
+        os.makedirs(os.path.dirname(dst_lora_file_in_pool), exist_ok=True)
+        if os.path.exists(dst_lora_file_in_pool):
+            os.unlink(dst_lora_file_in_pool)
+        os.symlink(os.path.abspath(best_lora_path), dst_lora_file_in_pool)
         best_step = selected_steps[0]
         meta_info['steps'] = steps
         meta_info['rtags'] = rtag_names

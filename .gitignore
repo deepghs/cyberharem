@@ -1223,3 +1223,4 @@ fabric.properties
 /prompt_tuning_template
 /output
 /.env*
+/loras
