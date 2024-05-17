@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from imgutils.metrics import ccip_default_threshold
+from imgutils.metrics import ccip_default_threshold, ccip_merge, ccip_batch_same
 from matplotlib import pyplot as plt
 from natsort import natsorted
 from sdeval.controllability import BikiniPlusMetrics
@@ -166,7 +166,11 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
 
     features_path = os.path.join(workdir, 'features.npy')
     logging.info(f'Loading features from {features_path!r} ...')
-    ccip_metrics = CCIPMetrics(None, feats=np.load(features_path), model=ccip_model)
+
+    ccip_feats = np.load(features_path)
+    ccip_metrics = CCIPMetrics(None, feats=ccip_feats, model=ccip_model)
+    ccip_mean_feat = ccip_merge(ccip_feats)
+    ccip_upbound = ccip_batch_same([ccip_mean_feat, *ccip_feats])[0, 1:].mean()
     bp_metrics = BikiniPlusMetrics()
     aic_metrics = AICorruptMetrics()
 
@@ -185,6 +189,8 @@ def eval_for_workdir(workdir: str, select: Optional[int] = None, fidelity_alpha:
             png_filenames = [os.path.relpath(f, step_dir) for f in png_files]
             ccip_score_seq = ccip_metrics.score(
                 png_files, algo='same' if not ccip_distance_mode else 'diff', mode='seq')
+            if not ccip_distance_mode:
+                ccip_score_seq = ccip_score_seq / ccip_upbound
             ccip_score = ccip_score_seq.mean().item()
             aic_score_seq = aic_metrics.score(png_files, mode='seq')
             aic_score = aic_score_seq.mean().item()
