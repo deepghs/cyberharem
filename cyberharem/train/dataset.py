@@ -13,7 +13,7 @@ from ..utils import is_image_file, is_txt_file, is_npz_file
 
 _DEFAULT_MULS = {
     'head': 2.0,
-    'origin': 1.2,
+    'origin': 0.7,
 }
 
 
