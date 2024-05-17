@@ -160,7 +160,10 @@ class DirectorySepAction(ProcessAction):
         if type_ == 'head':
             subdir = 'head'
         else:
-            subdir = 'others'
+            if 'cluster_group' not in item.meta:
+                subdir = f'ungrouped'
+            else:
+                subdir = f'group{item.meta["cluster_group"]}'
         item.meta['filename'] = os.path.join(subdir, item.meta['filename'])
         return item
 
@@ -257,9 +260,9 @@ def crawl_dataset_to_huggingface(
                     hf_fs.delete(f'datasets/{repository}/.git-ongoing')
                 return
 
-            ch_core_tags, clu_samples = get_character_tags_info(LocalSource(origin_dir))
+            ch_core_tags, clu_samples, all_embeddings = get_character_tags_info(origin_dir)
             all_tags, all_tags_set = [], set()
-            for i, (images, tags) in enumerate(clu_samples):
+            for i, (images, tags, embs) in enumerate(clu_samples):
                 for tag in tags:
                     if tag not in all_tags_set:
                         all_tags_set.add(tag)
@@ -271,11 +274,16 @@ def crawl_dataset_to_huggingface(
             tg_tb_columns = ['#', 'Samples', *(f'Img-{i}' for i in range(1, n_img_samples + 1)), *all_tags]
             tg_tb_rows = []
             info_clus = []
-            for i, (images, tags) in enumerate(clu_samples):
+            np.save(os.path.join(upload_td, 'embeddings', 'all'), all_embeddings)
+
+            for i, (images, tags, embs) in enumerate(clu_samples):
                 clu_size = len(images)
                 if len(images) > n_img_samples:
                     images = random.sample(images, k=n_img_samples)
                 img_files = []
+                emb_file = os.path.join(upload_td, 'embeddings', f'group_{i}')
+                np.save(emb_file, embs)
+
                 for j, image in enumerate(images):
                     dst_file = os.path.join(samples_dir, f'{i}', f'clu{i}-sample{j}.png')
                     os.makedirs(os.path.dirname(dst_file), exist_ok=True)

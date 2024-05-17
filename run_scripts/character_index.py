@@ -27,7 +27,7 @@ from waifuc.export import SaveExporter
 from waifuc.model import ImageItem
 from waifuc.source import DanbooruSource, LocalSource
 
-from cyberharem.dataset.analysis import get_character_tags_info
+from cyberharem.dataset.analysis import get_character_core_tags
 from cyberharem.utils import get_hf_fs, get_hf_client
 
 
@@ -188,7 +188,7 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
                 exist_tags.add(tag)
                 logging.warning(f'Too few valid images detect for {tag!r}, skipped.')
                 continue
-            core_tags, _ = get_character_tags_info(LocalSource(export_dir))
+            core_tags = get_character_core_tags(LocalSource(export_dir))
 
             upload_dir = os.path.join(td, 'upload')
             os.makedirs(upload_dir, exist_ok=True)
