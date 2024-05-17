@@ -19,6 +19,7 @@ from huggingface_hub import hf_hub_url
 from imgutils.metrics import anime_dbaesthetic
 from imgutils.restore import restore_with_scunet
 from imgutils.validate import anime_portrait
+from natsort import natsorted
 from waifuc.action import NoMonochromeAction, FilterSimilarAction, \
     TaggingAction, PersonSplitAction, FaceCountAction, CCIPAction, ModeConvertAction, ClassFilterAction, \
     FileOrderAction, RatingFilterAction, BaseAction, RandomFilenameAction, PaddingAlignAction, ThreeStageSplitAction, \
@@ -160,7 +161,7 @@ class DirectorySepAction(ProcessAction):
         if type_ == 'head':
             subdir = 'head'
         else:
-            if 'cluster_group' not in item.meta:
+            if 'cluster_group' not in item.meta or item.meta['cluster_group'] < 0:
                 subdir = f'ungrouped'
             else:
                 subdir = f'group{item.meta["cluster_group"]}'
@@ -410,7 +411,7 @@ def crawl_dataset_to_huggingface(
                 ds_rows.append({
                     'Name': rname,
                     'Images': current_img_cnt,
-                    **{f'Images-{d}': str(cnt) for d, cnt in current_img_cnt_maps.items()},
+                    **{f'Images-{d}': str(cnt) for d, cnt in natsorted(current_img_cnt_maps.items())},
                     'Size': size_to_bytes_str(os.path.getsize(zip_file), precision=2),
                     'Download': f'[Download]({zip_download_url})',
                     'Type': 'Waifuc-Raw' if is_raw else 'IMG+TXT',
