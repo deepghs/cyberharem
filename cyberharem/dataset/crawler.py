@@ -184,7 +184,7 @@ class AestheticAction(ProcessAction):
         return item
 
 
-DATASET_PVERSION = 'v1.6-alpha0'
+DATASET_PVERSION = 'v1.6-alpha1'
 
 
 def crawl_dataset_to_huggingface(

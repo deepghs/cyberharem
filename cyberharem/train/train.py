@@ -258,7 +258,7 @@ def _auto_init():
         _auto_set_kohya_from_env()
 
 
-TRAIN_MARK = 'v1.6-alpha0'
+TRAIN_MARK = 'v1.6-alpha1'
 
 
 def train_lora(
