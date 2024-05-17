@@ -274,6 +274,7 @@ def crawl_dataset_to_huggingface(
             tg_tb_columns = ['#', 'Samples', *(f'Img-{i}' for i in range(1, n_img_samples + 1)), *all_tags]
             tg_tb_rows = []
             info_clus = []
+            os.makedirs(os.path.join(upload_td, 'embeddings'), exist_ok=True)
             np.save(os.path.join(upload_td, 'embeddings', 'all'), all_embeddings)
 
             for i, (images, tags, embs) in enumerate(clu_samples):
@@ -282,6 +283,7 @@ def crawl_dataset_to_huggingface(
                     images = random.sample(images, k=n_img_samples)
                 img_files = []
                 emb_file = os.path.join(upload_td, 'embeddings', f'group_{i}')
+                os.makedirs(os.path.dirname(emb_file), exist_ok=True)
                 np.save(emb_file, embs)
 
                 for j, image in enumerate(images):
