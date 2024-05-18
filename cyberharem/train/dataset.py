@@ -13,7 +13,6 @@ from ..utils import is_image_file, is_txt_file, is_npz_file
 
 _DEFAULT_MULS = {
     'head': 2.0,
-    'origin': 0.7,
 }
 
 
@@ -21,6 +20,7 @@ def datasets_arrange(
         dst_dir: str,
         groups: Dict[Union[Tuple[str, ...], str], Union[str, Tuple[str, List[str]]]],
         group_weights: Optional[Dict[str, float]] = None,
+        min_raw_repeats: float = 0.05,
 ):
     group_weights = {**_DEFAULT_MULS, **dict(group_weights or {})}
 
@@ -72,7 +72,7 @@ def datasets_arrange(
             group_times *= group_weights.get(tag, 1.0)
 
         raw_repeats = group_times * max_count / image_count
-        repeats = 0 if raw_repeats < 0.35 else int(round(raw_repeats))
+        repeats = 0 if raw_repeats < min_raw_repeats else int(max(round(raw_repeats), 1))
         if repeats == 0:
             logging.warning(f'Group {group_name!r} will be ignored due to the low weight.')
             shutil.rmtree(os.path.join(dst_dir, group_name))

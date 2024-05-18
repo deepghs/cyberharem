@@ -258,7 +258,7 @@ def _auto_init():
         _auto_set_kohya_from_env()
 
 
-TRAIN_MARK = 'v1.6-alpha1'
+TRAIN_MARK = 'v1.6-alpha2'
 
 
 def train_lora(
@@ -311,7 +311,10 @@ def train_lora(
             prefix_tags=train_prefix_tags,
             dataset_name=dataset_name,
             attach_revisions=ds_attach_revisions,
-            group_weights=group_weights,
+            group_weights={
+                **{f'group{i}': 0.15 for i in range(100)},
+                **dict(group_weights or {}),
+            },
             group_attached_tags=group_attached_tags,
     ) as train_dir:
         image_count = count_images_from_train_dir(train_dir)
