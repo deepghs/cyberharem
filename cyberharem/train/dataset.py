@@ -12,7 +12,7 @@ from hfutils.operate import download_archive_as_directory
 from ..utils import is_image_file, is_txt_file, is_npz_file
 
 _DEFAULT_MULS = {
-    'head': 2.0,
+    'head': 1.7,
 }
 
 

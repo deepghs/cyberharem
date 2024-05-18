@@ -1,5 +1,4 @@
 import json
-import json
 import logging
 import math
 import os.path
@@ -258,7 +257,7 @@ def _auto_init():
         _auto_set_kohya_from_env()
 
 
-TRAIN_MARK = 'v1.6-alpha2'
+TRAIN_MARK = 'v1.6-alpha3'
 
 
 def train_lora(

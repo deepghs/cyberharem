@@ -161,10 +161,11 @@ class DirectorySepAction(ProcessAction):
         if type_ == 'head':
             subdir = 'head'
         else:
-            if 'cluster_group' not in item.meta or item.meta['cluster_group'] < 0:
-                subdir = f'ungrouped'
-            else:
-                subdir = f'group{item.meta["cluster_group"]}'
+            subdir = 'others'
+            # if 'cluster_group' not in item.meta or item.meta['cluster_group'] < 0:
+            #     subdir = f'ungrouped'
+            # else:
+            #     subdir = f'group{item.meta["cluster_group"]}'
         item.meta['filename'] = os.path.join(subdir, item.meta['filename'])
         return item
 
@@ -184,7 +185,7 @@ class AestheticAction(ProcessAction):
         return item
 
 
-DATASET_PVERSION = 'v1.6-alpha1'
+DATASET_PVERSION = 'v1.6-alpha3'
 
 
 def crawl_dataset_to_huggingface(
