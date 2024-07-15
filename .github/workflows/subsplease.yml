@@ -1,0 +1,77 @@
+name: Subsplease Sync
+
+permissions:
+  contents: write
+
+on:
+  #  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 7 * * *'
+
+jobs:
+  bangumibase_sync:
+    name: BG Sync
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - 'ubuntu-latest'
+        python-version:
+          - '3.8'
+
+    steps:
+      - name: Get system version for Linux
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          echo "OS_NAME=Linux" >> $GITHUB_ENV
+          echo "IS_WIN=" >> $GITHUB_ENV
+          echo "IS_MAC=" >> $GITHUB_ENV
+      - name: Set environment for Cpython
+        if: ${{ !contains(matrix.python-version, 'pypy') }}
+        shell: bash
+        run: |
+          echo "IS_PYPY=" >> $GITHUB_ENV
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 20
+          submodules: 'recursive'
+      - name: Set up system dependencies on Linux
+        if: ${{ env.OS_NAME == 'Linux' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tree cloc wget curl make zip
+      - name: Set up python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade flake8 setuptools wheel twine
+          pip install -r requirements.txt
+      - name: Test the basic environment
+        shell: bash
+        run: |
+          python -V
+          pip --version
+          pip list
+          tree .
+      - name: Run Game Crawler
+        uses: nick-fields/retry@v2
+        env:
+          CI: 'true'
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        with:
+          shell: bash
+          timeout_minutes: 180
+          max_attempts: 5
+          retry_on: any
+          command: |
+            python -m cyberharem.info.subsplease
+
