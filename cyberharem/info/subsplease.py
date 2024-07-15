@@ -244,7 +244,7 @@ if __name__ == '__main__':
             print('tags:', file=f)
             print('- anime', file=f)
             print('size_categories:', file=f)
-            print(f'- {number_to_tag(len(df_l_shown))}', file=f)
+            print(f'- {number_to_tag(len(df_animes))}', file=f)
             print('source_datasets:', file=f)
             print('- myanimelist', file=f)
             print('- nyaasi', file=f)
@@ -252,8 +252,18 @@ if __name__ == '__main__':
             print('---', file=f)
             print('', file=f)
 
-            print(f'{plural_word(len(df_l_shown), "anime")}, '
-                  f'{plural_word(len(df_episodes), "episode")} in total.', file=f)
+            print('This is an integration database of subsplease, myanimelist and nyaasi. '
+                  'You can know which animes are the hottest ones currently, '
+                  'and which of them have well-seeded magnet links.', file=f)
+            print('', file=f)
+            print('This database is refreshed daily.', file=f)
+            print('', file=f)
+
+            print(f'## Current Animes', file=f)
+            print('', file=f)
+            print(f'{plural_word(len(df_animes), "anime")}, '
+                  f'{plural_word(len(df_episodes), "episode")} in total, '
+                  f'Last updated on: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}.', file=f)
             print('', file=f)
             print(df_l_shown.to_markdown(index=False), file=f)
             print('', file=f)
