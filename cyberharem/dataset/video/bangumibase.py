@@ -131,7 +131,7 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
                               f'search_models=_{suffix}&search_datasets=_{suffix})',
                 })
                 data_rows.append({
-                    'id': anime_id,
+                    'id': anime_id or -1,
                     'myanimelist_url': page_url,
                     'cover_image_url': post_url,
                     'repo_id': item.id,
