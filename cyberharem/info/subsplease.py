@@ -1,6 +1,8 @@
 import datetime
 import os.path
 import re
+import time
+import warnings
 from dataclasses import asdict
 from urllib.parse import urljoin, quote_plus
 
@@ -15,6 +17,7 @@ from huggingface_hub import hf_hub_url
 from pyanimeinfo.myanimelist import JikanV4Client
 from pynyaasi.nyaasi import NyaaSiClient
 from pyquery import PyQuery as pq
+from requests import HTTPError
 from thefuzz import fuzz
 from tqdm import tqdm
 
@@ -70,7 +73,18 @@ if __name__ == '__main__':
 
         myanime_item = None
         logging.info('Search information from myanimelist ...')
-        for pyaitem in jikan_client.search_anime(query=title):
+        while True:
+            try:
+                jikan_items = jikan_client.search_anime(query=title)
+            except HTTPError as err:
+                if err.response.status_code == 429:
+                    warnings.warn(f'429 error detected: {err!r}, wait for some seconds ...')
+                    time.sleep(5.0)
+                else:
+                    raise
+            else:
+                break
+        for pyaitem in jikan_items:
             if pyaitem['type'] and pyaitem['type'].lower() not in ['tv', 'movie', 'ova', 'ona']:
                 continue
 
