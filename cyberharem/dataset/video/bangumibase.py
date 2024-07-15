@@ -46,7 +46,7 @@ def _get_image_url(image_dict: dict):
         return None
 
 
-def get_animelist_info(bangumi_name) -> Tuple[Optional[str], Optional[str]]:
+def get_animelist_info(bangumi_name) -> Tuple[Optional[int], Optional[str], Optional[str]]:
     while True:
         try:
             items = client.search_anime(bangumi_name)
@@ -61,19 +61,19 @@ def get_animelist_info(bangumi_name) -> Tuple[Optional[str], Optional[str]]:
 
     # noinspection DuplicatedCode
     if not items:
-        return None, None
+        return None, None, None
 
     for item_ in items:
         if item_['type'] and item_['type'].lower() in {"tv", "movie", "ova", "special", "ona"}:
             item = item_
             break
     else:
-        return None, None
+        return None, None, None
 
     bangumi_url = item['url']
     image_url = _get_image_url(item['images'])
 
-    return bangumi_url, image_url
+    return item['mal_id'], bangumi_url, image_url
 
 
 def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
@@ -84,6 +84,7 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
         readme_file = os.path.join(td, 'README.md')
         with open(readme_file, 'w') as f:
             rows, total_images, total_clusters, total_animes = [], 0, 0, 0
+            data_rows = []
             for item in tqdm(list(hf_client.list_datasets(author=get_global_bg_namespace()))):
                 if not hf_fs.exists(f'datasets/{item.id}/meta.json'):
                     logging.info(f'No meta information found for {item.id!r}, skipped')
@@ -97,7 +98,7 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
                 models_cnt = len([x for x in cb_models if fnmatch.fnmatch(x, f'CyberHarem/*_{suffix}')])
 
                 logging.info(f'Getting post url for {bangumi_name!r} ...')
-                page_url, post_url = get_animelist_info(bangumi_name)
+                anime_id, page_url, post_url = get_animelist_info(bangumi_name)
                 if post_url:
                     post_file = os.path.join(td, 'posts', f'{suffix}.jpg')
                     os.makedirs(os.path.dirname(post_file), exist_ok=True)
@@ -128,6 +129,17 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
                                 f'search_models=_{suffix}&search_datasets=_{suffix})',
                     'Models': f'[{models_cnt}](https://huggingface.co/CyberHarem?'
                               f'search_models=_{suffix}&search_datasets=_{suffix})',
+                })
+                data_rows.append({
+                    'id': anime_id,
+                    'myanimelist_url': page_url,
+                    'cover_image_url': post_url,
+                    'repo_id': item.id,
+                    'bangumi_name': bangumi_name,
+                    'images': meta['total'],
+                    'clusters': len([x for x in meta['ids'] if x != -1]),
+                    'suffix': suffix,
+                    'updated_at': last_modified.timestamp(),
                 })
                 total_images += meta['total']
                 total_clusters += len([x for x in meta['ids'] if x != -1])
@@ -166,6 +178,9 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
             rows = sorted(rows, key=lambda x: dateparser.parse(x['Last Modified']), reverse=True)
             df = pd.DataFrame(rows)
             print(df.to_markdown(index=False), file=f)
+
+            df_data = pd.DataFrame(data_rows)
+            df_data.to_parquet(os.path.join(td, 'data.parquet'), engine='pyarrow', index=False)
 
         operations = []
         for directory, _, files in os.walk(td):
