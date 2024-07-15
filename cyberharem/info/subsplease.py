@@ -4,6 +4,7 @@ import re
 import time
 import warnings
 from dataclasses import asdict
+from pprint import pprint
 from urllib.parse import urljoin, quote_plus
 
 import numpy as np
@@ -84,25 +85,33 @@ if __name__ == '__main__':
             else:
                 break
         collected_aitems = []
+        type_map = {'tv': 0, 'movie': 1, 'ova': 2, 'ona': 2}
         for i, pyaitem in enumerate(jikan_items):
-            if pyaitem['type'] and pyaitem['type'].lower() not in ['tv', 'movie', 'ova', 'ona']:
+            if not pyaitem['type'] or pyaitem['type'].lower() not in type_map:
                 continue
 
-            max_ratio = max(
+            max_partial_ratio = max(
                 fuzz.partial_ratio(
                     _name_safe(title).lower(),
                     _name_safe(title_item['title']).lower(),
                 ) for title_item in pyaitem['titles']
             ) / 100.0
-            if max_ratio > 0.9:
-                collected_aitems.append((-max_ratio, i, pyaitem))
+            max_ratio = max(
+                fuzz.ratio(
+                    _name_safe(title).lower(),
+                    _name_safe(title_item['title']).lower(),
+                ) for title_item in pyaitem['titles']
+            ) / 100.0
+            if max_partial_ratio > 0.9:
+                collected_aitems.append((
+                    -max_partial_ratio, -max_ratio, type_map[pyaitem['type'].lower()], i, pyaitem))
 
         if not collected_aitems:
             logging.warning('No information found on myanime list, skipped.')
             continue
         else:
             collected_aitems = sorted(collected_aitems)
-            _, _, myanime_item = collected_aitems[0]
+            _, _, _, _, myanime_item = collected_aitems[0]
             logging.info(f'Found on myanimelist: {myanime_item["url"]!r} ...')
 
         vs = []
@@ -227,8 +236,11 @@ if __name__ == '__main__':
                 'ID': aitem['id'],
                 'Post': post_md,
                 'Bangumi': f'[{safe_bangumi_name}]({aitem["subsplease_url"]})',
+                'Type': aitem['type'],
                 'Episodes': f'{aitem["subsplease_episodes"]} / {int(aitem["episodes"]) if aitem["episodes"] else "?"}',
                 'Status': aitem['status'] if aitem['airing'] else f'**{aitem["status"]}**',
+                'Score': aitem['score'],
+                'Popularity': aitem['popularity'],
                 'Nyaasi': f'[Search]({nyaasi_url})',
                 'Magnets': f'[Download]({magnet_url})',
                 'Seeders': seeders_md,
