@@ -4,7 +4,6 @@ import re
 import time
 import warnings
 from dataclasses import asdict
-from pprint import pprint
 from urllib.parse import urljoin, quote_plus
 
 import numpy as np
