@@ -141,6 +141,7 @@ if __name__ == '__main__':
     df_episodes = pd.DataFrame(episodes)
     df_animes = pd.DataFrame(animes)
     df_animes = df_animes.sort_values(by=['subsplease_seeders_std75', 'id'], ascending=[False, False])
+    df_animes = df_animes.replace(np.NaN, None)
 
     logging.info(f'Episodes:\n{df_episodes}')
     logging.info(f'Animes:\n{df_animes}')
@@ -211,7 +212,7 @@ if __name__ == '__main__':
                 'ID': aitem['id'],
                 'Post': post_md,
                 'Bangumi': f'[{safe_bangumi_name}]({aitem["subsplease_url"]})',
-                'Episodes': f'{aitem["subsplease_episodes"]} / {aitem["episodes"]}',
+                'Episodes': f'{aitem["subsplease_episodes"]} / {int(aitem["episodes"]) if aitem["episodes"] else "?"}',
                 'Status': aitem['status'] if aitem['airing'] else f'**{aitem["status"]}**',
                 'Nyaasi': f'[Search]({nyaasi_url})',
                 'Magnets': f'[Download]({magnet_url})',
