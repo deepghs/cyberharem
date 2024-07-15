@@ -71,7 +71,6 @@ if __name__ == '__main__':
         title = show_item('a').text().strip()
         logging.info(f'Anime {title!r}, homepage url: {url!r} ...')
 
-        myanime_item = None
         logging.info('Search information from myanimelist ...')
         while True:
             try:
@@ -84,7 +83,8 @@ if __name__ == '__main__':
                     raise
             else:
                 break
-        for pyaitem in jikan_items:
+        collected_aitems = []
+        for i, pyaitem in enumerate(jikan_items):
             if pyaitem['type'] and pyaitem['type'].lower() not in ['tv', 'movie', 'ova', 'ona']:
                 continue
 
@@ -95,14 +95,15 @@ if __name__ == '__main__':
                 ) for title_item in pyaitem['titles']
             ) / 100.0
             if max_ratio > 0.9:
-                myanime_item = pyaitem
-                break
+                collected_aitems.append((-max_ratio, i, pyaitem))
 
-        if myanime_item:
-            logging.info(f'Found on myanimelist: {myanime_item["url"]!r} ...')
-        else:
+        if not collected_aitems:
             logging.warning('No information found on myanime list, skipped.')
             continue
+        else:
+            collected_aitems = sorted(collected_aitems)
+            _, _, myanime_item = collected_aitems[0]
+            logging.info(f'Found on myanimelist: {myanime_item["url"]!r} ...')
 
         vs = []
         search_query_text = f'subsplease {_name_safe(title)} 1080p mkv'
