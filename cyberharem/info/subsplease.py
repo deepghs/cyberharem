@@ -71,7 +71,7 @@ if __name__ == '__main__':
         myanime_item = None
         logging.info('Search information from myanimelist ...')
         for pyaitem in jikan_client.search_anime(query=title):
-            if pyaitem['type'].lower() not in ['tv', 'movie', 'ova', 'ona']:
+            if pyaitem['type'] and pyaitem['type'].lower() not in ['tv', 'movie', 'ova', 'ona']:
                 continue
 
             max_ratio = max(
