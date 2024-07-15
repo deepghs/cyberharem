@@ -189,7 +189,7 @@ if __name__ == '__main__':
             last_updated = datetime.datetime.fromtimestamp(
                 df_anime_episodes['timestamp'].max().item()).strftime('%Y-%m-%d %H:%M')
 
-            suffix = _name_safe(aitem['title']).replace(' ', '_').lower()
+            suffix = f'{aitem["id"]}__{_name_safe(aitem["title"]).replace(" ", "_").lower()}'
             post_file = os.path.join(images_dir, f'{suffix}.jpg')
             os.makedirs(os.path.dirname(post_file), exist_ok=True)
             if aitem['cover_image_url']:
@@ -275,6 +275,7 @@ if __name__ == '__main__':
             repo_type='dataset',
             local_directory=td,
             path_in_repo='.',
-            message=f'Sync {plural_word(len(df_l_shown), "anime")}, '
+            message=f'Sync {plural_word(len(df_animes), "anime")}, '
                     f'with {plural_word(len(df_episodes), "episode")}',
+            clear=True,
         )
