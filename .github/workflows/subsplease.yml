@@ -63,15 +63,10 @@ jobs:
           pip list
           tree .
       - name: Run Game Crawler
-        uses: nick-fields/retry@v2
+        shell: bash
         env:
           CI: 'true'
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        with:
-          shell: bash
-          timeout_minutes: 180
-          max_attempts: 5
-          retry_on: any
-          command: |
-            python -m cyberharem.info.subsplease
+        run: |
+          python -m cyberharem.info.subsplease
 
