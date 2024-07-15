@@ -91,7 +91,7 @@ def publish_to_discord(repository: str, max_cnt: int = 30):
         bangumi_name = meta_info['name']
         logging.info(f'Getting post url for {bangumi_name!r} ...')
         from .bangumibase import get_animelist_info
-        page_url, post_url = get_animelist_info(bangumi_name)
+        _, page_url, post_url = get_animelist_info(bangumi_name)
         if post_url:
             post_file = os.path.join(std, 'posts', f'{bangumi_name}.jpg')
             os.makedirs(os.path.dirname(post_file), exist_ok=True)
