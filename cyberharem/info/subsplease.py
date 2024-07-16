@@ -239,12 +239,11 @@ if __name__ == '__main__':
                 'Episodes': f'{aitem["subsplease_episodes"]} / {int(aitem["episodes"]) if aitem["episodes"] else "?"}',
                 'Status': aitem['status'] if aitem['airing'] else f'**{aitem["status"]}**',
                 'Score': aitem['score'],
-                'Popularity': aitem['popularity'],
                 'Nyaasi': f'[Search]({nyaasi_url})',
                 'Magnets': f'[Download]({magnet_url})',
-                'Seeders': seeders_md,
+                'Seeds': seeders_md,
                 'Downloads': int(round(aitem['subsplease_downloads_avg'])),
-                'Last Updated': last_updated,
+                'Updated At': last_updated,
             })
         df_l_shown = pd.DataFrame(l_shown)
 
@@ -273,9 +272,10 @@ if __name__ == '__main__':
 
             print(f'## Current Animes', file=f)
             print('', file=f)
+            current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
             print(f'{plural_word(len(df_animes), "anime")}, '
                   f'{plural_word(len(df_episodes), "episode")} in total, '
-                  f'Last updated on: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}.', file=f)
+                  f'Last updated on: `{current_time}`.', file=f)
             print('', file=f)
             print(df_l_shown.to_markdown(index=False), file=f)
             print('', file=f)
