@@ -248,8 +248,8 @@ def list_():
 @cli.command('extract', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Make task list')
 def extract():
     logging.try_init_root(logging.INFO)
-    world_size = os.environ['CH_WORLD_SIZE']
-    rank = os.environ['CH_RANK']
+    world_size = int(os.environ['CH_WORLD_SIZE'])
+    rank = int(os.environ['CH_RANK'])
     logging.info(f'World size: {world_size}, rank: {rank}.')
     anime_ids = get_task_list()[rank::world_size]
     logging.info(f'{plural_word(len(anime_ids), "anime")} in total.')
