@@ -46,7 +46,8 @@ def _get_image_url(image_dict: dict):
         return None
 
 
-def get_animelist_info(bangumi_name) -> Tuple[Optional[int], Optional[str], Optional[str]]:
+def get_animelist_info(bangumi_name, bangumi_id: Optional[int] = None) \
+        -> Tuple[Optional[int], Optional[str], Optional[str]]:
     while True:
         try:
             items = client.search_anime(bangumi_name)
@@ -64,7 +65,8 @@ def get_animelist_info(bangumi_name) -> Tuple[Optional[int], Optional[str], Opti
         return None, None, None
 
     for item_ in items:
-        if item_['type'] and item_['type'].lower() in {"tv", "movie", "ova", "special", "ona"}:
+        if (bangumi_id and item_['mal_id'] == bangumi_id) or \
+                (item_['type'] and item_['type'].lower() in {"tv", "movie", "ova", "special", "ona"}):
             item = item_
             break
     else:
@@ -98,7 +100,8 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
                 models_cnt = len([x for x in cb_models if fnmatch.fnmatch(x, f'CyberHarem/*_{suffix}')])
 
                 logging.info(f'Getting post url for {bangumi_name!r} ...')
-                anime_id, page_url, post_url = get_animelist_info(bangumi_name)
+                anime_id, page_url, post_url = get_animelist_info(
+                    bangumi_name, bangumi_id=meta.get('myanimelist_id'))
                 if post_url:
                     post_file = os.path.join(td, 'posts', f'{suffix}.jpg')
                     os.makedirs(os.path.dirname(post_file), exist_ok=True)
