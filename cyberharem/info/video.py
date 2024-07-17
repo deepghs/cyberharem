@@ -2,6 +2,7 @@ import glob
 import json
 import logging
 import os.path
+import re
 import shutil
 import subprocess
 from contextlib import contextmanager
@@ -11,8 +12,10 @@ from typing import ContextManager, Tuple
 import pandas as pd
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_download
+from unidecode import unidecode
 
 from .subsplease import _name_safe
+from ..utils import get_global_bg_namespace
 
 
 @lru_cache()
@@ -162,3 +165,34 @@ def download_anime_videos(anime_id: int):
 
     else:
         logging.info(f'Anime {anime_id!r} ({meta["title"]!r}) already downloaded, skipped.')
+
+
+def make_bangumibase(anime_id, min_size: int = 320, no_extract: bool = False,
+                     max_images_limit: int = 50000, all_frames: bool = False):
+    logging.info(f'Try downloading {anime_id!r} ...')
+    download_anime_videos(anime_id)
+
+    from ..dataset.video.extract import extract_to_huggingface
+
+    workspace, meta, status = get_workspace_info(anime_id)
+    logging.info(f'Workspace for anime {anime_id!r}: {workspace}')
+    bangumi_name = meta['title']
+    rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))
+    repository = f"{get_global_bg_namespace()}/{rname}"
+    logging.info(f'Bangumi name: {bangumi_name!r}, repository: {repository!r}.')
+    videos_dir = os.path.join(workspace, 'videos')
+    extract_to_huggingface(
+        video_or_directory=videos_dir,
+        bangumi_name=bangumi_name,
+        repository=repository,
+        revision='main',
+        no_extract=no_extract,
+        min_size=min_size,
+        max_images_limit=max_images_limit,
+        all_frames=all_frames,
+    )
+    with open(os.path.join(workspace, 'status.json'), 'w') as f:
+        json.dump({
+            'status': 'completed',
+        }, f, ensure_ascii=False, sort_keys=True, indent=4)
+    logging.info('Extraction complete!')
