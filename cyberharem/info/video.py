@@ -67,15 +67,20 @@ def get_anime_episodes(anime_id: int) -> pd.DataFrame:
 
 
 @contextmanager
-def mock_magnet_input_file(anime_id: int) -> ContextManager[Tuple[str, int]]:
+def mock_magnet_input_file(anime_id: int, min_seeders: int = 6) -> ContextManager[Tuple[str, int]]:
     with TemporaryDirectory() as td:
         count = 0
         magnet_file = os.path.join(td, 'magnets.txt')
         with open(magnet_file, 'w') as f:
             for item in get_anime_episodes(anime_id).to_dict('records'):
-                print(item['magnet_url'], file=f)
-                count += 1
+                if item['seeders'] >= min_seeders:
+                    print(item['magnet_url'], file=f)
+                    count += 1
+                else:
+                    logging.warning(f'Resource {item["title"]!r} has too few seeders ({item["seeders"]}), skipped.')
 
+        if count < 4:
+            raise ValueError(f'Magnet count too few - {count!r}.')
         yield magnet_file, count
 
 
@@ -256,6 +261,11 @@ def extract():
     logging.info(f'{plural_word(len(anime_ids), "anime")} in total.')
 
     for anime_id in tqdm(anime_ids, desc='Extract Animes'):
+        logging.info(f'Try downloading {anime_id!r} ...')
+        try:
+            download_anime_videos(anime_id)
+        except ValueError as err:
+            logging.info(f'Download error - {err!r}.')
         make_bangumibase(anime_id, all_frames=True, max_images_limit=35000)
 
 
