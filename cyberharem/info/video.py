@@ -178,7 +178,7 @@ def download_anime_videos(anime_id: int, min_video_files: int = 4):
                 if len(video_files) < min_video_files:
                     raise ValueError(f'Too few video files - {video_files!r}.')
                 else:
-                    logging.info(f'{plural_word(len(video_files), "video file")} found in {cwd!f}.')
+                    logging.info(f'{plural_word(len(video_files), "video file")} found in {cwd!r}.')
 
             process.check_returncode()
 
