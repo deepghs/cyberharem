@@ -1,19 +1,24 @@
 import glob
 import json
-import logging
 import os.path
 import re
 import shutil
 import subprocess
 from contextlib import contextmanager
-from functools import lru_cache
+from functools import lru_cache, partial
 from typing import ContextManager, Tuple
 
+import click
 import pandas as pd
+from ditk import logging
+from gchar.utils import print_version as _origin_print_version
+from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_download
+from tqdm import tqdm
 from unidecode import unidecode
 
+from cyberharem.utils.cli import GLOBAL_CONTEXT_SETTINGS
 from .subsplease import _name_safe
 from ..utils import get_global_bg_namespace
 
@@ -200,3 +205,57 @@ def make_bangumibase(anime_id, force_remake: bool = False, min_size: int = 320, 
             'status': 'completed',
         }, f, ensure_ascii=False, sort_keys=True, indent=4)
     logging.info('Extraction complete!')
+
+
+def prepare_task_list():
+    df = get_available_animes()
+    anime_ids = []
+    for item in tqdm(df.to_dict('records')[::-1], desc='Preparing'):
+        logging.info(f'Preparing for {item["id"]!r} ({item["title"]!r}) ...')
+        get_workspace_info(item['id'])
+        anime_ids.append(item['id'])
+
+    _task_list_file = os.path.join(_ANIME_ROOT, 'task_list.json')
+    if os.path.dirname(_task_list_file):
+        os.makedirs(os.path.dirname(_task_list_file), exist_ok=True)
+    logging.info(f'Saving to task list {_task_list_file} ...')
+    with open(_task_list_file, 'w') as f:
+        json.dump(anime_ids, f, ensure_ascii=False, sort_keys=True, indent=4)
+
+
+def get_task_list():
+    _task_list_file = os.path.join(_ANIME_ROOT, 'task_list.json')
+    logging.info(f'Loading task list {_task_list_file} ...')
+    with open(_task_list_file, 'r') as f:
+        return json.load(f)
+
+
+print_version = partial(_origin_print_version, 'cyberharem.info.video')
+
+
+@click.group(context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Progress anime info')
+@click.option('-v', '--version', is_flag=True, callback=print_version, expose_value=False, is_eager=True)
+def cli():
+    pass  # pragma: no cover
+
+
+@cli.command('list', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Make task list')
+def list_():
+    logging.try_init_root(logging.INFO)
+    prepare_task_list()
+
+
+@cli.command('extract', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Make task list')
+def extract():
+    logging.try_init_root(logging.INFO)
+    world_size = os.environ['CH_WORLD_SIZE']
+    rank = os.environ['CH_RANK']
+    anime_ids = get_task_list()[rank::world_size]
+    logging.info(f'{plural_word(len(anime_ids), "anime")} in total.')
+
+    for anime_id in tqdm(anime_ids, desc='Extract Animes'):
+        make_bangumibase(anime_id, all_frames=True, max_images_limit=35000)
+
+
+if __name__ == '__main__':
+    cli()
