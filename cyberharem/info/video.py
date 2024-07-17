@@ -1,5 +1,6 @@
 import glob
 import json
+import mimetypes
 import os.path
 import re
 import shutil
@@ -142,7 +143,7 @@ def get_workspace_info(anime_id: int):
 _ARIA2C = shutil.which('aria2c')
 
 
-def download_anime_videos(anime_id: int):
+def download_anime_videos(anime_id: int, min_video_files: int = 4):
     workspace, meta, status = get_workspace_info(anime_id)
     if status == 'pending':  # need downloading
         if not _ARIA2C:
@@ -164,6 +165,21 @@ def download_anime_videos(anime_id: int):
                 },
                 bufsize=0,
             )
+            if process.returncode != 0:
+                if glob.glob(os.path.join(cwd, '**', '*.aria2'), recursive=True):
+                    raise ChildProcessError(f'Uncompleted download at {cwd!r}.')
+
+                video_files = []
+                for root, _, files in os.walk(cwd):
+                    for file in files:
+                        mimetype, _ = mimetypes.guess_type(file)
+                        if mimetype.startswith('video/'):
+                            video_files.append(file)
+                if len(video_files) < min_video_files:
+                    raise ValueError(f'Too few video files - {video_files!r}.')
+                else:
+                    logging.info(f'{plural_word(len(video_files), "video file")} found in {cwd!f}.')
+
             process.check_returncode()
 
             with open(os.path.join(workspace, 'status.json'), 'w') as f:
