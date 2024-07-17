@@ -95,7 +95,7 @@ def _get_anime_workspace(anime_id: int) -> str:
 
 def _init_anime_workspace(anime_id: int):
     item = _get_anime_info(anime_id)
-    workspace = get_anime_token(anime_id)
+    workspace = _get_anime_workspace(anime_id)
     os.makedirs(workspace, exist_ok=True)
     with open(os.path.join(workspace, 'meta.json'), 'w') as f:
         json.dump(item, f, indent=4, sort_keys=True, ensure_ascii=False)
@@ -137,11 +137,13 @@ def download_anime_videos(anime_id: int):
 
         with mock_magnet_input_file(anime_id) as (magnet_file, magnet_count):
             commands = [_ARIA2C, '--seed-time=0', '-i', magnet_file, '-j', str(magnet_count)]
+            cwd = os.path.join(workspace, 'videos')
+            os.makedirs(cwd, exist_ok=True)
             logging.info(f'Downloading anime {anime_id!r} ({meta["title"]!r}) with '
-                         f'command {commands!r}, workspace: {workspace!r} ...')
+                         f'command {commands!r}, workdir: {cwd!r} ...')
             terminal_size = os.get_terminal_size()
             process = subprocess.run(
-                commands, cwd=workspace,
+                commands, cwd=cwd,
                 env={
                     **os.environ,
                     'COLUMNS': str(terminal_size.columns),
