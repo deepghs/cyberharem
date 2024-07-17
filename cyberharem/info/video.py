@@ -209,8 +209,9 @@ def make_bangumibase(anime_id, force_remake: bool = False, min_size: int = 320, 
 
 def prepare_task_list():
     df = get_available_animes()
+    df = df.sort_values(by=['subsplease_seeders_std75', 'id'], ascending=[True, True])
     anime_ids = []
-    for item in tqdm(df.to_dict('records')[::-1], desc='Preparing'):
+    for item in tqdm(df.to_dict('records'), desc='Preparing'):
         logging.info(f'Preparing for {item["id"]!r} ({item["title"]!r}) ...')
         get_workspace_info(item['id'])
         anime_ids.append(item['id'])
