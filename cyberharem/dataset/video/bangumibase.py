@@ -64,13 +64,19 @@ def get_animelist_info(bangumi_name, bangumi_id: Optional[int] = None) \
     if not items:
         return None, None, None
 
-    for item_ in items:
+    all_items = []
+    for i, item_ in enumerate(items):
         if (bangumi_id and item_['mal_id'] == bangumi_id) or \
                 (item_['type'] and item_['type'].lower() in {"tv", "movie", "ova", "special", "ona"}):
-            item = item_
-            break
-    else:
+            all_items.append((
+                0 if (bangumi_id and item_['mal_id'] == bangumi_id) else 1,
+                i,
+                item_
+            ))
+
+    if not all_items:
         return None, None, None
+    _, _, item = sorted(all_items)[0]
 
     bangumi_url = item['url']
     image_url = _get_image_url(item['images'])
