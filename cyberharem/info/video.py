@@ -167,7 +167,9 @@ def download_anime_videos(anime_id: int, min_video_files: int = 4):
             )
             if process.returncode != 0:
                 if glob.glob(os.path.join(cwd, '**', '*.aria2'), recursive=True):
-                    raise ChildProcessError(f'Uncompleted download at {cwd!r}.')
+                    raise ChildProcessError(f'Uncompleted download at {cwd!r}, exitcode {process.returncode}.')
+                else:
+                    logging.warning(f'Completed download, but exit {process.returncode}.')
 
             video_files = []
             for root, _, files in os.walk(cwd):
@@ -179,8 +181,6 @@ def download_anime_videos(anime_id: int, min_video_files: int = 4):
                 raise ValueError(f'Too few video files - {video_files!r}.')
             else:
                 logging.info(f'{plural_word(len(video_files), "video file")} found in {cwd!r}.')
-
-            process.check_returncode()
 
             with open(os.path.join(workspace, 'status.json'), 'w') as f:
                 json.dump({
