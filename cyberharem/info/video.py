@@ -169,16 +169,16 @@ def download_anime_videos(anime_id: int, min_video_files: int = 4):
                 if glob.glob(os.path.join(cwd, '**', '*.aria2'), recursive=True):
                     raise ChildProcessError(f'Uncompleted download at {cwd!r}.')
 
-                video_files = []
-                for root, _, files in os.walk(cwd):
-                    for file in files:
-                        mimetype, _ = mimetypes.guess_type(file)
-                        if mimetype.startswith('video/'):
-                            video_files.append(file)
-                if len(video_files) < min_video_files:
-                    raise ValueError(f'Too few video files - {video_files!r}.')
-                else:
-                    logging.info(f'{plural_word(len(video_files), "video file")} found in {cwd!r}.')
+            video_files = []
+            for root, _, files in os.walk(cwd):
+                for file in files:
+                    mimetype, _ = mimetypes.guess_type(file)
+                    if mimetype.startswith('video/'):
+                        video_files.append(file)
+            if len(video_files) < min_video_files:
+                raise ValueError(f'Too few video files - {video_files!r}.')
+            else:
+                logging.info(f'{plural_word(len(video_files), "video file")} found in {cwd!r}.')
 
             process.check_returncode()
 
