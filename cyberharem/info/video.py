@@ -162,19 +162,22 @@ def download_anime_videos(anime_id: int):
                 }, f, ensure_ascii=False, sort_keys=True, indent=4)
             logging.info('Download complete!')
 
-
     else:
         logging.info(f'Anime {anime_id!r} ({meta["title"]!r}) already downloaded, skipped.')
 
 
-def make_bangumibase(anime_id, min_size: int = 320, no_extract: bool = False,
-                     max_images_limit: int = 50000, all_frames: bool = False):
+def make_bangumibase(anime_id, force_remake: bool = False, min_size: int = 320, no_extract: bool = False,
+                     max_images_limit: int = 50000, all_frames: bool = False, ):
     logging.info(f'Try downloading {anime_id!r} ...')
     download_anime_videos(anime_id)
 
     from ..dataset.video.extract import extract_to_huggingface
 
     workspace, meta, status = get_workspace_info(anime_id)
+    if not force_remake and status == 'completed':
+        logging.info(f'Anime {anime_id!r} already maked, skipped.')
+        return
+
     logging.info(f'Workspace for anime {anime_id!r}: {workspace}')
     bangumi_name = meta['title']
     rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))
@@ -190,6 +193,7 @@ def make_bangumibase(anime_id, min_size: int = 320, no_extract: bool = False,
         min_size=min_size,
         max_images_limit=max_images_limit,
         all_frames=all_frames,
+        myanimelist_id=meta['id'],
     )
     with open(os.path.join(workspace, 'status.json'), 'w') as f:
         json.dump({

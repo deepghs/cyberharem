@@ -159,7 +159,8 @@ def cluster_from_directory(src_dir, dst_dir, merge_threshold: float = 0.85, clu_
     return ids
 
 
-def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_count: int = 8, regsize: int = 2000):
+def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_count: int = 8, regsize: int = 2000,
+                             myanimelist_id: Optional[int] = None):
     total_image_cnt = 0
     columns = ['#', 'Images', 'Download', *(f'Preview {i}' for i in range(1, preview_count + 1))]
     rows = []
@@ -229,6 +230,7 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
             'name': bangumi_name,
             'ids': ids,
             'total': total_image_cnt,
+            'myanimelist_id': myanimelist_id,
         }, f, indent=4, sort_keys=True, ensure_ascii=False)
 
     with open(os.path.join(dst_dir, 'README.md'), 'w', encoding='utf-8') as f:
@@ -270,7 +272,8 @@ def create_project_by_result(bangumi_name: str, ids, clu_dir, dst_dir, preview_c
 @contextmanager
 def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: bool = False,
                         min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8,
-                        max_images_limit: Optional[int] = 50000, all_frames: bool = False):
+                        max_images_limit: Optional[int] = 50000, all_frames: bool = False,
+                        myanimelist_id: Optional[int] = None):
     if no_extract:
         source = LocalSource(video_or_directory)
     else:
@@ -310,7 +313,14 @@ def extract_from_videos(video_or_directory: str, bangumi_name: str, no_extract: 
             ids = cluster_from_directory(src_dir, clu_dir, merge_threshold)
 
             with TemporaryDirectory() as dst_dir:
-                create_project_by_result(bangumi_name, ids, clu_dir, dst_dir, preview_count)
+                create_project_by_result(
+                    bangumi_name=bangumi_name,
+                    ids=ids,
+                    clu_dir=clu_dir,
+                    dst_dir=dst_dir,
+                    preview_count=preview_count,
+                    myanimelist_id=myanimelist_id,
+                )
 
                 yield dst_dir
 
@@ -319,7 +329,7 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
                            repository: str, revision: str = 'main', no_extract: bool = False,
                            min_size: int = 320, merge_threshold: float = 0.85, preview_count: int = 8,
                            max_images_limit: Optional[int] = 50000, all_frames: bool = False,
-                           discord_publish: bool = True):
+                           discord_publish: bool = True, myanimelist_id: Optional[int] = None):
     logging.info(f'Initializing repository {repository!r} ...')
     hf_client = get_hf_client()
     hf_fs = get_hf_fs()
@@ -327,7 +337,8 @@ def extract_to_huggingface(video_or_directory: str, bangumi_name: str,
         hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)
 
     with extract_from_videos(video_or_directory, bangumi_name, no_extract,
-                             min_size, merge_threshold, preview_count, max_images_limit, all_frames) as dst_dir:
+                             min_size, merge_threshold, preview_count, max_images_limit, all_frames,
+                             myanimelist_id=myanimelist_id) as dst_dir:
         upload_directory_as_directory(
             local_directory=dst_dir,
             repo_id=repository,
