@@ -5,6 +5,7 @@ import os.path
 import re
 import shutil
 import subprocess
+import time
 from contextlib import contextmanager
 from functools import lru_cache, partial
 from typing import ContextManager, Tuple
@@ -13,6 +14,7 @@ import click
 import pandas as pd
 from ditk import logging
 from gchar.utils import print_version as _origin_print_version
+from hbutils.scale import time_to_delta_str
 from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from huggingface_hub import hf_hub_download
@@ -143,19 +145,20 @@ def get_workspace_info(anime_id: int):
 _ARIA2C = shutil.which('aria2c')
 
 
-def download_anime_videos(anime_id: int, min_video_files: int = 4):
+def download_anime_videos(anime_id: int, min_video_files: int = 4, seed_minutes: int = 1):
     workspace, meta, status = get_workspace_info(anime_id)
     if status == 'pending':  # need downloading
         if not _ARIA2C:
             raise EnvironmentError('No aria2c found, you can install by with `apt install aria2` on ubuntu.')
 
         with mock_magnet_input_file(anime_id) as (magnet_file, magnet_count):
-            commands = [_ARIA2C, '--seed-time=0', '-i', magnet_file, '-j', str(magnet_count)]
+            commands = [_ARIA2C, f'--seed-time={seed_minutes}', '-i', magnet_file, '-j', str(magnet_count)]
             cwd = os.path.join(workspace, 'videos')
             os.makedirs(cwd, exist_ok=True)
             logging.info(f'Downloading anime {anime_id!r} ({meta["title"]!r}) with '
                          f'command {commands!r}, workdir: {cwd!r} ...')
             terminal_size = os.get_terminal_size()
+            start_time = time.time()
             process = subprocess.run(
                 commands, cwd=cwd,
                 env={
@@ -165,11 +168,26 @@ def download_anime_videos(anime_id: int, min_video_files: int = 4):
                 },
                 bufsize=0,
             )
+            download_duration = time.time() - start_time
+            download_minutes = int(max(round(download_duration / 60.0), 1))
+            logging.info(f'Download duration: {time_to_delta_str(download_duration)}')
             if process.returncode != 0:
                 if glob.glob(os.path.join(cwd, '**', '*.aria2'), recursive=True):
                     raise ChildProcessError(f'Uncompleted download at {cwd!r}, exitcode {process.returncode}.')
                 else:
                     logging.warning(f'Completed download, but exit {process.returncode}.')
+
+            seed_command = [_ARIA2C, f'--seed-time={download_minutes}', '-i', magnet_file, '-j', str(magnet_count)]
+            logging.info(f'Seeding resource for {plural_word(download_minutes, "minute")}, '
+                         f'with command: {seed_command!r} ...')
+            devnull = open(os.devnull, 'w')
+            process = subprocess.Popen(
+                seed_command,
+                stdout=devnull,
+                stderr=devnull,
+                start_new_session=True
+            )
+            logging.info(f'Seeding process started, pid: {process} ...')
 
             video_files = []
             for root, _, files in os.walk(cwd):
