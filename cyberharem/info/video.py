@@ -145,7 +145,7 @@ def get_workspace_info(anime_id: int):
 _ARIA2C = shutil.which('aria2c')
 
 
-def download_anime_videos(anime_id: int, min_video_files: int = 4, seed_minutes: int = 1):
+def download_anime_videos(anime_id: int, min_video_files: int = 4, seed_minutes: int = 10):
     workspace, meta, status = get_workspace_info(anime_id)
     if status == 'pending':  # need downloading
         if not _ARIA2C:
