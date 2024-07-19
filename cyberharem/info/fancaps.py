@@ -84,11 +84,6 @@ def get_fancaps_bangumis(repository: str):
                         'fancaps_url': f'https://fancaps.net/anime/showimages.php?{item["bangumi_id"]}',
                     })
 
-            if len(fancaps_records) > 10:
-                break
-        if len(fancaps_records) > 10:
-            break
-
     df_animes = pd.DataFrame(fancaps_records)
     df_animes['fancaps_episodes'] = [len(bangumi_eps[x]) for x in df_animes['fancaps_id']]
     df_animes['fancaps_images'] = [bangumi_images[x] for x in df_animes['fancaps_id']]
