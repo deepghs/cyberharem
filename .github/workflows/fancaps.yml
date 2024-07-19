@@ -7,7 +7,7 @@ on:
   #  push:
   workflow_dispatch:
   schedule:
-    - cron: '30 7 * * *'
+    - cron: '30 19 * * *'
 
 jobs:
   bangumibase_sync:
