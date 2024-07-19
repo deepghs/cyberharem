@@ -23,6 +23,8 @@ def get_fancaps_bangumis(repository: str):
 
     hf_fs = get_hf_fs()
     hf_client = get_hf_client()
+    if not hf_client.repo_exists(repo_id=repository, repo_type='dataset'):
+        hf_client.create_repo(repo_id=repository, repo_type='dataset')
 
     fs_path = [
         os.path.relpath(path, f'datasets/{fancaps_repo}') for path in
