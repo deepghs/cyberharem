@@ -90,7 +90,7 @@ def get_fancaps_bangumis(repository: str):
             break
 
     df_animes = pd.DataFrame(fancaps_records)
-    df_animes['fancaps_episodes'] = [bangumi_eps[x] for x in df_animes['fancaps_id']]
+    df_animes['fancaps_episodes'] = [len(bangumi_eps[x]) for x in df_animes['fancaps_id']]
     df_animes['fancaps_images'] = [bangumi_images[x] for x in df_animes['fancaps_id']]
     df_animes = df_animes.sort_values(by=['id'], ascending=[False])
     df_animes = df_animes.replace(np.NaN, None)
