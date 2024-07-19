@@ -1,6 +1,8 @@
 import os
 
 import pandas as pd
+from ditk import logging
+from hfutils.cache import delete_detached_cache
 
 from ..utils import get_hf_fs, get_hf_client
 
@@ -25,4 +27,6 @@ def get_fancaps_bangumis():
 
 
 if __name__ == '__main__':
+    logging.try_init_root(logging.INFO)
+    delete_detached_cache()
     get_fancaps_bangumis()

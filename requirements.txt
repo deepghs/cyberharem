@@ -30,7 +30,7 @@ tqdm
 # for cuda 11
 torch<2.1,>=2
 pyanimeinfo>=0.0.2
-hfutils>=0.2.5
+hfutils>=0.2.11
 filelock
 git+https://github.com/deepghs/sdeval.git@main
 safetensors
