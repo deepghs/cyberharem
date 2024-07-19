@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from ditk import logging
 from hfutils.cache import delete_detached_cache
+from tqdm import tqdm
 
 from ..utils import get_hf_fs, get_hf_client
 
@@ -18,12 +19,14 @@ def get_fancaps_bangumis():
         hf_fs.glob(f'datasets/{fancaps_repo}/tables/table-*.csv')
     ]
     for path in fs_path:
-        for df_chunk in pd.read_csv(hf_client.hf_hub_download(
+        for df_chunk in tqdm(pd.read_csv(hf_client.hf_hub_download(
                 repo_id=fancaps_repo,
                 repo_type='dataset',
                 filename=path,
-        ), chunksize=10000):
+        ), chunksize=10000), desc=f'Read Chunk {path!r}'):
             print(df_chunk)
+            print(df_chunk.columns)
+            quit()
 
 
 if __name__ == '__main__':
