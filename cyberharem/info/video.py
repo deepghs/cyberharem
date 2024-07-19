@@ -70,7 +70,7 @@ def get_anime_episodes(anime_id: int) -> pd.DataFrame:
 
 
 @contextmanager
-def mock_magnet_input_file(anime_id: int, min_seeders: int = 6) -> ContextManager[Tuple[str, int]]:
+def mock_magnet_input_file(anime_id: int, min_seeders: int = 10) -> ContextManager[Tuple[str, int]]:
     with TemporaryDirectory() as td:
         count = 0
         magnet_file = os.path.join(td, 'magnets.txt')
