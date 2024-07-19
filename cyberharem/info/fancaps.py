@@ -93,6 +93,7 @@ def get_fancaps_bangumis(repository: str):
     df_animes['fancaps_episodes'] = [bangumi_eps[x] for x in df_animes['fancaps_id']]
     df_animes['fancaps_images'] = [bangumi_images[x] for x in df_animes['fancaps_id']]
     df_animes = df_animes.sort_values(by=['id'], ascending=[False])
+    df_animes = df_animes.replace(np.NaN, None)
     logging.info(f'Animes:\b{df_animes}')
     with TemporaryDirectory() as td:
         animes_file = os.path.join(td, 'animes.parquet')
