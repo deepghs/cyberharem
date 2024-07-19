@@ -131,10 +131,14 @@ def get_fancaps_bangumis(repository: str):
                 'Post': post_md,
                 'Bangumi': f'[{safe_bangumi_name}]({aitem["fancaps_url"]})',
                 'Type': aitem['type'],
+                'Year': aitem['year'],
+                'Season': aitem['season'],
+                'Duration': aitem['duration'],
                 'Episodes': f'{aitem["fancaps_episodes"]} / {int(aitem["episodes"]) if aitem["episodes"] else "?"}',
                 'Images': aitem['fancaps_images'],
                 'Status': aitem['status'] if aitem['airing'] else f'**{aitem["status"]}**',
                 'Score': aitem['score'],
+                'Fancaps': f'[Episodes]({aitem["fancaps_url"]})',
             })
         df_l_shown = pd.DataFrame(l_shown)
 
