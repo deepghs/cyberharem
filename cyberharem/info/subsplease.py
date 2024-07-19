@@ -1,8 +1,6 @@
 import datetime
 import os.path
 import re
-import time
-import warnings
 from dataclasses import asdict
 from urllib.parse import urljoin, quote_plus
 
@@ -14,15 +12,13 @@ from hbutils.string import plural_word
 from hbutils.system import TemporaryDirectory
 from hfutils.operate import upload_directory_as_directory
 from huggingface_hub import hf_hub_url
-from pyanimeinfo.myanimelist import JikanV4Client
 from pynyaasi.nyaasi import NyaaSiClient
 from pyquery import PyQuery as pq
-from requests import HTTPError
-from thefuzz import fuzz
 from tqdm import tqdm
 
-from cyberharem.dataset.video.bangumibase import hf_client
-from cyberharem.utils import get_requests_session, download_file, number_to_tag
+from .myanimelist import search_from_myanimelist
+from ..dataset.video.bangumibase import hf_client
+from ..utils import get_requests_session, download_file, number_to_tag
 
 logging.try_init_root(logging.INFO)
 session = get_requests_session()
@@ -30,7 +26,6 @@ session = get_requests_session()
 resp = session.get('https://subsplease.org/shows/')
 page = pq(resp.text)
 nyaasi_client = NyaaSiClient()
-jikan_client = JikanV4Client()
 
 
 def _name_safe(name_text):
@@ -71,47 +66,9 @@ if __name__ == '__main__':
         title = show_item('a').text().strip()
         logging.info(f'Anime {title!r}, homepage url: {url!r} ...')
 
-        logging.info('Search information from myanimelist ...')
-        while True:
-            try:
-                jikan_items = jikan_client.search_anime(query=title)
-            except HTTPError as err:
-                if err.response.status_code == 429:
-                    warnings.warn(f'429 error detected: {err!r}, wait for some seconds ...')
-                    time.sleep(5.0)
-                else:
-                    raise
-            else:
-                break
-        collected_aitems = []
-        type_map = {'tv': 0, 'movie': 1, 'ova': 2, 'ona': 2}
-        for i, pyaitem in enumerate(jikan_items):
-            if not pyaitem['type'] or pyaitem['type'].lower() not in type_map:
-                continue
-
-            max_partial_ratio = max(
-                fuzz.partial_ratio(
-                    _name_safe(title).lower(),
-                    _name_safe(title_item['title']).lower(),
-                ) for title_item in pyaitem['titles']
-            ) / 100.0
-            max_ratio = max(
-                fuzz.ratio(
-                    _name_safe(title).lower(),
-                    _name_safe(title_item['title']).lower(),
-                ) for title_item in pyaitem['titles']
-            ) / 100.0
-            if max_partial_ratio > 0.9:
-                collected_aitems.append((
-                    -max_partial_ratio, -max_ratio, type_map[pyaitem['type'].lower()], i, pyaitem))
-
-        if not collected_aitems:
-            logging.warning('No information found on myanime list, skipped.')
+        myanime_item = search_from_myanimelist(title)
+        if not myanime_item:
             continue
-        else:
-            collected_aitems = sorted(collected_aitems)
-            _, _, _, _, myanime_item = collected_aitems[0]
-            logging.info(f'Found on myanimelist: {myanime_item["url"]!r} ...')
 
         vs = []
         search_query_text = f'subsplease {_name_safe(title)} 1080p mkv'
