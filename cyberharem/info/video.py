@@ -44,14 +44,14 @@ def get_available_animes():
     ))
 
     df_src_to_download = df_src[
-        (df_src['subsplease_seeders_std75'] >= 30) &
+        (df_src['nyaasi_seeders_std75'] >= 30) &
         (~df_src['airing']) &
-        (df_src['subsplease_episodes'] >= 8) &
+        (df_src['nyaasi_episodes'] >= 8) &
         (df_src['episodes'] >= 8) &
         (~df_src['id'].isin(df_dst['id']))
         ]
     df_src_to_download = df_src_to_download.sort_values(
-        by=['subsplease_downloads_avg', 'id'], ascending=[False, False])
+        by=['nyaasi_downloads_avg', 'id'], ascending=[False, False])
     return df_src_to_download
 
 
@@ -248,7 +248,7 @@ def make_bangumibase(anime_id, force_remake: bool = False, min_size: int = 320, 
 
 def prepare_task_list():
     df = get_available_animes()
-    df = df.sort_values(by=['subsplease_seeders_std75', 'id'], ascending=[True, True])
+    df = df.sort_values(by=['nyaasi_seeders_std75', 'id'], ascending=[True, True])
     anime_ids = []
     for item in tqdm(df.to_dict('records'), desc='Preparing'):
         logging.info(f'Preparing for {item["id"]!r} ({item["title"]!r}) ...')

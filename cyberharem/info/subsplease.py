@@ -110,26 +110,26 @@ if __name__ == '__main__':
 
             'subsplease_title': title,
             'subsplease_url': url,
-            'subsplease_episodes': len(vdf),
-            'subsplease_seeders_std75': np.percentile(vdf['seeders'], 25).item(),
-            'subsplease_seeders_avg': np.mean(vdf['seeders']).item(),
-            'subsplease_downloads_avg': np.mean(vdf['downloads']).item(),
+            'nyaasi_episodes': len(vdf),
+            'nyaasi_seeders_std75': np.percentile(vdf['seeders'], 25).item(),
+            'nyaasi_seeders_avg': np.mean(vdf['seeders']).item(),
+            'nyaasi_downloads_avg': np.mean(vdf['downloads']).item(),
         }
         episodes.extend(vs)
         animes.append(aitem)
 
     df_episodes = pd.DataFrame(episodes)
     df_animes = pd.DataFrame(animes)
-    df_animes = df_animes.sort_values(by=['subsplease_seeders_std75', 'id'], ascending=[False, False])
+    df_animes = df_animes.sort_values(by=['nyaasi_seeders_std75', 'id'], ascending=[False, False])
     df_animes = df_animes.replace(np.NaN, None)
 
     logging.info(f'Episodes:\n{df_episodes}')
     logging.info(f'Animes:\n{df_animes}')
 
-    df_animes_x = df_animes[(df_animes['subsplease_seeders_std75'] >= 15) & ~df_animes['airing']]
-    df_animes_x = df_animes_x.sort_values(by=['subsplease_downloads_avg', 'id'], ascending=[False, False])
-    df_animes_xs = df_animes_x[['id', 'title', 'episodes', 'subsplease_episodes', 'airing', 'status',
-                                'subsplease_seeders_std75', 'subsplease_downloads_avg']]
+    df_animes_x = df_animes[(df_animes['nyaasi_seeders_std75'] >= 15) & ~df_animes['airing']]
+    df_animes_x = df_animes_x.sort_values(by=['nyaasi_downloads_avg', 'id'], ascending=[False, False])
+    df_animes_xs = df_animes_x[['id', 'title', 'episodes', 'nyaasi_episodes', 'airing', 'status',
+                                'nyaasi_seeders_std75', 'nyaasi_downloads_avg']]
     logging.info(f'Available animes:\n{df_animes_xs}')
 
     with TemporaryDirectory() as td:
@@ -180,7 +180,7 @@ if __name__ == '__main__':
                     print(eitem['magnet_url'], file=f)
             magnet_url = hf_hub_url(repo_id=repository, repo_type='dataset', filename=os.path.relpath(magnet_file, td))
 
-            seeders = int(round(aitem['subsplease_seeders_std75']))
+            seeders = int(round(aitem['nyaasi_seeders_std75']))
             if seeders >= 80:
                 seeders_md = f'**{seeders}**'
             elif seeders >= 15:
@@ -193,13 +193,13 @@ if __name__ == '__main__':
                 'Post': post_md,
                 'Bangumi': f'[{safe_bangumi_name}]({aitem["subsplease_url"]})',
                 'Type': aitem['type'],
-                'Episodes': f'{aitem["subsplease_episodes"]} / {int(aitem["episodes"]) if aitem["episodes"] else "?"}',
+                'Episodes': f'{aitem["nyaasi_episodes"]} / {int(aitem["episodes"]) if aitem["episodes"] else "?"}',
                 'Status': aitem['status'] if aitem['airing'] else f'**{aitem["status"]}**',
                 'Score': aitem['score'],
                 'Nyaasi': f'[Search]({nyaasi_url})',
                 'Magnets': f'[Download]({magnet_url})',
                 'Seeds': seeders_md,
-                'Downloads': int(round(aitem['subsplease_downloads_avg'])),
+                'Downloads': int(round(aitem['nyaasi_downloads_avg'])),
                 'Updated At': last_updated,
             })
         df_l_shown = pd.DataFrame(l_shown)
