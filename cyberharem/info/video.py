@@ -267,6 +267,30 @@ def prepare_task_list():
         json.dump(anime_ids, f, ensure_ascii=False, sort_keys=True, indent=4)
 
 
+def prepare_refresh_list():
+    _task_list_file = os.path.join(_ANIME_ROOT, 'task_list.json')
+    if os.path.exists(_task_list_file):
+        with open(_task_list_file, 'r') as f:
+            anime_ids = json.load(f)
+    else:
+        anime_ids = []
+
+    retval = []
+    for anime_id in tqdm(anime_ids, desc='Preparing'):
+        logging.info(f"Preparing for {anime_id!r} ...")
+        workspace, meta, status = get_workspace_info(anime_id)
+        if status != 'completed':
+            retval.append(anime_id)
+        else:
+            logging.info(f"Anime {anime_id} already completed, skipped.")
+
+    if os.path.dirname(_task_list_file):
+        os.makedirs(os.path.dirname(_task_list_file), exist_ok=True)
+    logging.info(f'Saving to task list {_task_list_file} ...')
+    with open(_task_list_file, 'w') as f:
+        json.dump(retval, f, ensure_ascii=False, sort_keys=True, indent=4)
+
+
 def get_task_list():
     _task_list_file = os.path.join(_ANIME_ROOT, 'task_list.json')
     logging.info(f'Loading task list {_task_list_file} ...')
@@ -287,6 +311,12 @@ def cli():
 def list_():
     logging.try_init_root(logging.INFO)
     prepare_task_list()
+
+
+@cli.command('relist', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Make task list')
+def relist_():
+    logging.try_init_root(logging.INFO)
+    prepare_refresh_list()
 
 
 @cli.command('extract', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Make task list')
