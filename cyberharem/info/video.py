@@ -252,8 +252,11 @@ def prepare_task_list():
     anime_ids = []
     for item in tqdm(df.to_dict('records'), desc='Preparing'):
         logging.info(f'Preparing for {item["id"]!r} ({item["title"]!r}) ...')
-        get_workspace_info(item['id'])
-        anime_ids.append(item['id'])
+        workspace, meta, status = get_workspace_info(item['id'])
+        if  status != 'completed':
+            anime_ids.append(item['id'])
+        else:
+            logging.info(f'Anime {item["id"]} already completed, skipped.')
 
     _task_list_file = os.path.join(_ANIME_ROOT, 'task_list.json')
     if os.path.dirname(_task_list_file):
