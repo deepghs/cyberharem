@@ -177,17 +177,18 @@ def download_anime_videos(anime_id: int, min_video_files: int = 4, seed_minutes:
                 else:
                     logging.warning(f'Completed download, but exit {process.returncode}.')
 
-            seed_command = [_ARIA2C, f'--seed-time={download_minutes}', '-i', magnet_file, '-j', str(magnet_count)]
-            logging.info(f'Seeding resource for {plural_word(download_minutes, "minute")}, '
-                         f'with command: {seed_command!r} ...')
-            devnull = open(os.devnull, 'w')
-            process = subprocess.Popen(
-                seed_command,
-                stdout=devnull,
-                stderr=devnull,
-                start_new_session=True
-            )
-            logging.info(f'Seeding process started, pid: {process} ...')
+            # seed_command = [_ARIA2C, f'--seed-time={download_minutes}', '-i', magnet_file, '-j', str(magnet_count)]
+            # logging.info(f'Seeding resource for {plural_word(download_minutes, "minute")}, '
+            #              f'with command: {seed_command!r} ...')
+            # devnull = open(os.devnull, 'w')
+            # process = subprocess.Popen(
+            #     seed_command,
+            #     stdout=devnull,
+            #     stderr=devnull,
+            #     start_new_session=True,
+            #     cwd=cwd,
+            # )
+            # logging.info(f'Seeding process started, pid: {process} ...')
 
             video_files = []
             for root, _, files in os.walk(cwd):
@@ -253,7 +254,7 @@ def prepare_task_list():
     for item in tqdm(df.to_dict('records'), desc='Preparing'):
         logging.info(f'Preparing for {item["id"]!r} ({item["title"]!r}) ...')
         workspace, meta, status = get_workspace_info(item['id'])
-        if  status != 'completed':
+        if status != 'completed':
             anime_ids.append(item['id'])
         else:
             logging.info(f'Anime {item["id"]} already completed, skipped.')
