@@ -44,7 +44,7 @@ def get_available_animes():
     ))
 
     df_src_to_download = df_src[
-        (df_src['nyaasi_seeders_std75'] >= 30) &
+        (df_src['nyaasi_seeders_std75'] >= 25) &
         (~df_src['airing']) &
         (df_src['nyaasi_episodes'] >= 8) &
         (df_src['episodes'] >= 8) &
