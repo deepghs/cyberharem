@@ -77,7 +77,6 @@ if __name__ == '__main__':
 
     episodes = []
     animes = []
-
     for ei, (title, url) in tqdm(list(enumerate(_iter_amimes())), desc='All Animes'):
         logging.info(f'Anime {title!r}, homepage url: {url!r} ...')
 
@@ -262,4 +261,5 @@ if __name__ == '__main__':
             message=f'Sync {plural_word(len(df_animes), "anime")}, '
                     f'with {plural_word(len(df_episodes), "episode")}',
             clear=True,
+            operation_chunk_size=500,
         )
