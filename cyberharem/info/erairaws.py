@@ -17,7 +17,7 @@ from pyquery import PyQuery as pq
 from tqdm import tqdm
 
 from .myanimelist import search_from_myanimelist
-from ..dataset.video.bangumibase import hf_client
+from ..dataset.video.bangumibase import hf_client, hf_fs
 from ..utils import get_requests_session, download_file, number_to_tag, srequest
 
 logging.try_init_root(logging.INFO)
@@ -74,6 +74,14 @@ if __name__ == '__main__':
     repository = 'deepghs/erairaws_animes'
     if not hf_client.repo_exists(repo_id=repository, repo_type='dataset'):
         hf_client.create_repo(repo_id=repository, repo_type='dataset')
+        attr_lines = hf_fs.read_text(f'datasets/{repository}/.gitattributes').splitlines(keepends=False)
+        attr_lines.append('*.json filter=lfs diff=lfs merge=lfs -text')
+        attr_lines.append('*.csv filter=lfs diff=lfs merge=lfs -text')
+        attr_lines.append('magnets/*.txt filter=lfs diff=lfs merge=lfs -text')
+        hf_fs.write_text(
+            f'datasets/{repository}/.gitattributes',
+            os.linesep.join(attr_lines),
+        )
 
     episodes = []
     animes = []
@@ -261,5 +269,5 @@ if __name__ == '__main__':
             message=f'Sync {plural_word(len(df_animes), "anime")}, '
                     f'with {plural_word(len(df_episodes), "episode")}',
             clear=True,
-            operation_chunk_size=500,
+            # operation_chunk_size=500,
         )
