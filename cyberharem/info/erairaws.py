@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     episodes = []
     animes = []
-    for ei, (title, url) in tqdm(list(enumerate(_iter_amimes()))[:100], desc='All Animes'):
+    for ei, (title, url) in tqdm(list(enumerate(_iter_amimes()))[:500], desc='All Animes'):
         logging.info(f'Anime {title!r}, homepage url: {url!r} ...')
 
         myanime_item = search_from_myanimelist(title)
