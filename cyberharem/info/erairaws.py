@@ -252,11 +252,13 @@ if __name__ == '__main__':
             print(f'## Current Animes', file=f)
             print('', file=f)
             current_time = datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+            df_l_shown_x = df_l_shown[:500]
             print(f'{plural_word(len(df_animes), "anime")}, '
                   f'{plural_word(len(df_episodes), "episode")} in total, '
+                  f'{plural_word(len(df_l_shown_x), "anime")} shown, '
                   f'Last updated on: `{current_time}`.', file=f)
             print('', file=f)
-            print(df_l_shown.to_markdown(index=False), file=f)
+            print(df_l_shown_x.to_markdown(index=False), file=f)
             print('', file=f)
 
         os.system(f'tree {td!r}')
@@ -269,5 +271,5 @@ if __name__ == '__main__':
             message=f'Sync {plural_word(len(df_animes), "anime")}, '
                     f'with {plural_word(len(df_episodes), "episode")}',
             clear=True,
-            # operation_chunk_size=500,
+            # operation_chunk_size=300,
         )
