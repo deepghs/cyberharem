@@ -47,13 +47,19 @@ def search_from_myanimelist(title: str):
         ) / 100.0
         if max_partial_ratio > 0.9:
             collected_aitems.append((
-                -max_partial_ratio, -max_ratio, type_map[pyaitem['type'].lower()], i, pyaitem))
+                -(max_partial_ratio + max_ratio) / 2,
+                -max_partial_ratio,
+                -max_ratio,
+                type_map[pyaitem['type'].lower()],
+                i, pyaitem
+            ))
+            print((-max_partial_ratio, -max_ratio, type_map[pyaitem['type'].lower()], i, pyaitem['title']))
 
     if not collected_aitems:
         logging.warning('No information found on myanime list, skipped.')
         return None
     else:
         collected_aitems = sorted(collected_aitems)
-        _, _, _, _, myanime_item = collected_aitems[0]
+        _, _, _, _, _, myanime_item = collected_aitems[0]
         logging.info(f'Found on myanimelist: {myanime_item["url"]!r} ...')
         return myanime_item
