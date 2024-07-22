@@ -35,7 +35,7 @@ def _get_all_animes():
     ))
 
 
-def get_available_animes():
+def get_available_animes(min_std75: int = 25):
     df_src = _get_all_animes()
     df_dst = pd.read_parquet(hf_hub_download(
         repo_id='BangumiBase/README',
@@ -44,7 +44,7 @@ def get_available_animes():
     ))
 
     df_src_to_download = df_src[
-        (df_src['nyaasi_seeders_std75'] >= 25) &
+        (df_src['nyaasi_seeders_std75'] >= min_std75) &
         (~df_src['airing']) &
         (df_src['nyaasi_episodes'] >= 8) &
         (df_src['episodes'] >= 8) &
@@ -247,8 +247,8 @@ def make_bangumibase(anime_id, force_remake: bool = False, min_size: int = 320, 
     logging.info('Extraction complete!')
 
 
-def prepare_task_list():
-    df = get_available_animes()
+def prepare_task_list(min_std75: int = 25):
+    df = get_available_animes(min_std75=min_std75)
     df = df.sort_values(by=['nyaasi_seeders_std75', 'id'], ascending=[True, True])
     anime_ids = []
     for item in tqdm(df.to_dict('records'), desc='Preparing'):
@@ -308,9 +308,11 @@ def cli():
 
 
 @cli.command('list', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Make task list')
-def list_():
+@click.option('-n', '--min_std75', 'min_std75', type=int, default=25,
+              help='Min std75 value of the animes.', show_default=True)
+def list_(min_std75: int):
     logging.try_init_root(logging.INFO)
-    prepare_task_list()
+    prepare_task_list(min_std75=min_std75)
 
 
 @cli.command('relist', context_settings={**GLOBAL_CONTEXT_SETTINGS}, help='Make task list')
