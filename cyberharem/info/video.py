@@ -253,6 +253,8 @@ def prepare_task_list(min_std75: int = 25):
     df = df.sort_values(by=['nyaasi_seeders_std75', 'id'], ascending=[True, True])
     anime_ids = []
     for item in tqdm(df.to_dict('records'), desc='Preparing'):
+        if item['id'] in anime_ids:
+            continue
         logging.info(f'Preparing for {item["id"]!r} ({item["title"]!r}) ...')
         workspace, meta, status = get_workspace_info(item['id'])
         if status != 'completed':
