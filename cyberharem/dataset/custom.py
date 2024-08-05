@@ -1,10 +1,15 @@
 import os
+from functools import lru_cache
 from typing import Optional
 
 from ditk import logging
+from hbutils.collection import unique
+from hbutils.string import titleize
 from waifuc.source import DanbooruSource, AnimePicturesSource, ZerochanSource, EmptySource, GelbooruSource
 
+from cyberharem.dataset.video.crawler import _get_alias_tags
 from cyberharem.utils import get_global_namespace
+from run_scripts.character_index import get_copyrights
 from .crawler import crawl_dataset_to_huggingface
 
 logging.try_init_root(logging.INFO)
@@ -12,7 +17,28 @@ logger = logging.getLogger("pyrate_limiter")
 logger.disabled = True
 
 
-def crawl_with_tags(name: str, display_name: str, repo_id: str, repo_type: str = 'dataset', revision: str = 'main',
+@lru_cache()
+def _get_copyright(tag: str) -> Optional[str]:
+    copyrights = get_copyrights(tag)
+    if copyrights:
+        return copyrights[0]
+    else:
+        return None
+
+
+def get_display_name_by_dbtag(tag: str) -> str:
+    prefix = '_('.join(tag.split('_(')[:-1]).strip('_').strip()
+    tags = [titleize(prefix), *_get_alias_tags(tag)]
+    tags = list(unique(tags))
+    copyright = _get_copyright(tag)
+    name = '/'.join(tags)
+    if copyright:
+        name = f'{name} ({titleize(copyright)})'
+    return name
+
+
+def crawl_with_tags(name: str, display_name: Optional[str], repo_id: str,
+                    repo_type: str = 'dataset', revision: str = 'main',
                     ap_tag: Optional[str] = None, zc_tag: Optional[str] = None, db_tag: Optional[str] = None,
                     gel_tag: Optional[str] = None,
                     drop_multi: bool = False, limit: Optional[int] = 500, private: bool = False):
@@ -38,6 +64,8 @@ def crawl_with_tags(name: str, display_name: str, repo_id: str, repo_type: str =
 
     source = stage1 + stage2
 
+    if not display_name and db_tag:
+        display_name = display_name or get_display_name_by_dbtag(db_tag)
     crawl_dataset_to_huggingface(
         source=source,
         repository=repo_id,

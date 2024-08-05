@@ -30,10 +30,11 @@ def _get_alias_tags(tag) -> List[str]:
     resp = session.get(f'https://danbooru.donmai.us/wiki_pages/{tag}.json')
     other_names = list(resp.json().get('other_names') or [])
 
+    exist_other_names = set(other_names)
     exist_names = []
     for name in other_names:
-        name = re.sub(r'\([^)]+\)', '', name)
-        if name not in exist_names:
+        prefix = re.sub(r'\([^)]+\)', '', name)
+        if name not in exist_names and (prefix == name or prefix not in exist_other_names):
             exist_names.append(name)
 
     res = []
