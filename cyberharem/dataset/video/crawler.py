@@ -21,7 +21,7 @@ from ...utils import download_file, get_hf_fs, get_global_namespace
 @lru_cache()
 def _db_session():
     s = DanbooruSource(['solo'])
-    s._refresh_session()
+    s._prune_session()
     return s.session
 
 
