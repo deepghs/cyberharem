@@ -51,11 +51,6 @@ def _extract_features_from_directory(dataset_dir):
     return np.stack(features)
 
 
-_DEFAULT_PLS = {
-    'head': 1.7,
-}
-
-
 @contextmanager
 def load_train_dataset(
         repo_id: str, prefix_tags: List[str] = None,
