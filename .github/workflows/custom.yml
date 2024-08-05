@@ -14,7 +14,7 @@ on:
       display_name:
         description: 'Display Name'
         type: string
-        required: true
+        default: ''
       ap_tag:
         description: 'Anime-Pictures Tag'
         type: string
