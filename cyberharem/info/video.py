@@ -339,6 +339,7 @@ def extract():
             download_anime_videos(anime_id)
         except ValueError as err:
             logging.info(f'Download error - {err!r}.')
+            continue
         make_bangumibase(anime_id, all_frames=True, max_images_limit=35000)
 
 
