@@ -1,5 +1,6 @@
 # CyberHarem
 
+[![Discord](https://img.shields.io/discord/1157587327879745558?style=social&logo=discord&link=https%3A%2F%2Fdiscord.gg%2FTwdHJ42N72)](https://discord.gg/TwdHJ42N72)
 ![GitHub Org's stars](https://img.shields.io/github/stars/deepghs)
 [![GitHub stars](https://img.shields.io/github/stars/deepghs/cyberharem)](https://github.com/deepghs/cyberharem/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/deepghs/cyberharem)](https://github.com/deepghs/cyberharem/network)
