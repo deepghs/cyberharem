@@ -6,8 +6,8 @@ permissions:
 on:
   #  push:
   workflow_dispatch:
-  schedule:
-    - cron: '30 */6 * * *'
+#  schedule:
+#    - cron: '30 */6 * * *'
 
 jobs:
   bangumibase_sync:
