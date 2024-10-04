@@ -94,6 +94,9 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
             rows, total_images, total_clusters, total_animes = [], 0, 0, 0
             data_rows = []
             for item in tqdm(list(hf_client.list_datasets(author=get_global_bg_namespace()))):
+                if item.private:
+                    logging.info(f'Repo {item.id!r} is private, skipped.')
+                    continue
                 if not hf_fs.exists(f'datasets/{item.id}/meta.json'):
                     logging.info(f'No meta information found for {item.id!r}, skipped')
                     continue
