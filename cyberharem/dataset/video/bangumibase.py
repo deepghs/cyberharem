@@ -166,8 +166,8 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
 
                 ## What is this?
 
-                This is a data hub utilized by the [DeepGHS team](https://huggingface.co/deepghs) for processing 
-                anime series (in video format, including TV, OVA, movies, etc.).
+                # This is a data hub utilized by the [DeepGHS team](https://huggingface.co/deepghs) for processing 
+                # anime series (in video format, including TV, OVA, movies, etc.).
 
                 After downloading anime videos to our GPU cluster, we employ various computer vision algorithms to 
                 extract frames, crop, and **cluster them based on character features**. These processed frames are 
