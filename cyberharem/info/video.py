@@ -162,7 +162,7 @@ def download_anime_videos(anime_id: int, min_video_files: int = 4, seed_minutes:
             process = subprocess.run(
                 commands, cwd=cwd,
                 env={
-                    **os.environ,
+                    **{key:value for key, value in os.environ if not key.startswith('LD_')},
                     'COLUMNS': str(terminal_size.columns),
                     'LINES': str(terminal_size.lines),
                 },
