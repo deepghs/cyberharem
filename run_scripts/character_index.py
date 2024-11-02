@@ -294,6 +294,8 @@ def run_it(repository: str, max_cnt: int, max_time_limit: float = 340 * 60, craw
             with open(os.path.join(upload_dir, 'README.md'), 'w') as f:
                 print('---', file=f)
                 print('license: mit', file=f)
+                print('tags:', file=f)
+                print('- not-for-all-audiences', file=f)
                 print('---', file=f)
                 print('', file=f)
 
