@@ -39,7 +39,7 @@ def _get_df_tags():
     ))
     df = df[df['category'] == 4]
     df = df.sort_values(['post_count'], ascending=False)
-    df = df[df['post_count'] >= 500]
+    df = df[df['post_count'] >= 300]
     return df
 
 
