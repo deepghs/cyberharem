@@ -108,7 +108,7 @@ def sync(repository: str):
             continue
 
         collected_nyaasi_ids = set()
-        for episode_item in full_item['episode']:
+        for episode_item in full_item['subsplease']['episode']:
             for ditem in episode_item['downloads']:
                 torrent_url = ditem['torrent']
                 assert urlsplit(torrent_url).path_segments[1] == 'view'
