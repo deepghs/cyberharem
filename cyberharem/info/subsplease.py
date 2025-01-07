@@ -2,6 +2,7 @@ import datetime
 import os.path
 import re
 from dataclasses import asdict
+from functools import lru_cache
 from urllib.parse import urljoin, quote_plus
 
 import numpy as np
@@ -9,27 +10,58 @@ import pandas as pd
 import requests
 from ditk import logging
 from hbutils.string import plural_word
-from hbutils.system import TemporaryDirectory
+from hbutils.system import TemporaryDirectory, urlsplit
 from hfutils.operate import upload_directory_as_directory
 from huggingface_hub import hf_hub_url
+from pyanimeinfo.myanimelist import JikanV4Client
 from pynyaasi.nyaasi import NyaaSiClient
 from pyquery import PyQuery as pq
 from tqdm import tqdm
 
-from .myanimelist import search_from_myanimelist
 from ..dataset.video.bangumibase import hf_client
-from ..utils import get_requests_session, download_file, number_to_tag
+from ..utils import get_requests_session, download_file, number_to_tag, get_hf_client
 
-logging.try_init_root(logging.INFO)
 session = get_requests_session()
 
 resp = session.get('https://subsplease.org/shows/')
 page = pq(resp.text)
 nyaasi_client = NyaaSiClient()
+jikan_client = JikanV4Client()
 
 
 def _name_safe(name_text):
     return re.sub(r'[\W_]+', ' ', name_text).strip(' ')
+
+
+@lru_cache()
+def _get_info_mal():
+    hf_client = get_hf_client()
+    df = pd.read_parquet(hf_client.hf_hub_download(
+        repo_id='deepghs/subsplease_mal',
+        repo_type='dataset',
+        filename='table.parquet'
+    )).replace(np.nan, None)
+    df = df[~df['mal_id'].isnull()]
+    df['mal_id'] = df['mal_id'].map(int)
+    return {
+        item['page_id']: {
+            'mal_id': item['mal_id'],
+            'subsplease': {
+                'batch': item['subsplease_batch'],
+                'episode': item['subsplease_episode'],
+            }
+        } for item in df.to_dict('records')
+    }
+
+
+def _get_info_from_mal_repo(page_id: str):
+    mal = _get_info_mal()
+    if page_id in mal:
+        v = mal[page_id]
+        mal_info = jikan_client.get_anime_full(v['mal_id'])
+        return {**v, 'mal': mal_info}
+    else:
+        return None
 
 
 def _get_url_from_small_dict(dict_: dict):
@@ -52,8 +84,7 @@ def _get_image_url(image_dict: dict):
         return None
 
 
-if __name__ == '__main__':
-    repository = 'deepghs/subsplease_animes'
+def sync(repository: str):
     if not hf_client.repo_exists(repo_id=repository, repo_type='dataset'):
         hf_client.create_repo(repo_id=repository, repo_type='dataset')
 
@@ -66,7 +97,13 @@ if __name__ == '__main__':
         title = show_item('a').text().strip()
         logging.info(f'Anime {title!r}, homepage url: {url!r} ...')
 
-        myanime_item = search_from_myanimelist(title)
+        assert urlsplit(url).path_segments[1] == 'shows'
+        page_id = urlsplit(url).path_segments[2]
+
+        full_item = _get_info_from_mal_repo(page_id)
+        if not full_item:
+            continue
+        myanime_item = full_item['mal']
         if not myanime_item:
             continue
 
@@ -248,3 +285,10 @@ if __name__ == '__main__':
                     f'with {plural_word(len(df_episodes), "episode")}',
             clear=True,
         )
+
+
+if __name__ == '__main__':
+    logging.try_init_root(logging.INFO)
+    sync(
+        repository='deepghs/subsplease_animes',
+    )
