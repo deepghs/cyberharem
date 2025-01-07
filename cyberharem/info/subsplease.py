@@ -262,6 +262,7 @@ def sync(repository: str):
                 'Updated At': last_updated,
             })
         df_l_shown = pd.DataFrame(l_shown)
+        df_l_shown = df_l_shown.replace(np.nan, 'N/A')
 
         with open(os.path.join(td, 'README.md'), 'w') as f:
             print('---', file=f)
