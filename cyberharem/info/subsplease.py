@@ -193,7 +193,7 @@ def sync(repository: str):
         l_shown = []
         for aitem in tqdm(df_animes.to_dict('records'), desc='Dump Items'):
             logging.info(f'Making item for {aitem["id"]}, title: {aitem["title"]!r} ...')
-            safe_bangumi_name = aitem['title'].replace('`', ' ').replace('[', '(').replace(']', ')')
+            safe_bangumi_name = aitem['subsplease_title'].replace('`', ' ').replace('[', '(').replace(']', ')')
             search_query_text = f'subsplease {_name_safe(aitem["subsplease_title"])} 1080p mkv'
             nyaasi_url = f'https://nyaa.si/?f=0&c=1_0&q={quote_plus(search_query_text)}'
 
