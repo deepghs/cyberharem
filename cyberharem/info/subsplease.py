@@ -1,6 +1,8 @@
 import datetime
 import os.path
 import re
+import time
+import warnings
 from dataclasses import asdict
 from functools import lru_cache
 from urllib.parse import urljoin, quote_plus
@@ -16,6 +18,7 @@ from huggingface_hub import hf_hub_url
 from pyanimeinfo.myanimelist import JikanV4Client
 from pynyaasi.nyaasi import NyaaSiClient
 from pyquery import PyQuery as pq
+from requests import HTTPError
 from tqdm import tqdm
 
 from ..dataset.video.bangumibase import hf_client
@@ -58,7 +61,17 @@ def _get_info_from_mal_repo(page_id: str):
     mal = _get_info_mal()
     if page_id in mal:
         v = mal[page_id]
-        mal_info = jikan_client.get_anime_full(v['mal_id'])
+        while True:
+            try:
+                mal_info = jikan_client.get_anime_full(v['mal_id'])
+            except HTTPError as err:
+                if err.response.status_code == 429:
+                    warnings.warn(f'429 error detected: {err!r}, wait for some seconds ...')
+                    time.sleep(5.0)
+                else:
+                    raise
+            else:
+                break
         return {**v, 'mal': mal_info}
     else:
         return None
