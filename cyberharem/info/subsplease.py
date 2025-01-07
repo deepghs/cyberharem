@@ -86,7 +86,7 @@ def _get_image_url(image_dict: dict):
 
 def sync(repository: str):
     if not hf_client.repo_exists(repo_id=repository, repo_type='dataset'):
-        hf_client.create_repo(repo_id=repository, repo_type='dataset')
+        hf_client.create_repo(repo_id=repository, repo_type='dataset', exist_ok=True)
 
     episodes = []
     animes = []
@@ -107,14 +107,23 @@ def sync(repository: str):
         if not myanime_item:
             continue
 
-        vs = []
+        collected_nyaasi_ids = set()
+        for episode_item in full_item['episode']:
+            for ditem in episode_item['downloads']:
+                torrent_url = ditem['torrent']
+                assert urlsplit(torrent_url).path_segments[1] == 'view'
+                nyaasi_id = int(urlsplit(torrent_url).path_segments[2])
+                collected_nyaasi_ids.add(nyaasi_id)
+
         search_query_text = f'subsplease {_name_safe(title)} 1080p mkv'
         logging.info(f'Searching from nyaasi with query text - {search_query_text!r} ...')
+        vs = []
         for item in nyaasi_client.iter_items(search_query_text):
             ditem = asdict(item)
-            if ditem['category']:
-                ditem['category'] = ditem['category'].name
-            vs.append({'anime_id': myanime_item['mal_id'], **ditem})
+            if ditem['id'] in collected_nyaasi_ids:
+                if ditem['category']:
+                    ditem['category'] = ditem['category'].name
+                vs.append({'anime_id': myanime_item['mal_id'], **ditem})
         vdf = pd.DataFrame(vs)
         logging.info(f'{plural_word(len(vdf), "episode")} found in nyaasi')
         if not len(vdf) > 0:
