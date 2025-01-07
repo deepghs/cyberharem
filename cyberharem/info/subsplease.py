@@ -91,7 +91,7 @@ def sync(repository: str):
     episodes = []
     animes = []
 
-    for ei, show_item in tqdm(list(enumerate(page('#main .all-shows .all-shows-link').items()))[:10],
+    for ei, show_item in tqdm(list(enumerate(page('#main .all-shows .all-shows-link').items()))[:],
                               desc='All Animes'):
         url = urljoin(resp.url, show_item('a').attr('href'))
         title = show_item('a').text().strip()
@@ -299,5 +299,5 @@ def sync(repository: str):
 if __name__ == '__main__':
     logging.try_init_root(logging.INFO)
     sync(
-        repository='deepghs/subsplease_animes_x',
+        repository='deepghs/subsplease_animes',
     )
