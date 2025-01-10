@@ -1,5 +1,6 @@
 import re
 from functools import partial
+from typing import Optional
 
 import click
 from ditk import logging
@@ -42,8 +43,10 @@ def cli():
               help='Extract all frames, not only key frames.', show_default=True)
 @click.option('--max_images_limit', 'max_images_limit', type=int, default=50000,
               help='Max images limit, to prevent OOM.', show_default=True)
+@click.option('--mal_id', 'mal_id', type=int, default=None,
+              help='MAL Anime ID.', show_default=True)
 def huggingface(video_or_directory: str, bangumi_name: str,
-                repository: str, revision: str = 'main', min_size: int = 320,
+                repository: str, revision: str = 'main', min_size: int = 320, mal_id: Optional[int] = None,
                 no_extract: bool = False, max_images_limit: int = 50000, all_frames: bool = False):
     logging.try_init_root(logging.INFO)
     rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))
@@ -53,6 +56,7 @@ def huggingface(video_or_directory: str, bangumi_name: str,
         no_extract=no_extract, min_size=min_size,
         max_images_limit=max_images_limit,
         all_frames=all_frames,
+        myanimelist_id=mal_id,
     )
 
 
