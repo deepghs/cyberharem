@@ -1225,3 +1225,4 @@ fabric.properties
 /.env*
 /loras
 /animes
+*.onnx
