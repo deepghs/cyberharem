@@ -109,8 +109,8 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
                         repo_id=item.id,
                         repo_type='dataset',
                         filename='meta.json',
-                ), 'r') as f:
-                    meta = json.load(f)
+                ), 'r') as mf:
+                    meta = json.load(mf)
                 bangumi_name = meta['name']
                 safe_bangumi_name = bangumi_name.replace('`', ' ').replace('[', '(').replace(']', ')')
                 suffix = item.id.split('/')[-1]
