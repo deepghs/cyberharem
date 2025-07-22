@@ -97,11 +97,20 @@ def sync_bangumi_base(repository: str = f'{get_global_bg_namespace()}/README'):
                 if item.private:
                     logging.info(f'Repo {item.id!r} is private, skipped.')
                     continue
-                if not hf_fs.exists(f'datasets/{item.id}/meta.json'):
+                if not hf_client.file_exists(
+                        repo_id=item.id,
+                        repo_type='dataset',
+                        filename='meta.json',
+                ):
                     logging.info(f'No meta information found for {item.id!r}, skipped')
                     continue
 
-                meta = json.loads(hf_fs.read_text(f'datasets/{item.id}/meta.json'))
+                with open(hf_client.hf_hub_download(
+                        repo_id=item.id,
+                        repo_type='dataset',
+                        filename='meta.json',
+                ), 'r') as f:
+                    meta = json.load(f)
                 bangumi_name = meta['name']
                 safe_bangumi_name = bangumi_name.replace('`', ' ').replace('[', '(').replace(']', ')')
                 suffix = item.id.split('/')[-1]
