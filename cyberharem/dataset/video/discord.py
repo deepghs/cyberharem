@@ -19,7 +19,7 @@ from waifuc.action import FilterAction, RatingFilterAction, AlignMaxAreaAction
 from waifuc.model import ImageItem
 from waifuc.source import LocalSource
 
-from ...utils import get_hf_fs, download_file
+from ...utils import get_hf_fs, download_file, get_hf_client
 from ...utils.ghaction import GithubActionClient
 
 
@@ -45,7 +45,14 @@ def send_discord_publish_to_github_action(repository: str):
 
 def publish_to_discord(repository: str, max_cnt: int = 30):
     hf = get_hf_fs()
-    meta_info = json.loads(hf.read_text(f'datasets/{repository}/meta.json'))
+    hf_client = get_hf_client()
+    # meta_info = json.loads(hf.read_text(f'datasets/{repository}/meta.json'))
+    with open(hf_client.hf_hub_download(
+            repo_id=repository,
+            repo_type='dataset',
+            filename='meta.json',
+    )) as f:
+        meta_info = json.load(f)
 
     ids = meta_info['ids']
     char_list = []
