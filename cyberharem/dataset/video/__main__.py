@@ -49,7 +49,7 @@ def huggingface(video_or_directory: str, bangumi_name: str,
                 repository: str, revision: str = 'main', min_size: int = 320, mal_id: Optional[int] = None,
                 no_extract: bool = False, max_images_limit: int = 50000, all_frames: bool = False):
     logging.try_init_root(logging.INFO)
-    rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))
+    rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))[:95]
     repository = repository or f"{get_global_bg_namespace()}/{rname}"
     extract_to_huggingface(
         video_or_directory, bangumi_name, repository, revision,

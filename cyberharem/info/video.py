@@ -225,7 +225,7 @@ def make_bangumibase(anime_id, force_remake: bool = False, min_size: int = 320, 
 
     logging.info(f'Workspace for anime {anime_id!r}: {workspace}')
     bangumi_name = meta['title']
-    rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))
+    rname = re.sub(r'[\W_]+', '', unidecode(bangumi_name.lower()))[:95]
     repository = f"{get_global_bg_namespace()}/{rname}"
     logging.info(f'Bangumi name: {bangumi_name!r}, repository: {repository!r}.')
     videos_dir = os.path.join(workspace, 'videos')
