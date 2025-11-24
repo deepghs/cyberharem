@@ -7,7 +7,7 @@ pillow
 numpy
 scipy
 scikit-learn
-huggingface_hub>=0.14.0
+huggingface_hub>=0.14.0,<1.0.0
 requests
 click>=7.0.0
 hbutils>=0.9.1
